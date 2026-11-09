@@ -1,0 +1,49 @@
+name: Deploy
+
+on:
+    push:
+        branches: [main]
+    # The refresh engine calls this after it commits, because pushes made with
+    # GITHUB_TOKEN do not trigger other workflows.
+    workflow_call:
+
+permissions:
+    contents: read
+    pages: write
+    id-token: write
+
+concurrency:
+    group: pages
+    cancel-in-progress: false
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v5
+              with:
+                  # On workflow_call, build the commit the engine just pushed.
+                  ref: main
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: 22
+                  cache: npm
+            - run: npm ci
+            - run: node scripts/validate-updates.mjs
+            - run: npm run build
+              env:
+                  NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
+            - run: touch out/.nojekyll
+            - uses: actions/upload-pages-artifact@v4
+              with:
+                  path: out
+
+    deploy:
+        needs: build
+        runs-on: ubuntu-latest
+        environment:
+            name: github-pages
+            url: ${{ steps.deployment.outputs.page_url }}
+        steps:
+            - id: deployment
+              uses: actions/deploy-pages@v4

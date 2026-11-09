@@ -1,0 +1,83 @@
+name: Refresh engine
+
+on:
+    schedule:
+        # Weekly full audit: Sunday 05:00 IST. IST is UTC+5:30, so this is
+        # Saturday 23:30 UTC (day-of-week 6). GitHub can run a schedule up to
+        # an hour late. The mode below keys off this exact cron string.
+        - cron: "30 23 * * 6"
+    # Manual runs: gh api repos/{owner}/{repo}/dispatches -f event_type=refresh -F client_payload[mode]=links
+    repository_dispatch:
+        types: [refresh]
+    workflow_dispatch:
+        inputs:
+            mode:
+                description: "full | links | ai"
+                default: full
+
+permissions:
+    contents: write
+
+concurrency:
+    group: refresh-engine
+    cancel-in-progress: false
+
+env:
+    CLAUDE_CODE_VERSION: 2.1.319
+    # The trigger decides the mode: the weekly cron is a full audit, manual runs choose.
+    ENGINE_MODE: ${{ github.event.schedule == '30 23 * * 6' && 'full' || github.event.client_payload.mode || github.event.inputs.mode || 'full' }}
+
+jobs:
+    refresh:
+        runs-on: ubuntu-latest
+        timeout-minutes: 40
+        outputs:
+            changed: ${{ steps.commit.outputs.changed }}
+        steps:
+            - uses: actions/checkout@v5
+            - uses: actions/setup-node@v5
+              with:
+                  node-version: 22
+
+            - name: Check every link (no AI)
+              id: links
+              run: node scripts/check-links.mjs
+
+            - name: Run the engine (Claude Code, headless)
+              if: env.ENGINE_MODE != 'links' || steps.links.outputs.broken != '0'
+              env:
+                  CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+              run: |
+                  export TODAY="$(TZ=Asia/Kolkata date +%F)"
+                  export LAST_RUN="$(node -p "require('./public/updates.json').generatedAt")"
+                  prompt="$(envsubst '$ENGINE_MODE $TODAY $LAST_RUN' < .github/prompts/refresh-engine.md)"
+                  npx -y "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" -p "$prompt" \
+                    --allowedTools "WebSearch,WebFetch,Read,Edit,Write,Grep,Glob,Bash(node scripts/validate-updates.mjs)" \
+                    --max-turns 80 --output-format text
+
+            - name: Validate feed
+              run: node scripts/validate-updates.mjs
+
+            - name: Commit the feed
+              id: commit
+              run: |
+                  # Only the feed may change; anything else means the agent went off-script.
+                  if git status --porcelain | grep -v ' public/updates.json$' | grep -v '.engine/' | grep .; then
+                    echo "Unexpected files changed"; git status --porcelain; exit 1
+                  fi
+                  if git diff --quiet -- public/updates.json; then echo "changed=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+                  git config user.name "offer-in-90 engine"
+                  git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+                  git add public/updates.json
+                  git commit -m "engine: ${ENGINE_MODE} refresh $(TZ=Asia/Kolkata date +%F)"
+                  git push origin HEAD:main
+                  echo "changed=true" >> "$GITHUB_OUTPUT"
+
+    deploy:
+        needs: refresh
+        if: needs.refresh.outputs.changed == 'true'
+        permissions:
+            contents: read
+            pages: write
+            id-token: write
+        uses: ./.github/workflows/deploy.yml
