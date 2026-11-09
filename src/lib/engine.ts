@@ -26,6 +26,8 @@ export interface UpdateItem {
 export interface UpdatesFeed { generatedAt: string; items: UpdateItem[] }
 export interface NewsItem { id: string; title: string; url: string; discussUrl?: string; source: string; points: number; comments: number; publishedAt: string; category: 'ai' | 'dev' | 'research' }
 export interface NewsFeed { generatedAt: string; days: Record<string, NewsItem[]> }
+export interface PulseCompany { company: string; reports: number; roles: string[]; loop: string; changes: string[]; questions: string[]; prep: string; confidence: 'high' | 'medium' | 'low'; citations: string[] }
+export interface PulseWeek { weekOf: string; generatedAt: string; counts: Record<string, number>; headline: string; companies: PulseCompany[] }
 
 export const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 export const parseISO = (s: string) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
@@ -139,7 +141,8 @@ function sundayBlocks(d: Day): Block[] {
       T(`${k}-m1`, recent.name, 'dsa', { url: recent.url, diff: recent.d, slug: recent.slug }), T(`${k}-m2`, old.name, 'dsa', { url: old.url, diff: old.d, slug: old.slug })];
   } else by.mock = [T(`${k}-loop`, 'Full mock loop with a peer: DSA + frontend coding + system design, 45 min each', 'dsa', { url: 'https://www.tryexponent.com/practice' })];
   by.catchup = [T(`${k}-c1`, 'Clear the catch-up list (missed tasks from this week)', 'review'), T(`${k}-c2`, 'Re-solve every flagged problem; unflag the ones you nailed', 'dsa')];
-  by.weekly = [T(`${k}-mkt`, 'Market check: read 5 new job posts for your target roles; add new skills to Job tracker', 'beh', { url: 'https://www.linkedin.com/jobs/' }),
+  by.weekly = [T(`${k}-pulse`, "Read this week's Interview pulse (News tab). Write 1 thing that changes your prep in Notes (15 min)", 'beh', { newsId: 'today' }),
+    T(`${k}-mkt`, 'Market check: read 5 new job posts for your target roles; add new skills to Job tracker', 'beh', { url: 'https://www.linkedin.com/jobs/' }),
     T(`${k}-r1`, 'Weekly reflection: what worked, what to fix (write below). Read this week\'s Updates.', 'review', { log: true })];
   by.rest = [T(`${k}-rest`, 'Take the afternoon off. Rest is part of the plan.', 'health')];
   by.review = [T(`${k}-post`, 'Optional: post one thing you built or learned this week', 'beh', { url: 'https://www.linkedin.com/' })];

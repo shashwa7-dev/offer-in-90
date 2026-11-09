@@ -43,32 +43,43 @@ jobs:
               id: links
               run: node scripts/check-links.mjs
 
+            - name: Collect this week's interview posts (no AI)
+              if: env.ENGINE_MODE == 'full'
+              env:
+                  REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+                  REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+              run: node scripts/collect-interviews.mjs
+
             - name: Run the engine (Claude Code, headless)
               if: env.ENGINE_MODE != 'links' || steps.links.outputs.broken != '0'
               env:
                   CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
               run: |
+                  # Without the token, publish the ranked threads only (no AI step).
+                  if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]; then echo "No CLAUDE_CODE_OAUTH_TOKEN secret: skipping the AI step"; exit 0; fi
                   export TODAY="$(TZ=Asia/Kolkata date +%F)"
                   export LAST_RUN="$(node -p "require('./public/updates.json').generatedAt")"
                   prompt="$(envsubst '$ENGINE_MODE $TODAY $LAST_RUN' < .github/prompts/refresh-engine.md)"
                   npx -y "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" -p "$prompt" \
-                    --allowedTools "WebSearch,WebFetch,Read,Edit,Write,Grep,Glob,Bash(node scripts/validate-updates.mjs)" \
+                    --allowedTools "WebSearch,WebFetch,Read,Edit,Write,Grep,Glob,Bash(node scripts/validate-updates.mjs),Bash(node scripts/validate-pulse.mjs)" \
                     --max-turns 80 --output-format text
 
-            - name: Validate feed
-              run: node scripts/validate-updates.mjs
+            - name: Validate feed and pulse
+              run: |
+                  node scripts/validate-updates.mjs
+                  node scripts/validate-pulse.mjs
 
             - name: Commit the feed
               id: commit
               run: |
                   # Only the feed may change; anything else means the agent went off-script.
-                  if git status --porcelain | grep -v ' public/updates.json$' | grep -v '.engine/' | grep .; then
+                  if git status --porcelain | grep -v -E ' public/(updates|pulse|interview-threads)\.json$' | grep -v '.engine/' | grep .; then
                     echo "Unexpected files changed"; git status --porcelain; exit 1
                   fi
-                  if git diff --quiet -- public/updates.json; then echo "changed=false" >> "$GITHUB_OUTPUT"; exit 0; fi
+                  if git diff --quiet -- public/updates.json public/pulse.json public/interview-threads.json; then echo "changed=false" >> "$GITHUB_OUTPUT"; exit 0; fi
                   git config user.name "offer-in-90 engine"
                   git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-                  git add public/updates.json
+                  git add public/updates.json public/pulse.json public/interview-threads.json
                   git commit -m "engine: ${ENGINE_MODE} refresh $(TZ=Asia/Kolkata date +%F)"
                   git pull --rebase origin main
                   git push origin HEAD:main

@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import { catName, fmtDate, parseISO, type NewsItem } from '@/lib/engine';
+import { InterviewPulse } from './interview-pulse';
 
 const KIND = { new: 'New', outdated: 'Outdated', changed: 'Changed' } as const;
 const PRIO = { must: 'Must-read', should: 'Worth reading', fyi: 'FYI' } as const;
@@ -50,13 +51,15 @@ export function NewsView() {
   return (
     <div className="pb-16">
       <div className="pt-6 pb-4">
-        <p className="font-mono text-xs font-semibold uppercase tracking-wider text-muted-foreground">Updated daily at 04:30 IST · Hacker News, Lobsters, HF Papers, dev.to, Simon Willison</p>
+        <p className="font-mono text-xs font-semibold uppercase tracking-wider text-muted-foreground">Interview pulse every Sunday · tech news daily</p>
         <h1 className="mt-1.5 font-display text-3xl font-bold tracking-tight sm:text-4xl">News</h1>
-        <p className="mt-1.5 max-w-2xl text-muted-foreground">At most 8 reads a day, filtered for AI and engineering, with gossip and politics left out. Skim the titles and open only the 1–2 that matter. That&apos;s the news task in your evening AI block.</p>
+        <p className="mt-1.5 max-w-2xl text-muted-foreground">On weekends: read the Interview pulse to see what candidates report about your target companies. On weekdays: skim the tech reads below and open only the 1–2 that matter.</p>
       </div>
 
+      <InterviewPulse />
+
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <H3>{latest ? `${fmtDate(parseISO(latest))} · ${news!.days[latest].length} reads` : 'Today'}</H3>
+        <H3>{latest ? `Tech reads · ${fmtDate(parseISO(latest))} · ${news!.days[latest].length}` : 'Tech reads'}</H3>
         <div className="flex gap-1">
           {(['all', 'ai', 'dev', 'research'] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)} aria-pressed={filter === f} className="rounded-md px-2.5 py-1 text-xs font-medium text-muted-foreground aria-pressed:bg-foreground aria-pressed:text-background">{f === 'all' ? 'All' : CAT[f]}</button>
