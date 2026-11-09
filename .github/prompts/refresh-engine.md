@@ -23,7 +23,7 @@ The learner reads this on the weekend. It answers: *what are candidates reportin
 1. Read every post in `.engine/interview-posts.json`.
 2. Search the web for this week's **public** posts about interview processes at these companies on LinkedIn (`site:linkedin.com/posts`), X (`site:x.com`), Reddit and news sites. Use only what search results and openly readable pages show; never log in, never scrape.
 3. For each company with **at least 2 independent reports** (or 1 official/press source), write a card. Skip companies with nothing solid.
-4. Prepend one report to `weeks` and keep at most 8 weeks:
+4. Prepend one report to `weeks` and keep at most 8 weeks. If a report for this `weekOf` already exists, update it in place instead of adding another:
 ```json
 { "weekOf": "$TODAY", "generatedAt": "<UTC ISO>", "counts": { "leetcode": 0, "reddit": 0, "web": 0 },
   "headline": "1–2 sentences: the most important thing that changed or keeps coming up",

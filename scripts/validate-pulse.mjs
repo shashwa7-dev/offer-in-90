@@ -6,6 +6,7 @@ let pulse;
 try { pulse = JSON.parse(readFileSync('public/pulse.json', 'utf8')); } catch (e) { console.error('pulse.json is not valid JSON:', e.message); process.exit(1); }
 if (!Array.isArray(pulse.weeks)) { console.error('pulse.json needs a "weeks" array'); process.exit(1); }
 if (pulse.weeks.length > 8) errors.push('keep at most 8 weeks');
+const weeksSeen = pulse.weeks.map(w => w.weekOf); if (new Set(weeksSeen).size !== weeksSeen.length) errors.push('each week may appear only once: update the existing report instead of adding another');
 
 // Citations should come from this week's collected posts or be real https pages.
 const collected = existsSync('.engine/interview-posts.json') ? new Set(JSON.parse(readFileSync('.engine/interview-posts.json', 'utf8')).posts.map(p => p.url)) : null;
