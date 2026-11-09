@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext } from 'react';
 
-export type View = 'today' | 'progress' | 'roadmap' | 'notes' | 'updates' | 'setup';
+export type View = 'today' | 'progress' | 'roadmap' | 'notes' | 'news' | 'setup';
 export type NoteTarget = { kind: 'task'; key: string; title: string; url?: string } | { kind: 'page'; id: string };
 
 interface UI {

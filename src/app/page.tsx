@@ -8,14 +8,14 @@ import { TodayView } from '@/components/today-view';
 import { ProgressView } from '@/components/progress-view';
 import { RoadmapView } from '@/components/roadmap-view';
 import { NotesView } from '@/components/notes-view';
-import { UpdatesView } from '@/components/updates-view';
+import { NewsView } from '@/components/updates-view';
 import { SetupView } from '@/components/setup-view';
 import { NoteSheet } from '@/components/note-sheet';
 
-const TABS: [View, string][] = [['today', 'Today'], ['progress', 'Progress'], ['roadmap', 'Roadmap'], ['notes', 'Notes'], ['updates', 'Updates'], ['setup', 'Setup']];
+const TABS: [View, string][] = [['today', 'Today'], ['progress', 'Progress'], ['roadmap', 'Roadmap'], ['notes', 'Notes'], ['news', 'News'], ['setup', 'Setup']];
 
 function App() {
-  const { ready, todayIdx, updates, state, sync, syncConfigured } = useStore();
+  const { ready, todayIdx, updates, state, sync, syncConfigured, news } = useStore();
   const [view, setView] = useState<View>('today');
   const [viewIdx, setViewIdx] = useState(0);
   const [note, setNote] = useState<NoteTarget | null>(null);
@@ -27,7 +27,8 @@ function App() {
   const go = useCallback((v: View) => { setView(v); history.replaceState(null, '', v === 'today' ? location.pathname : `#${v}`); window.scrollTo(0, 0); }, []);
   const toast = useCallback((m: string) => { setToastMsg(m); setTimeout(() => setToastMsg(''), 2400); }, []);
   const openDay = useCallback((i: number) => { setViewIdx(i); go('today'); }, [go]);
-  const unseen = updates.filter(u => !state.seenUpdates[u.id] && u.priority !== 'fyi').length;
+  const latestNews = news ? Object.keys(news.days).sort().pop() : undefined;
+  const unseen = updates.filter(u => !state.seenUpdates[u.id] && u.priority !== 'fyi').length + (latestNews ? news!.days[latestNews].filter(n => !state.seenUpdates[`n-${n.id}`]).length : 0);
 
   if (!ready) return <div className="p-8 text-muted-foreground">Loading your plan…</div>;
   return (
@@ -41,7 +42,7 @@ function App() {
           <nav className="-mx-1 flex max-w-full gap-0.5 overflow-x-auto sm:ml-auto" role="tablist">
             {TABS.map(([v, label]) => (
               <button key={v} role="tab" aria-selected={view === v} onClick={() => go(v)} className="relative shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground aria-selected:bg-foreground aria-selected:text-background">
-                {label}{v === 'updates' && unseen > 0 && <span className="ml-1.5 rounded-full bg-c-update px-1.5 font-mono text-[10px] text-white">{unseen}</span>}
+                {label}{v === 'news' && unseen > 0 && <span className="ml-1.5 rounded-full bg-c-update px-1.5 font-mono text-[10px] text-white">{unseen}</span>}
               </button>
             ))}
           </nav>
@@ -52,7 +53,7 @@ function App() {
         {view === 'progress' && <ProgressView />}
         {view === 'roadmap' && <RoadmapView />}
         {view === 'notes' && <NotesView />}
-        {view === 'updates' && <UpdatesView />}
+        {view === 'news' && <NewsView />}
         {view === 'setup' && <SetupView />}
       </main>
       <NoteSheet target={note} onClose={() => setNote(null)} />

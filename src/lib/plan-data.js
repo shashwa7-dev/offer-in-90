@@ -574,4 +574,4 @@ const BOARD_MAP = [
   ['Mock interviews: Exponent free peer mocks, Topmate paid mocks', 'Sunday mock loops in Phase 3 + FDE mock; one paid Topmate mock before your first big-tech onsite'],
 ];
 
-export const PLAN = { PROJECT, UX, COMPANY_MAP, FOCUS_RULES, EXTENSION, FDE_STAGES, AI_UNITS, AI_REVIEW, AI_NEWS, APPLY, FDE, FDE_PROMPTS, LLD, DSA, FE, MC, MC_TIMED, SD, SD_MOCKS, BEH, ADV_DSA, OA_LINKS, RULES, HLD_FRAMEWORK, BOARD_MAP };
+export const PLAN = { PROJECT, UX, COMPANY_MAP, FOCUS_RULES, EXTENSION, FDE_STAGES, AI_UNITS, AI_REVIEW, APPLY, FDE, FDE_PROMPTS, LLD, DSA, FE, MC, MC_TIMED, SD, SD_MOCKS, BEH, ADV_DSA, OA_LINKS, RULES, HLD_FRAMEWORK, BOARD_MAP };

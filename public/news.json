@@ -1,0 +1,73 @@
+{
+ "generatedAt": "2026-11-09T12:21:57.087Z",
+ "days": {
+  "2026-11-09": [
+   {
+    "id": "2026-11-09-1",
+    "title": "Goldman Sachs is pulling Claude Code from its bankers and traders",
+    "url": "https://www.thestateofai.com/news/goldman-sachs-claude-code-traders-bankers",
+    "discussUrl": "https://news.ycombinator.com/item?id=50415628",
+    "source": "Hacker News",
+    "points": 795,
+    "comments": 424,
+    "publishedAt": "2026-11-08T18:16:07Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-09-2",
+    "title": "KetchUp – Open-source SketchUp alternative built with Rust and WebGPU",
+    "url": "https://ketchup3d.github.io/app/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50418176",
+    "source": "Hacker News",
+    "points": 550,
+    "comments": 162,
+    "publishedAt": "2026-11-08T22:35:35Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-09-3",
+    "title": "Hide your slop PR descriptions behind <details><summary>",
+    "url": "https://simonwillison.net/2026/Nov/9/details-summary/",
+    "discussUrl": "https://simonwillison.net/2026/Nov/9/details-summary/",
+    "source": "Simon Willison",
+    "points": 0,
+    "comments": 0,
+    "publishedAt": "2026-11-09T04:25:05+00:00",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-09-4",
+    "title": "Unattended reboots with encrypted disks",
+    "url": "https://jmmv.dev/2026/11/zkeys-intro.html",
+    "discussUrl": "https://lobste.rs/s/urg4yu/unattended_reboots_with_encrypted_disks",
+    "source": "Lobsters",
+    "points": 22,
+    "comments": 12,
+    "publishedAt": "2026-11-08T10:58:03.605-06:00",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-09-5",
+    "title": "What can I realistically do with local AI on a Mac mini M5 Pro (48GB)?",
+    "url": "https://lobste.rs/s/umsitb/what_can_i_realistically_do_with_local_ai",
+    "discussUrl": "https://lobste.rs/s/umsitb/what_can_i_realistically_do_with_local_ai",
+    "source": "Lobsters",
+    "points": 17,
+    "comments": 9,
+    "publishedAt": "2026-11-08T11:07:51.827-06:00",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-09-6",
+    "title": "An agent told me it deployed. I asked the server, and the containers were a day old",
+    "url": "https://dev.to/chet103cc/an-agent-told-me-it-deployed-i-asked-the-server-and-the-containers-were-a-day-old-2b6i",
+    "discussUrl": "https://dev.to/chet103cc/an-agent-told-me-it-deployed-i-asked-the-server-and-the-containers-were-a-day-old-2b6i",
+    "source": "dev.to",
+    "points": 65,
+    "comments": 21,
+    "publishedAt": "2026-11-07T14:18:49Z",
+    "category": "ai"
+   }
+  ]
+ }
+}

@@ -1,7 +1,7 @@
 'use client';
 /* App state: saved in this browser first, then synced to a private Gist when a token is set. */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { buildPlan, dayIndexOf, iso, type Day, type UpdateItem, type UpdatesFeed } from './engine';
+import { buildPlan, dayIndexOf, iso, type Day, type NewsFeed, type UpdateItem, type UpdatesFeed } from './engine';
 import { seedPages, type Page } from './seed-pages';
 import * as gist from './gist';
 import { merge, sameData, stamp } from './sync-merge';
@@ -28,7 +28,7 @@ const readLS = <T,>(k: string): T | null => { try { const v = localStorage.getIt
 const writeLS = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage blocked */ } };
 
 interface Ctx {
-  ready: boolean; state: State; days: Day[]; todayIdx: number; updates: UpdateItem[]; feedAt?: string;
+  ready: boolean; state: State; days: Day[]; todayIdx: number; updates: UpdateItem[]; feedAt?: string; news: NewsFeed | null;
   update: (fn: (s: State) => State) => void; replace: (s: Partial<State>) => void;
   sync: SyncStatus; syncConfigured: boolean; connectSync: (token: string) => Promise<void>; disconnectSync: () => void; syncNow: () => Promise<void>;
 }
@@ -40,6 +40,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<State>(fresh);
   const [updates, setUpdates] = useState<UpdateItem[]>([]);
   const [feedAt, setFeedAt] = useState<string>();
+  const [news, setNews] = useState<NewsFeed | null>(null);
   const [sync, setSync] = useState<SyncStatus>({ state: 'off' });
   const [cfg, setCfg] = useState<gist.SyncConfig | null>(null);
   const [now, setNow] = useState(() => new Date());
@@ -52,6 +53,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     setCfg(readLS<gist.SyncConfig>(SYNC_KEY));
     setReady(true);
     fetch(`${BASE}/updates.json`, { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).then((f: UpdatesFeed | null) => { if (f) { setUpdates(f.items || []); setFeedAt(f.generatedAt); } }).catch(() => {});
+    fetch(`${BASE}/news.json`, { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).then((n: NewsFeed | null) => setNews(n)).catch(() => {});
     const t = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(t);
   }, []);
@@ -138,6 +140,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const days = useMemo(() => buildPlan(state.start, state.kickoff, updates), [state.start, state.kickoff, updates]);
   const todayIdx = dayIndexOf(state.start, now);
 
-  const value: Ctx = { ready, state, days, todayIdx, updates, feedAt, update, replace, sync, syncConfigured: !!cfg?.gistId, connectSync, disconnectSync, syncNow };
+  const value: Ctx = { ready, state, days, todayIdx, updates, feedAt, news, update, replace, sync, syncConfigured: !!cfg?.gistId, connectSync, disconnectSync, syncNow };
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
 }

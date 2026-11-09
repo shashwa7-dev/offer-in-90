@@ -11,7 +11,7 @@ const DAY_MS = 864e5;
 export type Cat = 'dsa' | 'fe' | 'mc' | 'proj' | 'sd' | 'ux' | 'beh' | 'fde' | 'ai' | 'review' | 'health' | 'update';
 export interface Task {
   id: string; text: string; cat: Cat; url?: string; diff?: 'E' | 'M' | 'H'; slug?: string; topic?: string;
-  log?: boolean; min: number; bk: string; outdated?: UpdateItem; fromUpdate?: UpdateItem;
+  log?: boolean; min: number; bk: string; outdated?: UpdateItem; fromUpdate?: UpdateItem; newsId?: string;
 }
 export interface Block { s: string; e: string; k: string; title: string; kind: 'study' | 'life' | 'health'; remind?: boolean; tasks: Task[] }
 export interface Day { i: number; date: Date; week: number; phase: 1 | 2 | 3; type: 'kick' | 'study' | 'sun'; s?: number; n?: number; studyBefore?: number; lld?: number; mc?: number; blocks: Block[]; tasks: Task[] }
@@ -24,6 +24,8 @@ export interface UpdateItem {
   scheduleOn?: string;      // ISO date to add it as a task (defaults to the next Sunday after `date`)
 }
 export interface UpdatesFeed { generatedAt: string; items: UpdateItem[] }
+export interface NewsItem { id: string; title: string; url: string; discussUrl?: string; source: string; points: number; comments: number; publishedAt: string; category: 'ai' | 'dev' | 'research' }
+export interface NewsFeed { generatedAt: string; days: Record<string, NewsItem[]> }
 
 export const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 export const parseISO = (s: string) => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
@@ -51,16 +53,15 @@ const AI_DAYS = P.AI_UNITS.flatMap(([unit, days]: [string, [string, string][]]) 
 const AI_DAYS_REVIEW = P.AI_REVIEW.map(([text, url]: [string, string]) => ({ text, url }));
 const AI_DRILL = 'AI-enabled coding drill (Meta-style, 60 min): read a small multi-file repo for 5 min, fix one bug without AI, add a feature using AI chat only (no autocomplete), then optimize for a 10× input. Narrate everything.';
 const AI_DRILL_URL = 'https://www.hellointerview.com/blog/meta-ai-enabled-coding';
-const news = (n: number): [string, string] => { const [name, url] = P.AI_NEWS[n % P.AI_NEWS.length]; return [`AI news, 15 min: ${name}. Save one takeaway in AI notes.`, url]; };
+const NEWS_TASK = "Skim today's News tab and open the 1–2 reads that matter. Save one takeaway in AI notes (10 min)";
 export const aiUnitOf = (s: number) => (AI_DAYS[s - 1]?.text || '').split(' · ')[0];
 
 function kickBlocks(): Block[] {
-  const [na, nu] = news(0);
   const by: Record<string, Task[]> = {
     setup: [T('k-ics', 'Import calendar reminders (Setup tab) + set a 04:55 phone alarm', 'review'), T('k-acc', 'Create a GitHub repo "interview-prep" for solutions and builds; log in to LeetCode', 'review', { url: 'https://leetcode.com/' }), T('k-tour', 'Skim the Roadmap tab so you know the full 13 weeks', 'review')],
     dsa: [T('k-bigo', 'Big-O refresher: time and space cost of common operations', 'dsa', { url: 'https://www.bigocheatsheet.com/' }), T('k-env', 'Set up a TypeScript scratch project with Vitest for daily solutions', 'dsa', { url: 'https://vitest.dev/guide/' })],
     beh: [T('k-pos', 'Write your target: role titles (frontend / full-stack / forward-deployed), 10 dream companies, and why', 'beh', { url: 'https://www.linkedin.com/jobs/' })],
-    ai: [T('k-news', na, 'ai', { url: nu }), T('k-ai', 'AI landscape: which models lead today and what they cost', 'ai', { url: 'https://artificialanalysis.ai/' })],
+    ai: [T('k-news', NEWS_TASK, 'ai', { newsId: 'today' }), T('k-ai', 'AI landscape: which models lead today and what they cost', 'ai', { url: 'https://artificialanalysis.ai/' })],
     review: [T('k-log', 'Write a one-line log below, look at tomorrow (day 2)', 'review', { log: true })],
   };
   return KICKOFF_BLOCKS.map(b => ({ ...b, tasks: by[b.k] || [] })) as Block[];
@@ -121,8 +122,8 @@ function studyBlocks(d: Day): Block[] {
     const [apt, apu] = P.APPLY[s % P.APPLY.length];
     by.beh = [T(`fde-${f}`, ft, 'fde', fu ? { url: fu } : {}), T(`${k}-apply`, apt, 'beh', { url: apu })];
   }
-  const [nt, nu] = news(s), ai = AI_DAYS[s - 1] || AI_DAYS_REVIEW[(s - AI_DAYS.length - 1) % AI_DAYS_REVIEW.length];
-  by.ai = [T(`${k}-news`, nt, 'ai', { url: nu }), T(`ai-${s}`, ai.text, 'ai', ai.url ? { url: ai.url } : {})];
+  const ai = AI_DAYS[s - 1] || AI_DAYS_REVIEW[(s - AI_DAYS.length - 1) % AI_DAYS_REVIEW.length];
+  by.ai = [T(`${k}-news`, NEWS_TASK, 'ai', { newsId: 'today' }), T(`ai-${s}`, ai.text, 'ai', ai.url ? { url: ai.url } : {})];
   by.review = [T(`${k}-log`, 'Tick off today, write a one-line log below, glance at tomorrow', 'review', { log: true })];
   return (WEEKDAY_BLOCKS as unknown as Omit<Block, 'tasks'>[]).map(b => ({ ...b, tasks: by[b.k] || [] }));
 }

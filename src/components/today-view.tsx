@@ -51,8 +51,8 @@ export function TodayView() {
       </div>
 
       {unseen > 0 && (
-        <button onClick={() => go('updates')} className="mb-4 flex w-full items-center gap-2 rounded-xl border border-c-update/40 bg-card px-4 py-2.5 text-left text-sm">
-          <Sparkles className="size-4 text-c-update" /><span><b>{unseen} new update{unseen > 1 ? 's' : ''}</b> from the weekly engine: outdated resources and new must-reads.</span><span className="ml-auto font-medium text-primary">Review</span>
+        <button onClick={() => go('news')} className="mb-4 flex w-full items-center gap-2 rounded-xl border border-c-update/40 bg-card px-4 py-2.5 text-left text-sm">
+          <Sparkles className="size-4 text-c-update" /><span><b>{unseen} new update{unseen > 1 ? 's' : ''}</b> to your plan: outdated resources and new must-reads.</span><span className="ml-auto font-medium text-primary">Review</span>
         </button>
       )}
 

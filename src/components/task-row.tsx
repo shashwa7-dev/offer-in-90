@@ -1,5 +1,5 @@
 'use client';
-import { FileText, ExternalLink, Flag, AlertTriangle } from 'lucide-react';
+import { FileText, ExternalLink, Flag, AlertTriangle, Newspaper } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
@@ -12,7 +12,7 @@ const DIFF = { E: ['Easy', 'text-good'], M: ['Medium', 'text-warn'], H: ['Hard',
 
 export function TaskRow({ t, extra }: { t: Task; extra?: string }) {
   const { state, update } = useStore();
-  const { openNote } = useUI();
+  const { openNote, go } = useUI();
   const done = !!state.done[t.id];
   const flagged = !!(t.slug && state.flags[t.slug]);
   const hasNote = !!state.tnotes[noteKey(t)]?.body?.trim();
@@ -40,6 +40,9 @@ export function TaskRow({ t, extra }: { t: Task; extra?: string }) {
         <button onClick={() => openNote({ kind: 'task', key: noteKey(t), title: t.text.replace(/^Re-solve without looking: /, ''), url: t.url })} title={hasNote ? 'Open note' : 'Add a note'} className={cn('inline-flex items-center gap-1 rounded-md px-1.5 py-1 font-mono text-xs text-muted-foreground hover:bg-muted', hasNote && 'text-primary')}>
           <FileText className="size-3.5" />{hasNote ? 'note' : ''}
         </button>
+        {t.newsId && (
+          <button onClick={() => go('news')} className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 font-mono text-xs text-primary hover:bg-accent"><Newspaper className="size-3.5" />open News</button>
+        )}
         {t.url && (
           <a href={t.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 font-mono text-xs text-primary hover:bg-accent">open<ExternalLink className="size-3" /></a>
         )}
