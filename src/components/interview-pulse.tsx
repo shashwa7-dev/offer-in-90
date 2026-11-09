@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import { fmtDate, parseISO, type PulseCompany } from '@/lib/engine';
+import { BookmarkButton } from './bookmarks';
 
 export interface Thread { title: string; url: string; source: string; createdAt: string; upvotes: number; comments: number; views: number; roles: string[] }
 export interface CompanyThreads { group: string; threads: number; engagement: number; roles: string[]; top: Thread[] }
@@ -82,6 +83,7 @@ export function InterviewPulse() {
                           {t.views > 0 && <span className="inline-flex items-center gap-1"><Eye className="size-3" />{t.views}</span>}
                           <span>{ago(t.createdAt)}</span>
                           {t.roles.map(r => <span key={r} className="text-primary">{ROLE_LABEL[r] || r}</span>)}
+                          <BookmarkButton item={{ kind: 'thread', title: t.title, url: t.url, source: `${name} · ${t.source}`, detail: `${t.upvotes} upvotes · ${t.comments} comments` }} className="-my-1 ml-auto" />
                         </div>
                       </li>
                     ))}

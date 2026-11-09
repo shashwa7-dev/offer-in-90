@@ -5,7 +5,7 @@
  * Merging takes the newest version of each item, so edits on two devices never overwrite each other.
  */
 
-export const MAPS = ['done', 'flags', 'notes', 'tnotes', 'pages', 'seenUpdates'] as const;
+export const MAPS = ['done', 'flags', 'notes', 'tnotes', 'pages', 'seenUpdates', 'bookmarks'] as const;
 export const SCALARS = ['start', 'kickoff'] as const;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

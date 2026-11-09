@@ -45,6 +45,15 @@ assert.deepEqual(Object.keys(merge(legacyA, legacyB).done).sort(), ['x', 'y']);
 const newPhone = { ...base, start: '2026-11-12' };
 assert.equal(merge(newPhone, { ...base, start: '2026-11-09' }).start, '2026-11-09');
 
-// 8. Merge is stable: merging equal copies changes nothing
+// 8. Bookmarks saved on two devices both survive; an unsave wins over an older save
+const bmBase = { ...base, bookmarks: {} as Record<string, unknown> };
+const bmPhone = stamp(bmBase, { ...bmBase, bookmarks: { 'news:a': { title: 'A' } } }, 5000);
+const bmLaptop = stamp(bmBase, { ...bmBase, bookmarks: { 'news:b': { title: 'B' } } }, 5001);
+let bm = merge(bmLaptop, bmPhone);
+assert.deepEqual(Object.keys(bm.bookmarks).sort(), ['news:a', 'news:b']);
+const unsaved = stamp(bm, { ...bm, bookmarks: { 'news:b': { title: 'B' } } }, 6000);
+assert.ok(!('news:a' in merge(bm, unsaved).bookmarks));
+
+// 9. Merge is stable: merging equal copies changes nothing
 assert.ok(sameData(merge(m, m), m));
-console.log('sync-merge: all 8 scenarios pass');
+console.log('sync-merge: all 9 scenarios pass');
