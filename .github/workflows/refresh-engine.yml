@@ -24,13 +24,19 @@ concurrency:
 
 env:
     CLAUDE_CODE_VERSION: 2.1.319
+    # Hard limits for the AI step. Change them in the repo's Settings → Variables (no code edit needed).
+    ENGINE_MODEL: ${{ vars.ENGINE_MODEL || 'sonnet' }}
+    ENGINE_BUDGET_USD: ${{ vars.ENGINE_BUDGET_USD || '2' }}     # run stops when token usage reaches this amount
+    ENGINE_MAX_TURNS: ${{ vars.ENGINE_MAX_TURNS || '40' }}
+    CLAUDE_CODE_MAX_OUTPUT_TOKENS: ${{ vars.ENGINE_MAX_OUTPUT_TOKENS || '8000' }}   # per reply
+    MAX_THINKING_TOKENS: ${{ vars.ENGINE_MAX_THINKING_TOKENS || '4000' }}
     # The trigger decides the mode: the weekly cron is a full audit, manual runs choose.
     ENGINE_MODE: ${{ github.event.schedule == '30 23 * * 6' && 'full' || github.event.client_payload.mode || github.event.inputs.mode || 'full' }}
 
 jobs:
     refresh:
         runs-on: ubuntu-latest
-        timeout-minutes: 40
+        timeout-minutes: 30
         outputs:
             changed: ${{ steps.commit.outputs.changed }}
         steps:
@@ -51,7 +57,9 @@ jobs:
               run: node scripts/collect-interviews.mjs
 
             - name: Run the engine (Claude Code, headless)
+              id: ai
               if: env.ENGINE_MODE != 'links' || steps.links.outputs.broken != '0'
+              timeout-minutes: 20
               env:
                   CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
               run: |
@@ -61,8 +69,13 @@ jobs:
                   export LAST_RUN="$(node -p "require('./public/updates.json').generatedAt")"
                   prompt="$(envsubst '$ENGINE_MODE $TODAY $LAST_RUN' < .github/prompts/refresh-engine.md)"
                   npx -y "@anthropic-ai/claude-code@${CLAUDE_CODE_VERSION}" -p "$prompt" \
+                    --model "$ENGINE_MODEL" \
+                    --max-budget-usd "$ENGINE_BUDGET_USD" \
+                    --max-turns "$ENGINE_MAX_TURNS" \
                     --allowedTools "WebSearch,WebFetch,Read,Edit,Write,Grep,Glob,Bash(node scripts/validate-updates.mjs),Bash(node scripts/validate-pulse.mjs)" \
-                    --max-turns 80 --output-format text
+                    --output-format json > .engine/ai-result.json || echo "AI step stopped early (limit reached or error); validators decide what gets published"
+                  node scripts/usage-report.mjs .engine/ai-result.json >> "$GITHUB_STEP_SUMMARY"
+                  node scripts/usage-report.mjs .engine/ai-result.json
 
             - name: Validate feed and pulse
               run: |
