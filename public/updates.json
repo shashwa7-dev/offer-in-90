@@ -1,4 +1,16 @@
 {
-  "generatedAt": "2026-11-09T12:00:00.000Z",
-  "items": []
+  "generatedAt": "2026-11-09T13:00:00.000Z",
+  "items": [
+    {
+      "id": "2026-11-09-google-ai-assisted-coding",
+      "date": "2026-11-09",
+      "kind": "new",
+      "priority": "should",
+      "area": "interview",
+      "title": "Google piloting an AI-assisted code comprehension round (Gemini allowed)",
+      "why": "Business Insider reported Google lets candidates use Gemini in a code comprehension round and scores AI fluency and debugging. Practise reading and fixing unfamiliar code with an AI assistant.",
+      "url": "https://finance.yahoo.com/sectors/technology/articles/asking-kid-math-test-without-151500986.html",
+      "sources": ["https://finance.yahoo.com/sectors/technology/articles/asking-kid-math-test-without-151500986.html"]
+    }
+  ]
 }

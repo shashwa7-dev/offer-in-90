@@ -1,1 +1,84 @@
-{ "weeks": [] }
+{
+  "weeks": [
+    {
+      "weekOf": "2026-11-09",
+      "generatedAt": "2026-11-09T13:00:00.000Z",
+      "counts": { "leetcode": 66, "reddit": 0, "web": 1 },
+      "headline": "AI-related rounds keep coming up: 2 of 5 Google posts and a LinkedIn frontend post mention one, and Google has confirmed an AI-assisted pilot. Amazon OAs are also reported to include debugging an existing codebase.",
+      "companies": [
+        {
+          "company": "Google",
+          "reports": 5,
+          "roles": ["swe", "fde"],
+          "loop": "One post lists the L5 loop as hiring assessment, domain knowledge, Googlyness, two DSA rounds and system design. Others mention an extra AI/ML conversation in team matching. Google has confirmed a Gemini-assisted code comprehension round pilot.",
+          "changes": [
+            "Rounds named 'Hiring Assessment' and 'Domain Knowledge' in the L5 loop (1 of 5 reports)",
+            "AI-related round mentioned (2 of 5 reports), including a 45-minute conversational AI/ML interview in team matching with no coding",
+            "Press (Business Insider via Yahoo Finance, May 2026): Gemini allowed in a code comprehension round, piloting for junior and mid-level US roles"
+          ],
+          "questions": [
+            "Graph shortest path with fuel cost over N cities (FDE onsite)",
+            "Reading, debugging and optimizing existing code with an AI assistant",
+            "AI/ML fundamentals, conversational"
+          ],
+          "prep": "Practise reading and debugging unfamiliar code with and without an AI assistant, and keep DSA and system design sharp.",
+          "confidence": "high",
+          "citations": [
+            "https://leetcode.com/discuss/post/8604707/google-full-loop-for-updated-interview-p-t919/",
+            "https://leetcode.com/discuss/post/8598580/google-aiml-knowledge-interview-during-t-7rxj/",
+            "https://leetcode.com/discuss/post/8596351/ai-coding-round-at-google-by-jevita279-xg96/",
+            "https://leetcode.com/discuss/post/8591289/google-fde-onsite-interview-rs95lakhs-ct-6ou0/",
+            "https://leetcode.com/discuss/post/8601541/google-l4-interviews-coming-up-need-advi-3pfm/",
+            "https://finance.yahoo.com/sectors/technology/articles/asking-kid-math-test-without-151500986.html"
+          ]
+        },
+        {
+          "company": "Amazon",
+          "reports": 7,
+          "roles": ["swe", "frontend"],
+          "loop": "Posts describe an online assessment, then a four-round onsite mixing DSA, leadership principles, system design and OOP/LLD. Some candidates report OAs that include a code-repo debugging task alongside a coding question.",
+          "changes": [
+            "OA includes a code-repo debugging problem (Spring Boot, Node, Django or C++) (2 of 7 reports)",
+            "Frontend Engineer OA reportedly has JavaScript coding plus system design prompts (1 of 7 reports)"
+          ],
+          "questions": [
+            "Event management and ticket booking system design",
+            "Leadership principles stories",
+            "OOP / low-level design",
+            "Debugging a category browsing engine in a code repo"
+          ],
+          "prep": "Add practice on fixing bugs in an unfamiliar repo in your stack, plus a story bank for leadership principles.",
+          "confidence": "medium",
+          "citations": [
+            "https://leetcode.com/discuss/post/8595797/amazon-oa-2026-code-repo-debugging-round-vvm5/",
+            "https://leetcode.com/discuss/post/8598606/amazon-sde-2-oa-by-anonymous_user-346e/",
+            "https://leetcode.com/discuss/post/8591208/amazon-sde2-interview-onsite-experience-n8bnl/",
+            "https://leetcode.com/discuss/post/8600739/amazon-system-design-experience-by-nikhi-o1h2/",
+            "https://leetcode.com/discuss/post/8594575/guidance-for-amazon-fee-ii-oa-by-anonymo-mbwn/",
+            "https://leetcode.com/discuss/post/8601845/my-amazon-sde-2-interview-experience-hyd-biuf/",
+            "https://leetcode.com/discuss/post/8598605/got-amazon-sde-2-oa-by-anonymous_user-r7tk/"
+          ]
+        },
+        {
+          "company": "LinkedIn",
+          "reports": 2,
+          "roles": ["frontend"],
+          "loop": "Two senior frontend posts: one describes a phone screen focused on experience and projects, the other an upcoming 'Sr SWE Coding with AI' round in Bangalore, with the candidate asking whether JavaScript is allowed.",
+          "changes": [
+            "A 'Coding with AI' round appears in the senior frontend loop (1 of 2 reports, candidate has not yet interviewed)"
+          ],
+          "questions": [
+            "Experience and project deep-dive",
+            "AI-assisted coding in JavaScript"
+          ],
+          "prep": "Practise building small frontend features in JavaScript with an AI assistant while explaining and verifying its output.",
+          "confidence": "medium",
+          "citations": [
+            "https://leetcode.com/discuss/post/8594726/upcoming-linkedin-interview-senior-front-z8i3/",
+            "https://leetcode.com/discuss/post/8599351/linkedin-senior-software-engineer-fronte-wtjt/"
+          ]
+        }
+      ]
+    }
+  ]
+}
