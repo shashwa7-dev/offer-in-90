@@ -4,24 +4,25 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { buildPlan, dayIndexOf, iso, type Day, type UpdateItem, type UpdatesFeed } from './engine';
 import { seedPages, type Page } from './seed-pages';
 import * as gist from './gist';
+import { merge, sameData, stamp } from './sync-merge';
 
 export interface TaskNote { title: string; body: string; upd: number; url?: string }
 export interface State {
   v: number; start: string; kickoff: boolean;
   done: Record<string, number>; flags: Record<string, number>; notes: Record<string, string>;
   tnotes: Record<string, TaskNote>; pages: Record<string, Page>; seenUpdates: Record<string, number>;
-  updatedAt: number;
+  meta: Record<string, number>; updatedAt: number;
 }
 type SyncStatus = { state: 'off' | 'syncing' | 'synced' | 'error'; msg?: string; at?: number };
 
 const KEY = 'offer90.v1', SYNC_KEY = 'offer90.sync';
 export const BASE = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
-const fresh = (): State => ({ v: 5, start: iso(new Date()), kickoff: true, done: {}, flags: {}, notes: {}, tnotes: {}, pages: seedPages(), seenUpdates: {}, updatedAt: 0 });
+const fresh = (): State => ({ v: 5, start: iso(new Date()), kickoff: true, done: {}, flags: {}, notes: {}, tnotes: {}, pages: seedPages(), seenUpdates: {}, meta: {}, updatedAt: 0 });
 function normalize(s: Partial<State> | null): State {
   const f = fresh();
   if (!s || !s.start) return f;
-  return { ...f, ...s, pages: { ...seedPages(), ...(s.pages || {}) }, seenUpdates: s.seenUpdates || {}, v: 5 };
+  return { ...f, ...s, pages: s.pages ?? seedPages(), seenUpdates: s.seenUpdates || {}, meta: s.meta || {}, v: 5 };
 }
 const readLS = <T,>(k: string): T | null => { try { const v = localStorage.getItem(k); return v ? (JSON.parse(v) as T) : null; } catch { return null; } };
 const writeLS = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage blocked */ } };
@@ -55,58 +56,84 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return () => clearInterval(t);
   }, []);
 
-  const pullRemote = useCallback(async (c: gist.SyncConfig) => {
-    if (!c.gistId) return;
-    setSync({ state: 'syncing' });
-    try {
-      const remote = await gist.pull<State>(c as Required<gist.SyncConfig>);
-      setState(local => {
-        if (remote && remote.updatedAt > local.updatedAt && !dirty.current) { const n = normalize(remote); writeLS(KEY, n); return n; }
-        if (remote && local.updatedAt > remote.updatedAt) dirty.current = true;
-        return local;
-      });
-      setSync({ state: 'synced', at: Date.now() });
-    } catch (e) { setSync({ state: 'error', msg: (e as Error).message }); }
+  // ---------- sync: pull → merge item by item → push if needed. One run at a time. ----------
+  const stateRef = useRef(state);
+  stateRef.current = state;
+  const cfgRef = useRef(cfg);
+  cfgRef.current = cfg;
+  const running = useRef<Promise<void> | null>(null);
+  const again = useRef(false);
+  const retryTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const syncOnce = useCallback(async (): Promise<void> => {
+    const c = cfgRef.current;
+    if (!c?.gistId) return;
+    if (running.current) { again.current = true; return running.current; }
+    const run = (async () => {
+      setSync({ state: 'syncing' });
+      try {
+        const remote = await gist.pull<State>(c as Required<gist.SyncConfig>);
+        const local = stateRef.current;
+        const merged = remote ? normalize(merge(local, normalize(remote))) : local;
+        // apply remote changes locally (only if something actually changed)
+        if (!sameData(merged, local)) {
+          setState(cur => { const m = cur === local ? merged : normalize(merge(cur, merged)); writeLS(KEY, m); return m; });
+          stateRef.current = merged;
+        }
+        // upload if the Gist is missing anything we have
+        if (!remote || !sameData(merged, normalize(remote)) || JSON.stringify(merged.meta) !== JSON.stringify(remote.meta || {})) {
+          await gist.push(c as Required<gist.SyncConfig>, merged);
+        }
+        dirty.current = false;
+        if (retryTimer.current) { clearTimeout(retryTimer.current); retryTimer.current = null; }
+        setSync({ state: 'synced', at: Date.now() });
+      } catch (e) {
+        setSync({ state: 'error', msg: `${(e as Error).message} Retrying in 30 s.` });
+        if (retryTimer.current) clearTimeout(retryTimer.current);
+        retryTimer.current = setTimeout(() => { void syncOnce(); }, 30_000);
+      }
+    })();
+    running.current = run;
+    try { await run; } finally {
+      running.current = null;
+      if (again.current) { again.current = false; void syncOnce(); }
+    }
   }, []);
 
-  const pushRemote = useCallback(async (c: gist.SyncConfig, s: State) => {
-    if (!c.gistId) return;
-    setSync({ state: 'syncing' });
-    try { await gist.push(c as Required<gist.SyncConfig>, s); dirty.current = false; setSync({ state: 'synced', at: Date.now() }); }
-    catch (e) { setSync({ state: 'error', msg: (e as Error).message }); }
-  }, []);
-
-  // pull on start and whenever the tab comes back
+  // sync on start, every 60 s while visible, when the tab comes back, when going online, and flush when leaving
   useEffect(() => {
     if (!cfg?.gistId) return;
-    pullRemote(cfg);
-    const onVis = () => { if (!document.hidden && !dirty.current) pullRemote(cfg); };
+    void syncOnce();
+    const tick = setInterval(() => { if (!document.hidden) void syncOnce(); }, 60_000);
+    const onVis = () => { void syncOnce(); };
+    const onOnline = () => { void syncOnce(); };
     document.addEventListener('visibilitychange', onVis);
-    return () => document.removeEventListener('visibilitychange', onVis);
-  }, [cfg, pullRemote]);
+    window.addEventListener('online', onOnline);
+    return () => { clearInterval(tick); document.removeEventListener('visibilitychange', onVis); window.removeEventListener('online', onOnline); };
+  }, [cfg, syncOnce]);
 
-  // push after changes (debounced)
+  // after local edits, sync 1.5 s after the last change
   useEffect(() => {
     if (!ready || !cfg?.gistId || !dirty.current) return;
     if (pushTimer.current) clearTimeout(pushTimer.current);
-    pushTimer.current = setTimeout(() => pushRemote(cfg, state), 1500);
-  }, [state, cfg, ready, pushRemote]);
+    pushTimer.current = setTimeout(() => { void syncOnce(); }, 1500);
+  }, [state, cfg, ready, syncOnce]);
 
   const update = useCallback((fn: (s: State) => State) => {
-    setState(prev => { const n = { ...fn(prev), updatedAt: Date.now() }; writeLS(KEY, n); dirty.current = true; return n; });
+    setState(prev => { const n = stamp(prev, fn(prev)); writeLS(KEY, n); dirty.current = true; return n; });
   }, []);
   const replace = useCallback((s: Partial<State>) => update(() => normalize(s)), [update]);
 
   const connectSync = useCallback(async (token: string) => {
     setSync({ state: 'syncing' });
     try {
-      const gistId = await gist.connect(token, { ...state, updatedAt: state.updatedAt || Date.now() });
-      const c = { token, gistId }; writeLS(SYNC_KEY, c); setCfg(c);
-      await pullRemote(c);
+      const gistId = await gist.connect(token, stateRef.current);
+      const c = { token, gistId }; writeLS(SYNC_KEY, c); cfgRef.current = c; setCfg(c);
+      await syncOnce();
     } catch (e) { setSync({ state: 'error', msg: (e as Error).message }); }
-  }, [state, pullRemote]);
-  const disconnectSync = useCallback(() => { try { localStorage.removeItem(SYNC_KEY); } catch { /* ignore */ } setCfg(null); setSync({ state: 'off' }); }, []);
-  const syncNow = useCallback(async () => { if (cfg) { if (dirty.current) await pushRemote(cfg, state); else await pullRemote(cfg); } }, [cfg, state, pullRemote, pushRemote]);
+  }, [syncOnce]);
+  const disconnectSync = useCallback(() => { try { localStorage.removeItem(SYNC_KEY); } catch { /* ignore */ } cfgRef.current = null; setCfg(null); setSync({ state: 'off' }); }, []);
+  const syncNow = useCallback(async () => { await syncOnce(); }, [syncOnce]);
 
   const days = useMemo(() => buildPlan(state.start, state.kickoff, updates), [state.start, state.kickoff, updates]);
   const todayIdx = dayIndexOf(state.start, now);

@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:sync": "node --experimental-strip-types scripts/test-sync-merge.ts"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
