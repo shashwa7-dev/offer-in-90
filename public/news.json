@@ -1,6 +1,96 @@
 {
- "generatedAt": "2026-11-10T04:24:04.103Z",
+ "generatedAt": "2026-11-11T02:20:00.463Z",
  "days": {
+  "2026-11-11": [
+   {
+    "id": "2026-11-11-1",
+    "title": "Learning Heterogeneous Tactile Representation for General Dexterous Manipulation",
+    "url": "https://huggingface.co/papers/2611.12806",
+    "discussUrl": "https://huggingface.co/papers/2611.12806",
+    "source": "HF Papers",
+    "points": 92,
+    "comments": 2,
+    "publishedAt": "2026-11-08T19:00:00.000Z",
+    "category": "research"
+   },
+   {
+    "id": "2026-11-11-2",
+    "title": "AlphaProof Code",
+    "url": "https://deepmind.google/blog/introducing-alphaproof-code/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50439193",
+    "source": "Hacker News",
+    "points": 582,
+    "comments": 177,
+    "publishedAt": "2026-11-10T12:11:12Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-11-3",
+    "title": "Sage-Taiyi: A Metacognitive Architecture for Scientific Discovery",
+    "url": "https://huggingface.co/papers/2611.12762",
+    "discussUrl": "https://huggingface.co/papers/2611.12762",
+    "source": "HF Papers",
+    "points": 53,
+    "comments": 2,
+    "publishedAt": "2026-11-08T19:00:00.000Z",
+    "category": "research"
+   },
+   {
+    "id": "2026-11-11-4",
+    "title": "Locating the source of a mysterious beep with Claude",
+    "url": "https://simonwillison.net/2026/Nov/9/mysterious-beeps/",
+    "discussUrl": "https://simonwillison.net/2026/Nov/9/mysterious-beeps/",
+    "source": "Simon Willison",
+    "points": 0,
+    "comments": 0,
+    "publishedAt": "2026-11-09T23:57:21+00:00",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-11-5",
+    "title": "AI usage generates a fragile codebase",
+    "url": "https://evanxmerz.com/post/ai-usage-generates-a-fragile-codebase/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50438318",
+    "source": "Hacker News",
+    "points": 390,
+    "comments": 414,
+    "publishedAt": "2026-11-10T10:25:58Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-11-6",
+    "title": "Open Graph images with Astro and Typst",
+    "url": "https://eaj.no/posts/open-graph-images-with-typst/",
+    "discussUrl": "https://lobste.rs/s/gj5obq/open_graph_images_with_astro_typst",
+    "source": "Lobsters",
+    "points": 37,
+    "comments": 7,
+    "publishedAt": "2026-11-10T05:42:48.435-06:00",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-11-7",
+    "title": "Gemini 4 Carbon is now available",
+    "url": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-carbon-now-available/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50442303",
+    "source": "Hacker News",
+    "points": 275,
+    "comments": 149,
+    "publishedAt": "2026-11-10T16:07:15Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-11-10",
+    "title": "Blunt Banhammer Blocks Basic Bots Ballistically",
+    "url": "https://shkspr.mobi/blog/2026/11/blunt-banhammer-blocks-basic-bots-ballistically/",
+    "discussUrl": "https://lobste.rs/s/bubqox/blunt_banhammer_blocks_basic_bots",
+    "source": "Lobsters",
+    "points": 26,
+    "comments": 11,
+    "publishedAt": "2026-11-09T18:48:20.266-06:00",
+    "category": "dev"
+   }
+  ],
   "2026-11-10": [
    {
     "id": "2026-11-10-1",
