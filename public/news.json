@@ -1,6 +1,96 @@
 {
- "generatedAt": "2026-11-11T02:20:00.463Z",
+ "generatedAt": "2026-11-12T03:28:01.999Z",
  "days": {
+  "2026-11-12": [
+   {
+    "id": "2026-11-12-1",
+    "title": "My AI agents found an unmapped Maya site?",
+    "url": "https://pietromiotti.com/latest/maya-site",
+    "discussUrl": "https://news.ycombinator.com/item?id=50452455",
+    "source": "Hacker News",
+    "points": 941,
+    "comments": 339,
+    "publishedAt": "2026-11-11T12:05:22Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-12-2",
+    "title": "Tree-Ising: Repairing Language Models with Bit-Level Ising Edits",
+    "url": "https://huggingface.co/papers/2611.14210",
+    "discussUrl": "https://huggingface.co/papers/2611.14210",
+    "source": "HF Papers",
+    "points": 77,
+    "comments": 2,
+    "publishedAt": "2026-11-09T19:00:00.000Z",
+    "category": "research"
+   },
+   {
+    "id": "2026-11-12-3",
+    "title": "AWS emulator",
+    "url": "https://github.com/aws/aws-emulator",
+    "discussUrl": "https://news.ycombinator.com/item?id=50456631",
+    "source": "Hacker News",
+    "points": 720,
+    "comments": 222,
+    "publishedAt": "2026-11-11T18:21:38Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-12-4",
+    "title": "Few-Step Streaming Video Generation via Condition Shifting",
+    "url": "https://huggingface.co/papers/2611.14033",
+    "discussUrl": "https://huggingface.co/papers/2611.14033",
+    "source": "HF Papers",
+    "points": 67,
+    "comments": 2,
+    "publishedAt": "2026-11-09T19:00:00.000Z",
+    "category": "research"
+   },
+   {
+    "id": "2026-11-12-5",
+    "title": "United Airlines bans AI agents from booking flights on behalf of travelers",
+    "url": "https://www.cbsnews.com/news/united-airlines-bans-ai-agents-booking-flights/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50458900",
+    "source": "Hacker News",
+    "points": 431,
+    "comments": 414,
+    "publishedAt": "2026-11-11T21:24:35Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-12-6",
+    "title": "Hyper-Realistic Sand with WebGL2",
+    "url": "https://av.github.io/safe-sand/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50453288",
+    "source": "Hacker News",
+    "points": 327,
+    "comments": 66,
+    "publishedAt": "2026-11-11T13:39:29Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-12-7",
+    "title": "Gemini Decisions API",
+    "url": "https://blog.google/innovation-and-ai/technology/developers-tools/gemini-decisions-api/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50456791",
+    "source": "Hacker News",
+    "points": 301,
+    "comments": 98,
+    "publishedAt": "2026-11-11T18:32:42Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-12-8",
+    "title": "Jensen Huang said to have had relationship with executive who reports to him",
+    "url": "https://www.nytimes.com/2026/11/11/technology/jensen-huang-nvidia-affair.html",
+    "discussUrl": "https://news.ycombinator.com/item?id=50459321",
+    "source": "Hacker News",
+    "points": 278,
+    "comments": 302,
+    "publishedAt": "2026-11-11T22:03:58Z",
+    "category": "dev"
+   }
+  ],
   "2026-11-11": [
    {
     "id": "2026-11-11-1",
