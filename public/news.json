@@ -1,6 +1,96 @@
 {
- "generatedAt": "2026-11-12T03:28:01.999Z",
+ "generatedAt": "2026-11-13T02:59:20.417Z",
  "days": {
+  "2026-11-13": [
+   {
+    "id": "2026-11-13-1",
+    "title": "Gemini 4 Hydrogen",
+    "url": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-hydrogen/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50471431",
+    "source": "Hacker News",
+    "points": 476,
+    "comments": 300,
+    "publishedAt": "2026-11-12T18:01:48Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-13-2",
+    "title": "Ask HN: Microsoft/Azure Outage?",
+    "url": "https://news.ycombinator.com/item?id=50471668",
+    "discussUrl": "https://news.ycombinator.com/item?id=50471668",
+    "source": "Hacker News",
+    "points": 401,
+    "comments": 1,
+    "publishedAt": "2026-11-12T18:17:13Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-13-3",
+    "title": "Show HN: My $300 embroidery machine needed a subscription, so I built my own app",
+    "url": "https://github.com/simpsoka/zigzag",
+    "discussUrl": "https://news.ycombinator.com/item?id=50470488",
+    "source": "Hacker News",
+    "points": 365,
+    "comments": 145,
+    "publishedAt": "2026-11-12T17:02:42Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-13-4",
+    "title": "Writing correct software is hard and math alone won’t help us (2016)",
+    "url": "https://pron.github.io/posts/correctness-and-complexity",
+    "discussUrl": "https://news.ycombinator.com/item?id=50465352",
+    "source": "Hacker News",
+    "points": 359,
+    "comments": 172,
+    "publishedAt": "2026-11-12T10:28:26Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-13-5",
+    "title": "Gemini 4 Hydrogen and Orchestrator",
+    "url": "https://antigravity.google/blog/gemini-4-hydrogen-in-google-antigravity/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50472260",
+    "source": "Hacker News",
+    "points": 323,
+    "comments": 81,
+    "publishedAt": "2026-11-12T18:52:01Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-13-6",
+    "title": "Rust 1.100",
+    "url": "https://github.com/rust-lang/rust/releases/tag/1.100.0",
+    "discussUrl": "https://news.ycombinator.com/item?id=50471793",
+    "source": "Hacker News",
+    "points": 308,
+    "comments": 9,
+    "publishedAt": "2026-11-12T18:24:06Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-13-7",
+    "title": "I'm making LLMs work on small and old devices",
+    "url": "https://github.com/hyperionaidev/smolmaxxing/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50468888",
+    "source": "Hacker News",
+    "points": 287,
+    "comments": 98,
+    "publishedAt": "2026-11-12T15:23:10Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-13-9",
+    "title": "We Keep Hearing About AI Productivity. The QA Group Chat Told a Different Story.",
+    "url": "https://dev.to/xulingfeng/we-keep-hearing-about-ai-productivity-the-qa-group-chat-told-a-different-story-2nma",
+    "discussUrl": "https://dev.to/xulingfeng/we-keep-hearing-about-ai-productivity-the-qa-group-chat-told-a-different-story-2nma",
+    "source": "dev.to",
+    "points": 107,
+    "comments": 88,
+    "publishedAt": "2026-11-11T08:35:15Z",
+    "category": "ai"
+   }
+  ],
   "2026-11-12": [
    {
     "id": "2026-11-12-1",
