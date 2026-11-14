@@ -1,6 +1,6 @@
 # Roadmap v2: content, DSA patterns, revision quizzes
 
-Date: 2026-11-15 · Status: ready for the owner's approval (review fixes applied; second builder check pending) · Companion page: brainstorm screen `roadmap-v5` · Research notes: sources listed at the end
+Date: 2026-11-15 · Status: approved by the owner (2026-11-15), after two builder checks. Build starts 2026-11-16 in a new session, in staged releases (§20) · Companion page: brainstorm screen `roadmap-v5` · Research notes: sources listed at the end
 
 ## Intent and why
 
@@ -40,7 +40,7 @@ What the research found (the owner has seen these findings):
 
 ## Non-goals
 
-- UI and layout. A separate design follows once the content lands.
+- Polished UI and layout. Each release ships **plain, working screens** for its features (§20). A separate UI design polishes them later.
 - Changing the Gist sync model.
 - Changing the update engine, apart from adding hot reads (§17). Daily news is untouched.
 - Writing our own long explanations or our own question banks.
@@ -60,7 +60,7 @@ What the research found (the owner has seen these findings):
   - **Grind:** 13 weeks, on today's timetable (about 10.75 h). Grind's block times are the ones in §1.
   - Sundays follow §17 in both modes.
   - **Nothing is cut to save time in either mode.**
-- **The owner hasn't started the plan.** They'll start on **Mon 16 Nov 2026**. v2 replaces the curriculum cleanly, with no migration of past days.
+- **The owner hasn't started the plan.** They start on v2 as soon as Release 1 ships (§20). Building begins 2026-11-16. v2 replaces the curriculum cleanly, with no migration of past days.
 - **Task IDs.** IDs may be redesigned now. From v2 on, they must stay attached to their content, so future edits don't move progress around: explicit, content-based IDs, never position-based. The builder chooses the scheme.
 - **Everything stays data in `src/lib/plan-data.js`** (plus new data files), used by `engine.ts`. The app is a static Next.js export.
 - **Personal use.** Questions and content from public sources can be copied in directly; no licence checks (owner's instruction). Each item keeps its source link.
@@ -143,7 +143,7 @@ The pattern work starts in week 1's last days or week 2. The builder fits the ex
 23. Dynamic programming, with sub-patterns tagged: Fibonacci, 0/1 knapsack, unbounded knapsack, LCS/strings, palindromes, grid
 24. Bits and XOR
 
-The advanced topics (Fenwick tree, segment tree, line sweep, difference array, DP on trees, digit DP) stay in the revision-era slot as they are now (`ADV_DSA`).
+The advanced topics (`ADV_DSA`: Fenwick tree, segment tree, line sweep, difference array, DP on trees, digit DP) move to morning DSA slots once the 24 patterns are done, at full length.
 
 **Each pattern has:**
 - `signal`: the cue in a question that points to this pattern.
@@ -184,7 +184,7 @@ Card text is short and checked against the linked source.
 
 **Tiers:**
 - **Must-solve:** about 4 per pattern (about 90–100 in total).
-  - Per pattern: 1 **teaching** problem, 2 **variations**, and 1 **unseen check** (shown with its title and topic hidden, in the recognition drill and in Saturday mocks).
+  - Per pattern: 1 **teaching** problem, 2 **variations**, and 1 **unseen check**, solved in the morning DSA block. The app hides its title, link and pattern until the owner presses Start, then reveals them. Unseen-check problems never appear in the recognition drill.
   - Prefer 🔥 problems when choosing.
   - Must-solve covers the 5 capstone hards (Trapping Rain Water, Minimum Window Substring, Merge k Sorted Lists, Find Median from Data Stream, Word Ladder).
   - Must-solve covers these frequent non-NeetCode problems: Subarray Sum Equals K, Minimum Remove to Make Valid Parentheses, Lowest Common Ancestor of a Binary Tree, Basic Calculator II, Next Permutation, Find Peak Element, Merge Sorted Array.
@@ -230,7 +230,7 @@ Card text is short and checked against the linked source.
 
 **Own problems:** the owner can add a LeetCode link with a pattern tag and difficulty. It joins that pattern's pool and is synced like other state.
 
-**Phase 3** (after the patterns are done, around week 10): the existing timed sets stay (Meta speed, Google doc, Amazon OA simulation, AI-enabled drill). They now draw from must-solve plus 🔥 problems, and the day's patterns are hidden.
+**Phase 3** (after the patterns and `ADV_DSA` are done, around week 10): the existing timed sets stay (Meta speed, Google doc, Amazon OA simulation, AI-enabled drill). They now draw from must-solve plus 🔥 problems, and the day's patterns are hidden.
 
 ### 3. Frequency of DSA in the week
 
@@ -245,9 +245,9 @@ Fixed weekly rhythm:
 | Mon | **How it really works:** read one engineering write-up, redraw the system from memory, name 3 trade-offs | 10, then repeats/mocks |
 | Tue | **Decision memo:** 1 page with options, criteria, pick, and what would change your mind | 13 |
 | Wed | **Practical coding** (45 min, timed; alternate TypeScript and Python) | 12 |
-| Thu | **Decomposition or client simulation** (the FDE prompts move here from the career block, starting week 2) | 12 |
+| Thu | **Decomposition or client simulation** (the FDE prompts move here from the career block, starting week 2). There are 11 existing prompts (the FDE `Rep ·` decomposition and client-sim items plus the 5 in `FDE_PROMPTS`). The 12th comes from a published FDE guide (aced.io / techinterview.org) | 12 |
 | Fri | **Code you didn't write:** this week's open-source issue (reproduce → hypothesise → isolate → verify; short postmortem). Finish on a revision Sunday if needed. Starts week 3. **Every 3rd Friday is a code-review rep instead:** review a real open-source PR, then compare with the maintainers' comments | 7 fixes + 4 reviews |
-| Sat | **Alternates weekly.** Odd weeks: the **AI-assisted coding drill** (use the tool, verify, narrate). Even weeks: **practice that used to be on Sunday**. In Phase 1–2 that's the weekly timed mock, plus a speed pair from week 5 (2 must-solve problems you've already done, re-solved in 35 min). In Phase 3 it's the full mock loop. From week 4, a **peer mock every 2 weeks** with a real person (Pramp/Exponent peer mocks), rotating coding → frontend system design → behavioral → decomposition. On a peer-mock Saturday, the afternoon revision and judgment slots become the mock | 7 drills + 6 mock Saturdays |
+| Sat | **Alternates weekly.** Odd weeks: the **AI-assisted coding drill** (use the tool, verify, narrate). Even weeks: **practice that used to be on Sunday**. In Phase 1–2 that's the weekly timed mock, plus a speed pair from week 5 (2 must-solve problems you've already done, re-solved in 35 min). From week 4, a **peer mock every 2 weeks** with a real person (Pramp/Exponent peer mocks), rotating coding → frontend system design → behavioral → decomposition. **Every mock Saturday uses the whole 14:45–16:00 slot (75 min)**: revision plus judgment. **In Phase 3 (weeks 10–13) every Saturday is a full mock loop**, which gives 4 loops by week 13 | odd weeks 1–9: 5 drills; mock Saturdays: weeks 2, 4, 6, 8, then 10–13 |
 
 - **How it really works** reads: Figma multiplayer; Linear sync engine; Stripe idempotency keys; Discord message storage; Slack real-time; Notion data model; Next.js/Vercel caching; Shopify Black Friday scale; Cloudflare's Nov 2025 outage postmortem; GitHub Copilot architecture. The builder links each to the company's own engineering blog post.
 - **Decision memo** prompts:
@@ -292,7 +292,7 @@ New order:
 1. How the internet works.
 2. Frontend system design: RADIO framework, the FE SD topics, the 12 FE designs.
 3. HLD concepts (the existing 13), then the delivery framework and concepts-to-master.
-4. **All 26 HLD problems,** core ones first: Bitly, rate limiter, Dropbox, WhatsApp, Ticketmaster, Facebook news feed, YouTube, web crawler, distributed cache, job scheduler, payment system, top-K leaderboard, Yelp, live comments, ad click aggregator. Then the other 11.
+4. **All 23 HLD problems in `SD`,** core ones first: Bitly, rate limiter, Dropbox, WhatsApp, Ticketmaster, Facebook news feed, YouTube, web crawler, distributed cache, job scheduler, payment system, top-K leaderboard, Yelp, live comments, ad click aggregator. Then the other 8.
 5. The 4 AI designs.
 6. Mocks.
 
@@ -317,6 +317,8 @@ The AI build slot then also takes the build steps from the existing AI units, so
 - Resume, pitch, story bank and Amazon LPs stay; they move earlier, with the LPs done by week 4.
 - **Positioning text:** "product engineer who ships AI features", with FDE second.
 - The FDE stage sessions stay as they are, including separate Terraform, Kubernetes and Spark/Airflow sessions. They stay at breadth level (§13).
+- **Fitting the career block in Grind** (82 one-hour items, 78 slots): the 4 Stage-6 cloud sessions (AWS, Terraform, containers, DevOps) move to the 06:45 AI-build slot. Each gets **2 consecutive 30-min slots**, so it keeps its full hour. The AI-build slot has room: about 30 items in 78 slots.
+- **Rule for the 30-min AI-build slot:** any item sized for an hour (moved AI-unit build steps, the Stage-6 sessions) takes 2 slots. Nothing is shortened.
 - **Python moves to week 1**, in two of that week's 06:45 AI-build slots ("Python for JS devs", then pandas), before the first Python practical-coding rep. The AI-build items they displace shift back by two days.
 - **Deep dives of your own past work** (weeks 2–4): 3 real projects from your jobs, one per Saturday career block. The `BEH`/`UX` items for those Saturdays shift by one day. Each covers an architecture sketch, trade-offs, metrics, your own part, and what you'd change, and is rehearsed as a 15-min talk with its list of drill-down questions.
 - **Level calibration** (week 3, replacing one `UX` item, which moves to the end of the `UX` list): what L4/E4/SDE-2 vs L5/E5/senior must show, from public level guides. Then re-tag the story bank by the scope each story shows.
@@ -329,7 +331,7 @@ The AI build slot then also takes the build steps from the existing AI units, so
 
 ### 9. Product & UX, Frontend & CS
 
-- **UX:** unchanged (all 36 items).
+- **UX:** unchanged (all 35 items in `UX`).
 - **FE:** keep all 48 topics, and add 1: Next.js caching, revalidation and RSC.
 - **React internals at overview level** (owner's call):
   - The React topics (rendering and reconciliation, hooks, memo, concurrent React, RSC) each get a short summary card plus the existing link and practice.
@@ -377,21 +379,19 @@ The AI build slot then also takes the build steps from the existing AI units, so
   - The owner doesn't have to review items. Every item gets a "this is wrong / outdated" flag; flagged items leave rotation until they're fixed.
 - **Sources with questions but no answers:** the answer is a short excerpt from the primary doc, with its link. It isn't our own explanation.
 - **Drop anything outdated.**
-- **Lean size:** about 5–10 items per plan topic, roughly 500 in total. Better too few than noise.
-- **Ship in stages, following the plan's order:**
-  1. The quiz engine, pattern-id items, Big-O, JS (lydiahallie plus the handbook), and the system-design-primer decks. That covers weeks 1–4.
-  2. React, CSS, TypeScript and AI.
-  3. Node, SQL, LLD, behavioral and FDE.
-
-  Each stage has to land before the plan reaches that content. Weekly tests draw only from sections that have shipped.
+- **Lean size:** a cap of about 500 items in total. Important topics get up to 10, minor ones 3. Better too few than noise.
+- **Ship in the order topics first appear in the plan.** The builder computes each topic's first day from the laid-out plan and ships the bank ahead of it.
+  - The quiz engine and the first batch land in Release 2 (§20): pattern-id, Big-O, JS, system-design-primer, and whatever weeks 1–3 touch.
+  - Weekly tests draw only from sections that have shipped.
 
 **Daily quiz (optional):**
 - Drawn from items tagged with that day's topics, plus any items due again (below).
-- Shown as **one** optional task a day, "Optional: quick quiz", in the evening daily review. It covers every section studied that day (about 5 items per section, 5–10 min in total). It doesn't count towards hours or "behind".
+- Shown as **one** optional task a day, "Optional: quick quiz", in the evening daily review. It covers the sections studied that day: **5 items in total**, about 5–10 min. It doesn't count towards hours or "behind".
 
 **Weekly test (graded):**
 - Sunday, in the fixed core (§17), 40 minutes.
-- **Week 1 also has a baseline test** to compare every later score against: 2 timed DSA problems, a 20-item frontend quiz, and one 20-min mini system design.
+- **The baseline test runs on the prep day** (day 0, before any study, about 90 min): 2 timed DSA problems, a 20-item frontend quiz, and one 20-min mini system design. It's scored per section, the same way as the weekly test. Later weekly scores are compared with it section by section.
+  - In Release 1 (before the quiz engine exists), the baseline is a set of tasks the owner does and scores by hand. The scores are entered into the same per-section record.
 - About 30 items, drawn from everything covered that week, spread across sections in proportion to the week's study time.
 - **Score:** mcq and pattern-id right = 1, wrong = 0; recall Nailed = 1, Partial = 0.5, Missed = 0.
 - Recorded per section and in total for each week, with history. Synced like other state.
@@ -402,10 +402,10 @@ The AI build slot then also takes the build steps from the existing AI units, so
 
 ### 11. Readiness checks (shown as Sunday checks; applying never required)
 
-- **Week 4:** 3 past-project deep dives rehearsed; story bank of 12 stories; pitch recorded; pattern groups Arrays and Stack green; 3 decision memos; weekly test ≥ 70%.
+- **Week 4:** 3 past-project deep dives rehearsed; story bank of 12 stories; pitch recorded; unseen checks passed for the Arrays and Stack patterns; 3 decision memos; weekly test ≥ 70%.
 - **Week 8:** Linked List, Trees and Heaps green; 4 open-source fixes submitted; flagship has real-time and 1 AI feature working; take-home 1 done.
-- **Week 10:** 18 of the 24 patterns green; 6 decomposition reps.
-- **Week 12:** all 24 patterns green; the top-12 machine-coding builds done in ≤ 45 min.
+- **Week 10:** unseen checks passed for 18 of the 24 patterns; 6 decomposition reps.
+- **Week 12:** all 24 patterns green (the second unseen solve comes from Phase 3 timed sets and mocks); the top-12 machine-coding builds done in ≤ 45 min.
 - **Week 13:** 3 full mock loops (product engineer, FDE, frontend SDE-2); flagship case study published; weekly test ≥ 80% for 3 weeks running.
 
 If a check fails, it's suggested first in the next revision Sunday (§17). Rest time is never taken for it automatically.
@@ -486,14 +486,20 @@ The JS runtime fundamentals stay at working depth (§9).
   - Each day runs the same block types at their Grind durations, but not every block every day.
   - Every content block rotates: DSA must-solve, the AI build slot, FE, machine coding, system design, judgment, career and the AI evening. Each runs on about 76% of days (78 ÷ 102), so each still gets its 78 slots.
   - Two habits run every day: DSA revision with the recognition drill (30 min) and the daily review (30 min).
+  - **Weekday rules are Grind-only.** "Monday = how-it-works" and similar rules apply only in Grind. Steady keeps each track's **sequence order** (the judgment rotation, the machine-coding/flagship/LLD rhythm, every 3rd code review, the alternating mock) on whichever days that track runs.
+  - **All "from week N" and "weeks A–B" rules** use the week mapping below, not just the pinned items.
   - That's about 9.75 h × 0.765 + 1 h ≈ 8.5 h per weekday.
   - The builder designs the rotation and the Steady timetable times.
-- **Week mapping** for week-pinned items (take-homes, readiness checks, the week-8 review, negotiation):
+- **Week mapping** for every week-based rule (take-homes, readiness checks, the week-8 review, negotiation, "from week N" starts, flagship weeks, Python in week 1):
   - Steady week = round(Grind week × 17/13).
   - So Grind 4 → Steady 5, 6 → 8, 7 → 9, 8 → 10, 10 → 13, 12 → 16, 13 → 17.
 - **Choosing a mode:**
   - The mode is picked in Setup and stored in `State` (synced).
-  - Switching mid-plan keeps everything already done. Only unfinished tasks are laid out again at the new pace, from today.
+  - **Switching mid-plan:**
+    - State stores `{mode, switchedOn}`.
+    - Days before `switchedOn` are built in the old mode, exactly as before.
+    - From `switchedOn`, each track continues from its first item not done, at the new pace.
+    - Missed past tasks are not moved.
 - The app name "Offer in 90" stays.
 
 ### 15. AI help using your own API key (BYOK)
@@ -659,8 +665,9 @@ The builder checks each link before adding it, the same way as §13.
   - Hot reads come last, so a tight budget skips them first.
   - The whole run stays under the per-run cap (`ENGINE_BUDGET_USD`, set by the owner to $0.50).
 - **Optional weekly lock:**
-  - The workflow checks whether `public/updates.json`'s `generatedAt` shows a full run already this IST week.
-  - If it does, a manual run does the free link check only and skips the AI step, unless it's dispatched with `force: true`.
+  - The engine records `lastFullRunAt` in `public/updates.json` (a full or `ai` mode run).
+  - If that falls in the current IST week, a manual `full`/`ai` run skips the AI step, unless it's dispatched with `force: true`.
+  - `links` mode is never locked: broken links can always be fixed.
   - The cap is then a true weekly maximum.
 - **Where it looks.** Same pattern as `collect-interviews.mjs`: first a no-AI script gathers candidates with real engagement numbers, then Claude picks.
   - The new `scripts/collect-reads.mjs` writes `.engine/read-candidates.json`, with title, URL, date, source and engagement for each candidate. It runs in `refresh-engine.yml` before the Claude step. Its sources:
@@ -693,7 +700,7 @@ The builder checks each link before adding it, the same way as §13.
 **Rules:**
 - Mocks, speed pairs and peer mocks are on Saturdays now (§4).
 - "Optional: apply to 3–5 roles" shows as an optional Sunday item from week 8.
-- Missed weekday tasks never take rest time automatically. They wait for a revision Sunday or roll into the week.
+- Missed weekday tasks never take rest time automatically, and the engine never moves them to other days. They stay on their day and are listed in Sunday catch-up (revision mode), as today.
 - **Burnout guard:** if the owner is more than 8 h behind, the app suggests a revision Sunday and shows optional tasks last. It never extends a day.
 
 ### 18. Other additions from the review
@@ -711,6 +718,31 @@ The builder checks each link before adding it, the same way as §13.
 - One link per task.
 - Everything else goes to the Parking lot.
 
+### 20. Release plan (staged; the owner starts on Release 1)
+
+- **Release 1** (the first build session, before the owner's day 1):
+  - the full v2 curriculum in `plan-data.js`, with content-based task IDs;
+  - Steady and Grind modes (Steady by default, chosen in Setup);
+  - the new weekday layout (§1) and its `schedule.js` blocks;
+  - the new Sundays (fixed core, active rest / revision toggle, Sunday reads list);
+  - the prep day as day 0, with the hand-scored baseline;
+  - the DSA pattern data: the 24 patterns with their cards and links, every problem tagged with tier and flags, the must-solve set chosen, with weeks 1–2 complete and the rest at least tagged;
+  - the "unseen" tick with minutes, and own problems;
+  - **labels (§12), complete:** create, rename, recolour and delete owner labels and groups; any number of labels on any task, problem or own task; the system labels; filtering by label in Today and Roadmap. This replaces today's single "Yours" mark with Source = Yours, plus any labels the owner adds;
+  - the judgment thread, depth labels, readiness checks and week-8 review as plan tasks;
+  - Explore later and the focus rules;
+  - plain working screens for all of the above.
+- **Release 2** (within the owner's week 1):
+  - the quiz engine (mcq, recall, pattern-id), the daily quiz task and the weekly test with per-section history;
+  - the first question batch (§10);
+  - the "wrong / outdated" flag on quiz items.
+- **Release 3** (by the end of the owner's week 2):
+  - BYOK with the 4 provider adapters, key handling and the CSP;
+  - Ask AI with the 3 personas, saving answers to notes, and bookmarking them;
+  - hot reads in the weekly engine (collector, prompt section, budget order, weekly lock, `reads.json` + validator).
+- **Release 4 and after:** the rest of the question bank, shipped ahead of each topic's first day.
+- **Every release:** tests pass, `npm run build` passes, and the `scripts/smoke.mjs` smoke test passes, all silently (no audio). The app stays usable after each release.
+
 ## Left to the builder
 
 - Exact must-solve selection per pattern, within the rules in §2.
@@ -723,7 +755,7 @@ The builder checks each link before adding it, the same way as §13.
 - Parsing and curating the question sources.
 - Data file layout: where patterns, the question bank and flags live.
 - The data shape for the owner's own problems and quiz results in `State`.
-- UI is out of scope here. The builder only needs data and engine support so a later UI design can show it.
+- Plain working screens for each release's features. Visual polish is out of scope (a later UI design).
 
 ## Sources
 
