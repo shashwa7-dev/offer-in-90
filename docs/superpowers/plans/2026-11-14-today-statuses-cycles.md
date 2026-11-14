@@ -189,3 +189,29 @@ export function search(ix: SearchIndex, q: string, limitPerGroup = 6): { group: 
 - [ ] **Step 1: Write failing tests** `scripts/test-search.ts`: multi-word AND; title match ranked above a body-only match; `search(ix,'')` → `[]`; `'30'` adds "Go to Day 30" when dayCount ≥ 30, `'120'` adds none; index built with `posts: []`, `reads: []` still returns task and note hits; own tasks are searchable; notes body search finds a page by a body word.
 - [ ] **Step 2:** `npm test` → FAIL. **Step 3:** implement `search.ts`, then the dialog and wiring. **Step 4:** Extend smoke: ⌘K opens the dialog; typing a known task word and Enter opens its day with the peek; typing "30" shows "Go to Day 30"; typing a note word opens Notes with that note selected; Esc closes. Run tsc, lint, test, smoke → pass.
 - [ ] **Step 5:** Commit `feat(search): command palette for everything`.
+
+---
+
+### Task 8: Consistent page frame (sticky header, width, spacing)
+
+Owner request (2026-11-14): in the main (right) panel, the page header stays sticky on every page and overscroll never moves it; content width is the same on every tab and route; the gap from the header to the content is the same everywhere.
+
+**Files:**
+- Modify: `src/components/shell/page.tsx` (PageHeader, Surface, new `PageFrame`), `src/app/page.tsx` (main container), `src/app/globals.css` (overscroll), every page view (`today-view.tsx`, `progress-view.tsx`, `roadmap-view.tsx`, `notes-view.tsx`, `updates-view.tsx`, `setup-view.tsx`), `scripts/smoke.mjs`
+
+**Interfaces:**
+- Produces: `<PageFrame header={ReactNode}>{children}</PageFrame>` — one wrapper used by all six pages: renders the page header in a sticky bar (`sticky top-0 z-20`, background = canvas, bottom hairline) and the content below it with one fixed top gap.
+- One content container for every route in `page.tsx`: same max width (`max-w-[1280px]`), centred, same side gutters (16px phones, 24px ≥ md), same bottom padding (clears the phone bottom bar). No per-view widths.
+- Header→content gap: 12px on every page (the same token everywhere).
+- `html, body` and the inset scroll container: `overscroll-behavior-y: none` so rubber-band/overscroll can't drag the sticky header.
+- Notes two-pane and Today rail keep working inside the shared width.
+
+
+**Logo (owner request, same task):** use `/Users/shashwa7/Downloads/Ninja Mascot 90 Sticker Logo.png` (1254×1254, transparent PNG, black sticker with white line art) as the app logo.
+- Copy it into the repo as `public/logo.png`, plus resized copies with `sips`: `public/logo-64.png` (64px, sidebar), `src/app/icon.png` (192px, Next favicon convention; delete `src/app/favicon.ico`), `src/app/apple-icon.png` (180px). Use `${BASE}` prefix for any `<img>` in components (static export with basePath).
+- Replace the "90" black square mark in the sidebar header (`app-sidebar.tsx`) with the logo image (24px, rounded-full, alt "Offer in 90"), also in the collapsed icon rail. Keep "Offer in 90" text and the status line beside it.
+- The logo is a dark sticker; in dark mode it sits on a dark sidebar — add a 1px ring in `--border` around it so its edge stays visible.
+- Smoke: the sidebar logo `<img>` loads (naturalWidth > 0) at 1100; `/icon.png` returns 200.
+
+- [ ] **Step 1:** Extend smoke: for each of the six pages at 1100 and 390, scroll the window to the bottom and assert the header's `getBoundingClientRect().top` is 0 (±1) and it is visible; assert the content container's width is identical across all six pages at 1100 and at 1440; assert the vertical gap between the header's bottom and the first content element is the same (±1px) on every page; computed `overscroll-behavior-y` on `html` is `none`.
+- [ ] **Step 2:** Run → FAIL. **Step 3:** implement `PageFrame`, move every page's header into it, unify the container. **Step 4:** tsc, lint, test, smoke → pass; look at all pages at 1100/1440/390. **Step 5:** Commit `feat(shell): consistent sticky page frame and logo`.
