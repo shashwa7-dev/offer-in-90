@@ -3,11 +3,11 @@
 import { Fragment, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
-import { P, aiUnitOf, study, type Day } from '@/lib/engine';
-import { isSkipped, type StatusMap } from '@/lib/task-status';
-import { STAGES, TRACKS, type TrackKey } from '@/lib/timeline';
+import { P, aiUnitOf, type Day } from '@/lib/engine';
+import { cycleOf } from '@/lib/cycle';
 import { Band, Chip, Ring, Row } from './shell/page';
 import { PHASE_SPANS } from './roadmap-timeline';
+import { useCycleDays } from './today-rail';
 import { useUI } from './ui-state';
 
 const PHASE_TEXT: Record<number, string> = {
@@ -31,27 +31,11 @@ export function weekSummary(days: Day[], w: number): string[] {
   return [topics.length ? `DSA: ${topics.join(', ')}` : 'DSA: timed sets + OA', fe.length ? `Frontend: ${fe.slice(0, 2).join(', ')}…` : 'Frontend: revision', ai.length ? `AI: ${ai.join('; ')}` : 'AI: explain-it-back revision'];
 }
 
-/** Done/total per track for one week's days, matched the same way as the Timeline stages. */
-function trackCounts(ds: Day[], done: Record<string, number>, status: StatusMap) {
-  const c = Object.fromEntries(TRACKS.map(t => [t.key, { d: 0, t: 0 }])) as Record<TrackKey, { d: number; t: number }>;
-  for (const d of ds) {
-    if (d.s == null) continue;
-    for (const t of d.tasks) {
-      if (t.own || t.id.endsWith('-news')) continue;
-      const st = STAGES.find(x => x.match(t, d.s as number));
-      if (!st) continue;
-      if (isSkipped(t.id, done, status)) continue;
-      c[st.track].t++;
-      if (done[t.id]) c[st.track].d++;
-    }
-  }
-  return c;
-}
-
 export function RoadmapWeeks() {
   const { state, days, todayIdx } = useStore();
   const { openDay, focusWeek, setFocusWeek } = useUI();
   const today = todayIdx >= 0 && todayIdx < days.length ? days[todayIdx] : undefined;
+  const input = useCycleDays(days);
   // Phase bands open by default on today's phase; a focus request (sidebar Cycles) opens its band and expands its week.
   const [openPh, setOpenPh] = useState<Record<number, boolean>>({});
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
@@ -76,14 +60,14 @@ export function RoadmapWeeks() {
               {weeks.map(w => {
                 const ds = days.filter(d => d.week === w);
                 if (!ds.length) return null;
-                const tasks = ds.flatMap(d => d.tasks.filter(study)).filter(t => !isSkipped(t.id, state.done, state.status));
-                const n = tasks.filter(t => state.done[t.id]).length, total = tasks.length;
-                const share = total ? n / total : 0;
+                // Same numbers as the Today rail's cycle card: study tasks, skipped left out, cat-based tracks.
+                const cyc = cycleOf(input, w, state.done, state.status, state.meta, todayIdx, Date.now());
+                const n = cyc?.byStatus.done ?? 0, total = cyc?.total ?? 0, share = cyc?.pct ?? 0;
                 const now = today?.week === w;
                 const [head, ...rest] = weekSummary(days, w);
                 const first = ds.find(d => d.type !== 'kick') ?? ds[0];
                 const open = now || !!expanded[w];
-                const counts = open ? trackCounts(ds, state.done, state.status) : null;
+                const tracks = open ? cyc?.tracks ?? [] : null;
                 return (
                   <Fragment key={w}>
                     <Row tone={now ? 'now' : undefined} onClick={() => openDay(first.i)} data-week={w} data-expanded={open || undefined}
@@ -100,9 +84,9 @@ export function RoadmapWeeks() {
                       <Chip className="w-11 justify-center">{Math.round(share * 100)}%</Chip>
                       <Chip>{dateRange(ds[0].date, ds[ds.length - 1].date)}</Chip>
                     </Row>
-                    {counts && (
+                    {tracks && (
                       <div className={cn('px-4 pb-2.5 pl-11 text-[12px] leading-snug text-muted-foreground tabular-nums', now && 'shadow-[inset_2px_0_0_var(--primary)]')} data-week-tracks>
-                        {TRACKS.filter(t => counts[t.key].t > 0).map(t => `${t.name} ${counts[t.key].d}/${counts[t.key].t}`).join(' · ') || 'No track tasks this week.'}
+                        {tracks.map(t => `${t.name} ${t.done}/${t.total}`).join(' · ') || 'No track tasks this week.'}
                       </div>
                     )}
                   </Fragment>

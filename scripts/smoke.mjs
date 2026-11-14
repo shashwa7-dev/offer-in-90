@@ -564,6 +564,27 @@ try {
     }
     await page.screenshot({ path: join(shots, `rail-${width}-${scheme}.png`), fullPage: true });
     if (width === 1100) {
+      // Trailing counts only what is due by 14:10: with yesterday and today's ended blocks done, it's on track.
+      const before = (await cyc.locator('[data-trailing]').innerText().catch(() => '')).trim();
+      await cyc.locator('[data-cycle-day]').first().click(); await page.waitForTimeout(300); // Wed, the first day of this cycle
+      await page.getByRole('button', { name: 'Display' }).click(); await page.getByRole('menuitemradio', { name: 'Status' }).click(); await page.waitForTimeout(300);
+      const wedIds = await page.locator('[data-task]').evaluateAll(els => els.map(e => e.getAttribute('data-task')));
+      await page.getByRole('button', { name: 'Display' }).click(); await page.getByRole('menuitemradio', { name: 'Time of day' }).click(); await page.waitForTimeout(200);
+      await page.getByRole('button', { name: 'Next day' }).click(); await page.waitForTimeout(300);
+      for (const m of await page.locator('[data-missed]').all()) if ((await m.getAttribute('aria-expanded')) !== 'true') { await m.click(); await page.waitForTimeout(100); }
+      // task rows that follow a missed block row (up to the next block row)
+      const endedIds = await page.evaluate(() => { const out = []; let inMissed = false; for (const el of document.querySelectorAll('[data-today-list] [data-block], [data-today-list] [data-task]')) { if (el.hasAttribute('data-block')) inMissed = el.hasAttribute('data-missed'); else if (inMissed) out.push(el.getAttribute('data-task')); } return out; });
+      const sv = await page.evaluate(() => JSON.parse(localStorage.getItem('offer90.v1')));
+      for (const id of [...wedIds, ...endedIds]) sv.done[id] = +at - 3600e3;
+      await page.evaluate(v => localStorage.setItem('offer90.v1', JSON.stringify(v)), sv);
+      await page.reload({ waitUntil: 'networkidle' }); await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' }); await page.waitForTimeout(500);
+      const caught = (await cyc.locator('[data-trailing]').innerText().catch(() => '')).trim();
+      if (caught === 'On track') ok(`${W}: caught up at 14:10 reads On track (was "${before}", ticked ${wedIds.length}+${endedIds.length})`); else fail(`${W}: caught up at 14:10 reads "${caught}" (was "${before}")`);
+      const later = page.locator('[data-block="review"]'); await later.click(); await page.waitForTimeout(200);
+      await page.locator('[data-block="review"] ~ [data-task] [data-status-icon]').first().click(); await page.waitForTimeout(300);
+      const ahead = (await cyc.locator('[data-trailing]').innerText().catch(() => '')).trim();
+      if (ahead === 'Ahead by 1 task') ok(`${W}: ticking a 21:00 task early reads "${ahead}"`); else fail(`${W}: early tick reads "${ahead}"`);
+      await page.locator('[data-block="review"] ~ [data-task] [data-status-icon]').first().click(); await page.waitForTimeout(200);
       // Tasks -> Hours changes the y-axis unit
       const unit = cyc.locator('[data-burndown-unit]');
       const u0 = await unit.innerText().catch(() => '');
@@ -592,6 +613,11 @@ try {
       await bar.click(); await page.waitForTimeout(400);
       if ((await page.locator('header').first().innerText()).includes(`Day ${no} of`)) ok(`${W}: day bar opens Day ${no}`); else fail(`${W}: day bar did not open Day ${no}`);
       await page.screenshot({ path: join(shots, `rail-${width}-other-day.png`), fullPage: true });
+      // a day in next week: the cycle says when it starts, not "7 days left"
+      for (let k = 0; k < 8; k++) { await page.getByRole('button', { name: 'Next day' }).click(); await page.waitForTimeout(80); }
+      await page.waitForTimeout(300);
+      const fut = await cyc.innerText();
+      if (/Week 3 cycle/.test(fut) && /starts \w{3} \d+ \w{3}/.test(fut) && !/days left/.test(fut)) ok(`${W}: future cycle shows "starts …"`); else fail(`${W}: future cycle detail: ${fut.split('\n').slice(0, 2).join(' | ')}`);
       // sidebar Cycles
       const cy = page.locator('[data-slot="sidebar"] [data-cycles]');
       const cur = cy.locator('[data-cycle]').filter({ hasText: /Week \d+ · current/ });

@@ -143,6 +143,36 @@ assert.equal(cycleList(days, 0, { a: 1 }, {}, {}, now)[0].pct, 1 / 8);
   assert.equal(h2.burndown.hours.total, 0.75);
 }
 
+// Trailing counts only what is due by now: today's blocks that end later aren't due yet.
+{
+  const tk = (id: string, end: number) => ({ ...task(id), end });
+  const dd: CycleDayInput[] = [
+    { i: 0, week: 1, date: d(1), type: 'work', tasks: [tk('y1', 600), tk('y2', 1200)] },
+    { i: 1, week: 1, date: d(2), type: 'work', tasks: [tk('m', 780), tk('l1', 1080), tk('l2', 1260), task('noend')] },
+    { i: 2, week: 1, date: d(3), type: 'work', tasks: [tk('t', 600)] },
+  ];
+  const at = T(2, 14), nowMin = 14 * 60 + 10;
+  const yday = { y1: T(1, 9), y2: T(1, 19) };
+  // 14:10, yesterday complete, the 13:00 block done, later blocks undone → on track
+  let c = cycleOf(dd, 1, { ...yday, m: T(2, 12) }, {}, {}, 1, at, nowMin)!;
+  assert.equal(c.trailing.tasks, 0);
+  assert.equal(c.trailing.hours, 0);
+  // ticking a later block's task early → ahead
+  c = cycleOf(dd, 1, { ...yday, m: T(2, 12), l1: T(2, 14) }, {}, {}, 1, at, nowMin)!;
+  assert.equal(c.trailing.tasks, -1);
+  assert.equal(c.trailing.hours, -1);
+  // the block that ended at 13:00 left undone → trailing by 1
+  c = cycleOf(dd, 1, yday, {}, {}, 1, at, nowMin)!;
+  assert.equal(c.trailing.tasks, 1);
+  // a skipped overdue task doesn't count
+  c = cycleOf(dd, 1, yday, { m: 'skipped' }, { 'status/m': T(2, 13) }, 1, at, nowMin)!;
+  assert.equal(c.trailing.tasks, 0);
+  // per-day burndown arrays are unchanged by nowMin
+  assert.deepEqual(cycleOf(dd, 1, yday, {}, {}, 1, at, nowMin)!.burndown, cycleOf(dd, 1, yday, {}, {}, 1, at)!.burndown);
+  // default nowMin (end of day) keeps the end-of-day comparison: all of today's 4 undone tasks trail
+  assert.equal(cycleOf(dd, 1, yday, {}, {}, 1, at)!.trailing.tasks, 4);
+}
+
 // unknown week
 assert.equal(cycleOf(days, 99, {}, {}, {}, 0, now), null);
 console.log('test-cycle: ok');

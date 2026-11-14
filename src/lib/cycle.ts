@@ -5,7 +5,7 @@ import type { StatusMap, TaskStatus } from './task-status';
 import type { TrackKey } from './timeline';
 
 export type CycleUnit = 'tasks' | 'hours';
-export interface CycleDayInput { i: number; week: number; date: Date; type: string; tasks: { id: string; cat: string; min: number; study: boolean; own?: string }[] }
+export interface CycleDayInput { i: number; week: number; date: Date; type: string; tasks: { id: string; cat: string; min: number; study: boolean; own?: string; /** Minutes after midnight when the task's block ends; missing = end of day. */ end?: number }[] }
 export interface CycleSummary {
   week: number; from: Date; to: Date; daysLeft: number;
   byStatus: Record<TaskStatus, number>; total: number; pct: number;
@@ -36,6 +36,8 @@ const startOfDate = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDa
 export function cycleOf(
   days: CycleDayInput[], week: number, done: Record<string, number>, status: StatusMap,
   meta: Record<string, number>, todayIdx: number, now: number,
+  /** Minutes after midnight now. Today's tasks whose block ends later aren't due yet, so they don't count as trailing. */
+  nowMin = 1440,
 ): CycleSummary | null {
   void now;
   const wk = days.filter((d) => d.week === week).sort((a, b) => a.i - b.i);
@@ -44,7 +46,7 @@ export function cycleOf(
   const byStatus = empty();
   const trk = new Map<TrackKey, { done: number; total: number }>();
   // time each task stopped being pending; -Infinity = before the cycle
-  const all: { day: number; min: number; resolved: number; skipped: boolean }[] = [];
+  const all: { day: number; min: number; resolved: number; skipped: boolean; end: number }[] = [];
 
   const dayRows = wk.map((d, k) => {
     const ds = empty();
@@ -55,7 +57,7 @@ export function cycleOf(
       let resolved = Infinity;
       if (st === 'done') resolved = Math.max(done[t.id], start);
       else if (st === 'skipped') resolved = meta[`status/${t.id}`] ?? start;
-      all.push({ day: k, min: t.min, resolved, skipped: st === 'skipped' });
+      all.push({ day: k, min: t.min, resolved, skipped: st === 'skipped', end: t.end ?? 1440 });
       const tr = trackOfCat(t.cat);
       if (tr && st !== 'skipped') {
         const e = trk.get(tr) ?? { done: 0, total: 0 };
@@ -79,7 +81,13 @@ export function cycleOf(
     const ideal = wk.map((d, k) => out(sum((x) => x.day > k && !(x.skipped && x.resolved < endOfDate(d.date)))));
     const pending = wk.map((d) => (d.i > todayIdx ? null : out(sum((x) => x.resolved >= endOfDate(d.date)))));
     burndown[u] = { pending, ideal, total: tot };
-    trailing[u] = todayK < 0 ? null : Math.round(((pending[todayK] as number) - ideal[todayK]) * 1e6) / 1e6;
+    // Scheduled-by-now: what is still planned after this moment (later days, or today's blocks that end after now).
+    let idealNow = 0;
+    if (todayK >= 0) {
+      const eod = endOfDate(wk[todayK].date);
+      idealNow = out(sum((x) => (x.day > todayK || (x.day === todayK && x.end > nowMin)) && !(x.skipped && x.resolved < eod)));
+    }
+    trailing[u] = todayK < 0 ? null : Math.round(((pending[todayK] as number) - idealNow) * 1e6) / 1e6;
   }
 
   return {

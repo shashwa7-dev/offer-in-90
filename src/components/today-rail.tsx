@@ -6,20 +6,28 @@ import { useStore } from '@/lib/store';
 import { cycleOf, type CycleDayInput, type CycleSummary, type CycleUnit } from '@/lib/cycle';
 import { statusOf, type TaskStatus } from '@/lib/task-status';
 import { type Day, dayStats, hrs, study, toMin } from '@/lib/engine';
-import { Seg, Surface } from './shell/page';
+import { Seg } from './shell/page';
 import { StatusIcon } from './status-control';
 import { dateRange } from './roadmap-weeks';
 import { useUI } from './ui-state';
 
-/** Engine days as cycle input (own tasks are already merged into d.tasks). */
+/** Engine days as cycle input (own tasks are already merged into d.tasks). `end` is the task's block end, so
+    today's later blocks don't count as trailing; own tasks take the end of the block they were added to. */
 export const toCycleDays = (days: Day[]): CycleDayInput[] =>
-  days.map(d => ({ i: d.i, week: d.week, date: d.date, type: d.type, tasks: d.tasks.map(t => ({ id: t.id, cat: t.cat, min: t.min, study: study(t), own: t.own })) }));
+  days.map(d => {
+    const endOf = new Map(d.blocks.map(b => [b.k, toMin(b.e)]));
+    return { i: d.i, week: d.week, date: d.date, type: d.type, tasks: d.tasks.map(t => ({ id: t.id, cat: t.cat, min: t.min, study: study(t), own: t.own, end: endOf.get(t.bk) })) };
+  });
 export const useCycleDays = (days: Day[]) => useMemo(() => toCycleDays(days), [days]);
 
-// Bar fills: done ink, in progress grey, skipped stone border, rest the track.
-const FILL: Record<TaskStatus, string> = { done: 'var(--primary)', progress: 'var(--faint)', skipped: 'var(--stone-border)', todo: 'var(--border)' };
+// Bar fills: done ink, in progress grey, skipped a stone hatch over the track, rest the track.
+const FILL: Record<TaskStatus, string> = {
+  done: 'var(--primary)', progress: 'var(--faint)', todo: 'var(--border)',
+  skipped: 'repeating-linear-gradient(135deg, var(--stone-foreground) 0 1px, transparent 1px 3px), var(--border)',
+};
 const IDEAL = 'color-mix(in srgb, var(--faint) 65%, var(--card))'; // about #b4b7ba
 const UNIT_KEY = 'offer90.cycleUnit';
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? '' : 's'}`;
 const fmtH = (h: number) => `${Math.round(h * 10) / 10}`;
@@ -72,15 +80,17 @@ const Swatch = ({ k }: { k: TaskStatus }) => <span aria-hidden="true" className=
 export function TodayRail({ day }: { day: Day }) {
   const { state, days, todayIdx } = useStore();
   const input = useCycleDays(days);
-  const cyc = useMemo(() => cycleOf(input, day.week, state.done, state.status, state.meta, todayIdx, Date.now()), [input, day.week, state.done, state.status, state.meta, todayIdx]);
+  const nm = useMinute(); // trailing compares with what is due by now, so it moves through the day
+  const cyc = useMemo(() => cycleOf(input, day.week, state.done, state.status, state.meta, todayIdx, Date.now(), nm), [input, day.week, state.done, state.status, state.meta, todayIdx, nm]);
   return (
-    // Between lg and xl the rail sits below the list at full width: two columns of cards there.
-    <Surface className="mt-4 xl:mt-0 lg:max-xl:grid lg:max-xl:grid-cols-2 lg:max-xl:[&>section:nth-child(2)]:border-t-0 lg:max-xl:[&>section:nth-child(even)]:border-l">
+    // Lives inside Today's sheet. Between lg and xl it sits below the list at full width: two columns of cards there.
+    // Cards align to the top of each row; the column hairline is a full-height 1px background so it doesn't stop at a short card.
+    <div className="lg:max-xl:grid lg:max-xl:grid-cols-2 lg:max-xl:items-start lg:max-xl:[&>section:nth-child(2)]:border-t-0 lg:max-xl:bg-[linear-gradient(var(--border),var(--border))] lg:max-xl:bg-[length:1px_100%] lg:max-xl:bg-center lg:max-xl:bg-no-repeat">
       <TodayCard day={day} isToday={day.i === todayIdx} />
       {cyc && <CycleCard cyc={cyc} />}
       {cyc && <TracksCard cyc={cyc} />}
       <ProgressCard />
-    </Surface>
+    </div>
   );
 }
 
@@ -96,7 +106,7 @@ function TodayCard({ day, isToday }: { day: Day; isToday: boolean }) {
   const title = isToday ? 'Today' : day.no === 0 ? 'Day 0' : `Day ${day.no}`;
   const legend: [TaskStatus, string][] = [['done', 'Done'], ['progress', 'In progress'], ['skipped', 'Skipped'], ['todo', 'Not started']];
   return (
-    <Card id="today" title={title} detail={all ? `${b.done} of ${st.total} done` : undefined}>
+    <Card id="today" title={title} detail={all ? `${b.done} of ${st.total} study tasks done` : undefined}>
       <Stack parts={[['done', b.done], ['progress', b.progress], ['skipped', b.skipped], ['todo', b.todo]]} />
       <div className="mt-2.5 grid grid-cols-2 gap-x-3 gap-y-1 text-[12px] text-muted-foreground">
         {legend.map(([k, label]) => (
@@ -114,14 +124,16 @@ function TodayCard({ day, isToday }: { day: Day; isToday: boolean }) {
 }
 
 function CycleCard({ cyc }: { cyc: CycleSummary }) {
-  const { days } = useStore();
+  const { days, todayIdx } = useStore();
   const { openDay } = useUI();
   const [unit, setUnit] = useCycleUnit();
   const b = cyc.byStatus;
   const past = cyc.daysLeft === 0;
+  const future = cyc.days[0].i > todayIdx;
+  const when = past ? 'ended' : future ? `starts ${WD[cyc.from.getDay()]} ${cyc.from.getDate()} ${MON[cyc.from.getMonth()]}` : `${plural(cyc.daysLeft, 'day')} left`;
   const trail = trailingLine(cyc.trailing[unit], unit);
   return (
-    <Card id="cycle" title={`Week ${cyc.week} cycle`} detail={`${dateRange(cyc.from, cyc.to)} · ${past ? 'ended' : `${plural(cyc.daysLeft, 'day')} left`}`}>
+    <Card id="cycle" title={`Week ${cyc.week} cycle`} detail={`${dateRange(cyc.from, cyc.to)} · ${when}`}>
       <Stack parts={[['done', b.done], ['progress', b.progress], ['todo', b.todo]]} />
       <div className="mt-2 flex items-baseline gap-2 text-[13px]">
         <span className="font-medium tabular-nums">{b.done} / {cyc.total} tasks</span>

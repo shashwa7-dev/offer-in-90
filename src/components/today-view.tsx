@@ -99,9 +99,9 @@ export function TodayView() {
         </>}
       />
 
-      <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start xl:gap-6">
+      {/* One sheet: the list, then the rail (a column with a vertical hairline at xl, a section below it otherwise). */}
+      <Surface className="xl:grid xl:grid-cols-[minmax(0,1fr)_300px]">
       <div data-today-list className="min-w-0">
-      <Surface>
         <SummaryRow ring={{ pct: st.planMin ? st.doneMin / st.planMin : 0, label: dayTitle(d) }} items={items} />
         {(unseen > 0 || overdue.length > 0) && (
           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-border px-4 py-2.5 text-[13px] text-muted-foreground" data-notice>
@@ -151,11 +151,10 @@ export function TodayView() {
             );
           })}
         </div>
-      </Surface>
       </div>
       {/* Right column: the viewed day and its week as a cycle; stacks below the list on smaller screens. */}
-      <aside data-rail className="min-w-0"><TodayRail day={d} /></aside>
-      </div>
+      <aside data-rail className="min-w-0 border-t border-border xl:border-t-0 xl:border-l"><TodayRail day={d} /></aside>
+      </Surface>
     </div>
   );
 }
