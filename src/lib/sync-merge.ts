@@ -6,7 +6,7 @@
  */
 
 export const MAPS = ['done', 'flags', 'notes', 'tnotes', 'pages', 'seenUpdates', 'bookmarks', 'custom'] as const;
-export const SCALARS = ['start', 'kickoff'] as const;
+export const SCALARS = ['start', 'kickoff', 'targets'] as const;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Doc = Record<string, any> & { meta?: Record<string, number>; updatedAt?: number };

@@ -56,4 +56,13 @@ assert.ok(!('news:a' in merge(bm, unsaved).bookmarks));
 
 // 9. Merge is stable: merging equal copies changes nothing
 assert.ok(sameData(merge(m, m), m));
-console.log('sync-merge: all 9 scenarios pass');
+// 10. Target companies: last writer wins; a side without targets never erases a defined one
+const tBase = { ...base, targets: ['Google'] as string[] };
+const tLaptop = stamp(tBase, { ...tBase, targets: ['Google'] }, 7000);
+const tPhone = stamp(tBase, { ...tBase, targets: ['Amazon'] }, 7001);
+assert.deepEqual(merge(tLaptop, tPhone).targets, ['Amazon']);
+assert.deepEqual(merge(tPhone, tLaptop).targets, ['Amazon']);
+assert.deepEqual(merge(base as typeof tBase, tBase).targets, ['Google']);
+assert.deepEqual(merge(tBase, base as typeof tBase).targets, ['Google']);
+
+console.log('sync-merge: all 10 scenarios pass');
