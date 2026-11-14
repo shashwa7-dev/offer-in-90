@@ -67,7 +67,7 @@ What the research found (the owner has seen these findings):
 ## Approaches considered
 
 **Roadmap structure**
-1. **Keep the 13-week block skeleton and engine; change the content and add data (chosen).** The structure works and the owner likes it.
+1. **Keep the block skeleton and engine (13 weeks in Grind, 17 in Steady); change the content and add data (chosen).** The structure works and the owner likes it.
 2. Rebuild the curriculum around tracks. Rejected: it throws away a working structure.
 3. Add a month 4. Originally rejected. After review, the owner chose a 4-month **Steady** mode as the default, with the 3-month **Grind** kept as an option (§15).
 
