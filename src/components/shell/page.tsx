@@ -14,7 +14,7 @@ export function Surface({ children, className }: { children: ReactNode; classNam
   return <div data-surface className={cn('overflow-hidden rounded-[10px] border border-border bg-card', className)}>{children}</div>;
 }
 
-type Crumb = string | { label: string; onClick: () => void };
+type Crumb = string | { label: string; onClick?: () => void; /** Hidden on phones (with the separator after it). */ phoneHidden?: boolean };
 
 /** Page title line: sidebar toggle (desktop), breadcrumb, optional count, actions on the right. */
 export function PageHeader({ crumbs, count, actions, keepLast }: { crumbs: Crumb[]; count?: string; actions?: ReactNode; /** Keep the last crumb whole; earlier crumbs truncate first. */ keepLast?: boolean }) {
@@ -28,9 +28,9 @@ export function PageHeader({ crumbs, count, actions, keepLast }: { crumbs: Crumb
             const label = typeof c === 'string' ? c : c.label;
             return (
               <Fragment key={i}>
-                {i > 0 && <BreadcrumbSeparator />}
-                <BreadcrumbItem className={cn(last !== !!keepLast ? 'min-w-0' : 'shrink-0')}>
-                  {typeof c !== 'string'
+                {i > 0 && <BreadcrumbSeparator className={cn(typeof crumbs[i - 1] !== 'string' && (crumbs[i - 1] as { phoneHidden?: boolean }).phoneHidden && 'max-sm:hidden')} />}
+                <BreadcrumbItem className={cn(last !== !!keepLast ? 'min-w-0' : 'shrink-0', typeof c !== 'string' && c.phoneHidden && 'max-sm:hidden')}>
+                  {typeof c !== 'string' && c.onClick
                     ? <button type="button" onClick={c.onClick} className="rounded-[5px] text-muted-foreground transition-colors hover:text-foreground">{label}</button>
                     : last ? <BreadcrumbPage className="truncate font-medium">{label}</BreadcrumbPage>
                     : <span className="truncate text-muted-foreground">{label}</span>}
@@ -47,7 +47,7 @@ export function PageHeader({ crumbs, count, actions, keepLast }: { crumbs: Crumb
 }
 
 /** Collapsible grey band with a title, a short count and an optional right-hand slot. */
-export function Band({ title, count, right, defaultOpen = true, open: openProp, onOpenChange, id, children }: { title: string; count?: ReactNode; right?: ReactNode; defaultOpen?: boolean; /** Controlled open state (optional). */ open?: boolean; onOpenChange?: (v: boolean) => void; /** Sets data-band, for scrolling to and tests. */ id?: string; children: ReactNode }) {
+export function Band({ title, icon, count, right, defaultOpen = true, open: openProp, onOpenChange, id, children }: { title: string; /** Small glyph before the title. */ icon?: ReactNode; count?: ReactNode; right?: ReactNode; defaultOpen?: boolean; /** Controlled open state (optional). */ open?: boolean; onOpenChange?: (v: boolean) => void; /** Sets data-band, for scrolling to and tests. */ id?: string; children: ReactNode }) {
   const [own, setOwn] = useState(defaultOpen);
   const open = openProp ?? own;
   const setOpen = (v: boolean) => { setOwn(v); onOpenChange?.(v); };
@@ -56,6 +56,7 @@ export function Band({ title, count, right, defaultOpen = true, open: openProp, 
       <div className="flex h-9 items-center gap-2 bg-band px-4">
         <CollapsibleTrigger className="-ml-1 flex min-w-0 flex-1 items-center gap-1.5 rounded-[5px] py-1 pl-1 text-left text-[13px] font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
           <ChevronRight className={cn('size-3.5 shrink-0 text-muted-foreground transition-transform', open && 'rotate-90')} />
+          {icon}
           <span className="truncate">{title}</span>
           {count != null && count !== '' && <span className="shrink-0 font-normal text-faint tabular-nums">{count}</span>}
         </CollapsibleTrigger>

@@ -68,7 +68,7 @@ function App() {
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset className="min-w-0 bg-background pb-[calc(56px+env(safe-area-inset-bottom))] md:pb-0">
-          <div className={cn('mx-auto w-full pt-[env(safe-area-inset-top)] pl-[max(16px,env(safe-area-inset-left))] pr-[max(16px,env(safe-area-inset-right))] md:px-6', view === 'today' ? 'max-w-3xl' : 'max-w-6xl')}>
+          <div className={cn('mx-auto w-full pt-[env(safe-area-inset-top)] pl-[max(16px,env(safe-area-inset-left))] pr-[max(16px,env(safe-area-inset-right))] md:px-6', view !== 'today' && 'max-w-6xl')}>
             {view === 'today' && <TodayView />}
             {view === 'progress' && <ProgressView />}
             {view === 'roadmap' && <RoadmapView />}

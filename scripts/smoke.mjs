@@ -237,6 +237,84 @@ try {
     checkErrors(errors, W);
     await ctx.close();
   }
+  // ---------- Today filter bar, Display and full width (same fixed clock) ----------
+  for (const [width, height] of [[1100, 900], [390, 844]]) {
+    const at = new Date(2026, 10, 12, 14, 10);
+    const st = new Date(at); st.setDate(st.getDate() - 9);
+    const fx = { ...fixture, start: isoDay(st), done: { 'k-wo': +at }, notes: {}, updatedAt: +at };
+    const ctx = await browser.newContext({ viewport: { width, height } });
+    await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
+    const page = await ctx.newPage();
+    await page.clock.install({ time: at });
+    const errors = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+    page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+    const load = async (reload) => {
+      if (reload) await page.reload({ waitUntil: 'networkidle' }); else await page.goto(URL, { waitUntil: 'networkidle' });
+      await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+      await page.waitForTimeout(500);
+    };
+    await load(false);
+    const W = `filters ${width}`;
+    // one task in the current block in progress, one done
+    const ids = await page.locator('[data-now] ~ [data-task]').evaluateAll(els => els.map(e => e.getAttribute('data-task')));
+    const [progId, doneId] = ids;
+    await page.evaluate(([p, d, t]) => { const s = JSON.parse(localStorage.getItem('offer90.v1')); s.status = { ...(s.status || {}), [p]: 'progress' }; s.done = { ...s.done, [d]: t }; localStorage.setItem('offer90.v1', JSON.stringify(s)); }, [progId, doneId, +at]);
+    await load(true);
+    const bar = page.locator('[data-filter-bar]');
+    if (await bar.isVisible().catch(() => false)) ok(`${W}: filter bar visible`); else fail(`${W}: no filter bar`);
+    const hdrText = (await page.locator('header').first().innerText().catch(() => '')).replace(/\s+/g, ' ');
+    if (width === 1100 ? /Week 2 Day 9 of 91 Thu/.test(hdrText) : /^Day 9 of 91 Thu/.test(hdrText) && await page.locator('header').getByText('Week 2').count()) ok(`${W}: header crumbs ${hdrText}`); else fail(`${W}: header crumbs "${hdrText}"`);
+    const taskIds = () => page.locator('[data-task]').evaluateAll(els => els.filter(e => e.offsetParent).map(e => e.getAttribute('data-task')));
+    const pill = k => bar.locator(`[data-pill="${k}"]`);
+    if (width === 1100) await page.screenshot({ path: join(shots, `filters-${width}-none.png`), fullPage: true });
+    // status pill
+    if (/In progress\s*1/.test(await pill('progress').innerText().catch(() => ''))) ok(`${W}: In progress pill counts 1`); else fail(`${W}: In progress pill reads "${await pill('progress').innerText().catch(() => '')}"`);
+    await pill('progress').click(); await page.waitForTimeout(300);
+    let shown = await taskIds();
+    if (shown.length === 1 && shown[0] === progId) ok(`${W}: In progress shows only the in-progress task`); else fail(`${W}: In progress shows ${JSON.stringify(shown)} (want ${progId})`);
+    await pill('progress').click(); await page.waitForTimeout(300);
+    if ((await pill('all').getAttribute('aria-pressed')) === 'true') ok(`${W}: clicking the active pill returns to All`); else fail(`${W}: All not active after re-click`);
+    // + Filter → Track → DSA
+    await bar.locator('[data-filter-add]').click(); await page.waitForTimeout(200);
+    await page.getByRole('option', { name: 'Track' }).click(); await page.waitForTimeout(200);
+    await page.getByRole('option', { name: 'DSA' }).click(); await page.waitForTimeout(200);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+    const chip = bar.locator('[data-filter-chip="tracks"]');
+    if (/Track is DSA/.test(await chip.innerText().catch(() => ''))) ok(`${W}: Track chip shown`); else fail(`${W}: Track chip missing`);
+    if (await page.locator('[data-block="dsa"]').count() && !(await page.locator('[data-block="review"], [data-block="workout"]').count())) ok(`${W}: non-DSA blocks hidden`); else fail(`${W}: block visibility wrong under Track=DSA`);
+    await load(true);
+    if (/Track is DSA/.test(await chip.innerText().catch(() => ''))) ok(`${W}: filter kept after reload`); else fail(`${W}: filter lost on reload`);
+    await page.screenshot({ path: join(shots, `filters-${width}-filtered.png`), fullPage: true });
+    const sw = async label => { if (width !== 390) return; const v = await page.evaluate(() => document.documentElement.scrollWidth); if (v > 390) fail(`${W} ${label}: horizontal scroll (${v})`); else ok(`${W} ${label}: scrollWidth ${v}`); };
+    await sw('filtered');
+    await chip.getByRole('button', { name: /^Remove/ }).click(); await page.waitForTimeout(300);
+    if (await chip.count()) fail(`${W}: chip not removed`); else ok(`${W}: chip removed`);
+    // Display → Status
+    await page.getByRole('button', { name: 'Display' }).click(); await page.waitForTimeout(200);
+    await page.getByRole('menuitemradio', { name: 'Status' }).click(); await page.waitForTimeout(400);
+    const doneBand = page.locator('[data-band="status-done"]');
+    if (await doneBand.isVisible().catch(() => false) && await doneBand.locator(`[data-task="${doneId}"]`).count()) ok(`${W}: Status grouping renders a Done band`); else fail(`${W}: no Done band with ${doneId}`);
+    if (await page.locator('[data-now]').count()) fail(`${W}: data-now row in Status grouping`); else ok(`${W}: no now row in Status grouping`);
+    if (width === 1100 && !(await bar.getByText('Grouped by status').isVisible().catch(() => false))) fail(`${W}: "Grouped by status" not shown`);
+    await page.screenshot({ path: join(shots, `filters-${width}-status.png`), fullPage: true });
+    await sw('status');
+    await page.getByRole('button', { name: 'Display' }).click(); await page.waitForTimeout(200);
+    await page.getByRole('menuitemradio', { name: 'Time of day' }).click(); await page.waitForTimeout(300);
+    // nothing matches
+    await pill('skipped').click(); await page.waitForTimeout(300);
+    if (await page.getByText('No tasks match these filters.').isVisible().catch(() => false)) ok(`${W}: empty copy shown`); else fail(`${W}: empty copy missing`);
+    await pill('all').click(); await page.waitForTimeout(300);
+    if ((await page.locator('[data-now]').count()) === 1) ok(`${W}: clearing returns the now row`); else fail(`${W}: now row count ${await page.locator('[data-now]').count()} after clearing`);
+    // layout: list and right column
+    const boxes = await page.evaluate(() => { const r = s => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, bottom: b.bottom }; }; return { list: r('[data-today-list]'), rail: r('[data-rail]') }; });
+    if (width === 1100) {
+      if (boxes.list && boxes.rail && boxes.rail.x >= boxes.list.x + boxes.list.w - 1 && Math.abs(boxes.rail.y - boxes.list.y) < 2) ok(`${W}: list and right column side by side`); else fail(`${W}: layout ${JSON.stringify(boxes)}`);
+    } else if (boxes.list && (!boxes.rail || boxes.rail.y >= boxes.list.bottom - 1)) ok(`${W}: right column stacked below`); else fail(`${W}: layout ${JSON.stringify(boxes)}`);
+    await sw('cleared');
+    checkErrors(errors, W);
+    await ctx.close();
+  }
   // ---------- New task dialog and task peek (same fixed clock) ----------
   for (const [width, height] of [[1100, 900], [390, 844]]) {
     const at = new Date(2026, 10, 12, 14, 10);

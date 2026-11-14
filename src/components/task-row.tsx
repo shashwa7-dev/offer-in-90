@@ -18,7 +18,7 @@ export type TaskStatus = 'missed' | 'pick';
 
 const tool = 'inline-flex h-6 items-center gap-1 rounded-[5px] px-1.5 text-[12px] text-muted-foreground outline-none hover:bg-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50';
 
-export function TaskRow({ t, dayIdx, extra, status }: { t: Task; dayIdx: number; extra?: string; status?: TaskStatus }) {
+export function TaskRow({ t, dayIdx, extra, status, chip }: { t: Task; dayIdx: number; extra?: string; status?: TaskStatus; /** Small tag after the title, e.g. the block in Status/Track grouping. */ chip?: string }) {
   const { state, update } = useStore();
   const { openTask, go } = useUI();
   const [editing, setEditing] = useState(false);
@@ -58,6 +58,7 @@ export function TaskRow({ t, dayIdx, extra, status }: { t: Task; dayIdx: number;
             {st === 'progress' && <Chip className="ml-2 align-[1px] border-input text-foreground">In progress</Chip>}
             {skipped && <Chip className="ml-2 align-[1px]">Skipped</Chip>}
             {t.own && <Chip className="ml-2 align-[1px]">Yours</Chip>}
+            {chip && <Chip className="ml-2 max-w-[calc(100%-0.5rem)] align-[1px]" data-block-chip title={chip}><span className="truncate">{chip}</span></Chip>}
             {t.cat === 'update' && <Chip className="ml-2 align-[1px] border-input text-foreground">New</Chip>}
             {extra && <span className={cn('text-faint', missed && 'text-stone-foreground')}> · {extra}</span>}
             {t.outdated && (
