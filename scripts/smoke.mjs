@@ -430,6 +430,97 @@ try {
     checkErrors(errors, W);
     await ctx.close();
   }
+  // ---------- News: Interviews feed, Reading, Saved ----------
+  for (const [width, height] of [[1100, 800], [390, 844]]) {
+    const ctx = await browser.newContext({ viewport: { width, height } });
+    await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fixture));
+    // outside links must not actually open: keep the click (and React's handler) but drop the navigation
+    await ctx.addInitScript(() => document.addEventListener('click', e => { if (e.target instanceof Element && e.target.closest('a[target="_blank"]')) e.preventDefault(); }, true));
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+    page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+    await page.goto(URL, { waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+    await page.waitForTimeout(500);
+    const W = `news ${width}`;
+    const badge = page.locator('[data-slot="sidebar"] li').filter({ has: page.locator('[data-nav="news"]') }).locator('[data-slot="sidebar-menu-badge"]');
+    const badgeN = async () => Number((await badge.first().innerText().catch(() => '0')) || 0);
+    const before = width === 1100 ? await badgeN() : 0;
+    await page.goto(`${URL}/#news`, { waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+    await page.waitForTimeout(500);
+    const tab = name => page.getByRole('radio', { name: new RegExp(`^${name}`) }).first();
+    if (await tab('Interviews').getAttribute('data-state').catch(() => null) === 'on') ok(`${W}: opens on Interviews`); else fail(`${W}: Interviews tab not active`);
+    if (await tab('My targets').getAttribute('data-state').catch(() => null) === 'on') ok(`${W}: My targets active`); else fail(`${W}: My targets not active`);
+    const posts = page.locator('[data-post]');
+    const companiesOf = async () => posts.evaluateAll(els => els.map(e => e.getAttribute('data-company')));
+    const targetsOnly = (await companiesOf()).every(c => ['Google', 'Meta'].includes(c));
+    if ((await posts.count()) > 0 && targetsOnly) ok(`${W}: ${await posts.count()} target posts`); else fail(`${W}: target posts wrong (${(await companiesOf()).join(',')})`);
+    if (width === 1100) {
+      const after = await badgeN();
+      if (after < before) ok(`${W}: sidebar News badge ${before} → ${after}`); else fail(`${W}: sidebar badge did not drop (${before} → ${after})`);
+    }
+    await page.screenshot({ path: join(shots, `news-${width}-interviews.png`) });
+    // role FDE: only posts with an FDE chip, or the empty line
+    await tab('FDE').click();
+    await page.waitForTimeout(250);
+    const n = await posts.count();
+    const chips = await posts.evaluateAll(els => els.every(e => [...e.querySelectorAll('[data-role-chip]')].some(c => c.textContent === 'FDE')));
+    if ((n && chips) || (!n && await page.getByText('No posts for these filters.').isVisible())) ok(`${W}: FDE filter (${n} posts)`); else fail(`${W}: FDE filter shows non-FDE posts`);
+    await tab('All roles').click();
+    await page.waitForTimeout(250);
+    // Companies ▾ → Amazon only
+    await page.locator('[data-companies]').click();
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: join(shots, `news-${width}-companies.png`) });
+    await page.getByRole('option', { name: /^Amazon/ }).first().click();
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    const cs = await companiesOf();
+    if (cs.length && cs.every(c => c === 'Amazon') && await posts.evaluateAll(els => els.every(e => e.textContent.includes('#Amazon')))) ok(`${W}: Amazon only (${cs.length} rows)`); else fail(`${W}: Amazon filter wrong (${cs.join(',')})`);
+    const sw1 = await page.evaluate(() => document.documentElement.scrollWidth);
+    if (sw1 > width) fail(`${W}: horizontal scroll on Interviews (${sw1})`); else ok(`${W}: Interviews scrollWidth ${sw1}`);
+    await page.screenshot({ path: join(shots, `news-${width}-amazon.png`) });
+    // save the first post (checked on Saved)
+    await posts.first().getByRole('button', { name: /Save for later/ }).click();
+    await page.waitForTimeout(250);
+    // Reading
+    await tab('Reading').click();
+    await page.waitForTimeout(300);
+    const links = page.locator('[data-reading] a[target="_blank"][rel="noopener noreferrer"]');
+    if (await links.count()) ok(`${W}: ${await links.count()} reading links open in a new tab`); else fail(`${W}: no reading links with target=_blank`);
+    const first = links.first();
+    const wasRead = await first.getAttribute('data-read');
+    await first.click();
+    await page.waitForTimeout(300);
+    if (!wasRead && await first.getAttribute('data-read') !== null) ok(`${W}: opened link turns grey (data-read)`); else fail(`${W}: opened link not marked read`);
+    const sw2 = await page.evaluate(() => document.documentElement.scrollWidth);
+    if (sw2 > width) fail(`${W}: horizontal scroll on Reading (${sw2})`); else ok(`${W}: Reading scrollWidth ${sw2}`);
+    await page.screenshot({ path: join(shots, `news-${width}-reading.png`) });
+    // Saved: the saved post is listed, search, note and remove still work
+    await tab('Saved').click();
+    await page.waitForTimeout(300);
+    const savedRows = page.locator('[data-saved]');
+    if ((await savedRows.count()) === 1) ok(`${W}: saved post listed`); else fail(`${W}: Saved shows ${await savedRows.count()} rows`);
+    await page.screenshot({ path: join(shots, `news-${width}-saved.png`) });
+    await page.getByPlaceholder(/Search saved/).fill('zzzz-nothing');
+    await page.waitForTimeout(150);
+    if (!(await savedRows.count()) && await page.getByText('Nothing matches.').isVisible()) ok(`${W}: saved search filters`); else fail(`${W}: saved search did not filter`);
+    await page.getByPlaceholder(/Search saved/).fill('');
+    await page.waitForTimeout(150);
+    await savedRows.first().getByRole('button', { name: /note/i }).click();
+    await page.waitForTimeout(400);
+    if (await page.locator('[role="dialog"]').isVisible()) ok(`${W}: note on saved item opens the side sheet`); else fail(`${W}: note sheet did not open`);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    await savedRows.first().getByRole('button', { name: /Remove/ }).click();
+    await page.waitForTimeout(250);
+    if (!(await savedRows.count())) ok(`${W}: saved item removed`); else fail(`${W}: saved item not removed`);
+    checkErrors(errors, W);
+    await ctx.close();
+  }
 } catch (e) {
   fail(`crashed: ${e.stack || e}`);
 } finally {

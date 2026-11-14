@@ -90,8 +90,8 @@ export function Row({ children, className, onClick, tone, ...rest }: { children:
 }
 
 /** Small bordered tag. */
-export function Chip({ children, className }: { children: ReactNode; className?: string }) {
-  return <span className={cn('inline-flex h-5 shrink-0 items-center gap-1 whitespace-nowrap rounded-[5px] border border-border bg-card px-1.5 text-[12px] text-muted-foreground tabular-nums', className)}>{children}</span>;
+export function Chip({ children, className, ...rest }: { children: ReactNode; className?: string } & Omit<HTMLAttributes<HTMLSpanElement>, 'className' | 'children'>) {
+  return <span {...rest} className={cn('inline-flex h-5 shrink-0 items-center gap-1 whitespace-nowrap rounded-[5px] border border-border bg-card px-1.5 text-[12px] text-muted-foreground tabular-nums', className)}>{children}</span>;
 }
 
 /** Status ring: dashed = nothing done, arc = partly done, filled check = all done. */
@@ -157,21 +157,25 @@ export function SummaryRow({ ring, items }: { ring: { pct: number; label: string
   );
 }
 
-/** Outside link row: the whole row opens in a new tab, shows site initial, domain and ↗, greys out once opened. */
-export function OutLink({ href, title, meta, read, onOpen, saved }: { href: string; title: string; meta: ReactNode; read: boolean; onOpen: () => void; saved?: ReactNode }) {
+/** Outside link row: the whole row opens in a new tab, shows site initial, domain and ↗, greys out once opened.
+    `tags` sit before the domain on the second line; `saved` (☆ and other small buttons) sits outside the link. */
+export function OutLink({ href, title, meta, read, onOpen, saved, tags, className, ...rest }: { href: string; title: string; meta: ReactNode; read: boolean; onOpen: () => void; saved?: ReactNode; tags?: ReactNode; className?: string } & Omit<HTMLAttributes<HTMLDivElement>, 'title' | 'className' | 'children'>) {
   const domain = domainOf(href);
   return (
-    <div className="group/out flex min-h-12 items-center border-t border-border first:border-t-0 hover:bg-hover">
+    <div {...rest} className={cn('group/out flex min-h-12 items-center border-t border-border first:border-t-0 hover:bg-hover', className)}>
       <a href={href} target="_blank" rel="noopener noreferrer" onClick={onOpen} data-read={read || undefined} className="flex min-w-0 flex-1 items-center gap-3 py-2 pl-4 pr-2 outline-none focus-visible:bg-hover">
         <span aria-hidden="true" className="grid size-6 shrink-0 place-items-center rounded-[5px] border border-border bg-band text-[11px] font-semibold uppercase text-muted-foreground">{domain.charAt(0)}</span>
         <span className="min-w-0 flex-1">
           <span className={cn('block truncate text-[13px] font-medium', read ? 'text-muted-foreground' : 'text-foreground')}>{title}</span>
-          <span className="block truncate text-[12px] text-faint">{domain} · {meta}</span>
+          <span className="flex min-w-0 items-center gap-1.5 text-[12px] text-faint">
+            {tags}
+            <span className="min-w-0 truncate tabular-nums">{domain} · {meta}</span>
+          </span>
         </span>
         <span aria-hidden="true" className="shrink-0 text-[13px] text-faint group-hover/out:text-foreground">↗</span>
         <span className="sr-only">(opens in a new tab)</span>
       </a>
-      {saved && <div className="shrink-0 pr-3">{saved}</div>}
+      {saved && <div className="flex shrink-0 items-center gap-0.5 pr-3">{saved}</div>}
     </div>
   );
 }
