@@ -1,4 +1,3 @@
- 
 // Daily timetable + calendar (.ics) builder.
 // Used by index.html in the browser and by `node schedule.js <start-date>` to write reminders.ics.
 
