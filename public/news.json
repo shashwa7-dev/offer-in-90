@@ -1,6 +1,96 @@
 {
- "generatedAt": "2026-11-13T02:59:20.417Z",
+ "generatedAt": "2026-11-14T02:45:58.753Z",
  "days": {
+  "2026-11-14": [
+   {
+    "id": "2026-11-14-1",
+    "title": "Elevated errors on claude.ai, Claude Code, and platform.claude.com",
+    "url": "https://status.claude.com/incidents/nn11wk485zfn",
+    "discussUrl": "https://news.ycombinator.com/item?id=50481187",
+    "source": "Hacker News",
+    "points": 484,
+    "comments": 383,
+    "publishedAt": "2026-11-13T10:18:13Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-14-2",
+    "title": "PhysLoop: Harnessing LLMs' Physics Awareness for Self-Improving Video Generation Models",
+    "url": "https://huggingface.co/papers/2611.16748",
+    "discussUrl": "https://huggingface.co/papers/2611.16748",
+    "source": "HF Papers",
+    "points": 42,
+    "comments": 3,
+    "publishedAt": "2026-11-11T19:00:00.000Z",
+    "category": "research"
+   },
+   {
+    "id": "2026-11-14-3",
+    "title": "The anti-marketing aspect of the Gemini network",
+    "url": "https://ploum.net/2026-11-12-anti-marketing-gemini.html",
+    "discussUrl": "https://lobste.rs/s/pty8pn/anti_marketing_aspect_gemini_network",
+    "source": "Lobsters",
+    "points": 51,
+    "comments": 29,
+    "publishedAt": "2026-11-12T10:17:25.103-06:00",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-14-4",
+    "title": "AI unlocks Gödel's notebooks, said to contain hundreds of proved theorems",
+    "url": "https://www.theguardian.com/science/2026/nov/13/kurt-godel-notebooks-ai-helps-unlock-hidden-discoveries-man-who-transformed-maths",
+    "discussUrl": "https://news.ycombinator.com/item?id=50486748",
+    "source": "Hacker News",
+    "points": 339,
+    "comments": 93,
+    "publishedAt": "2026-11-13T17:30:10Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-14-5",
+    "title": "AI is destroying the trust between writers and readers",
+    "url": "https://www.theatlantic.com/books/2026/11/ai-literary-scams-amazon/689391/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50481870",
+    "source": "Hacker News",
+    "points": 314,
+    "comments": 195,
+    "publishedAt": "2026-11-13T11:13:46Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-14-6",
+    "title": "Actor, Judge, or Teacher? Understanding Decision Models in Long-Horizon Agents",
+    "url": "https://huggingface.co/papers/2611.17167",
+    "discussUrl": "https://huggingface.co/papers/2611.17167",
+    "source": "HF Papers",
+    "points": 29,
+    "comments": 2,
+    "publishedAt": "2026-11-11T19:00:00.000Z",
+    "category": "research"
+   },
+   {
+    "id": "2026-11-14-7",
+    "title": "Global Microsoft Outage",
+    "url": "https://www.cnn.com/2026/11/12/business/live-news/microsoft-global-outage-intl-hnk",
+    "discussUrl": "https://news.ycombinator.com/item?id=50479098",
+    "source": "Hacker News",
+    "points": 285,
+    "comments": 181,
+    "publishedAt": "2026-11-13T06:18:23Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-14-8",
+    "title": "Brave Search API now accepts agentic payments via the x402 protocol",
+    "url": "https://brave.com/blog/search-api-agentic-payments/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50477649",
+    "source": "Hacker News",
+    "points": 257,
+    "comments": 148,
+    "publishedAt": "2026-11-13T03:08:08Z",
+    "category": "ai"
+   }
+  ],
   "2026-11-13": [
    {
     "id": "2026-11-13-1",
