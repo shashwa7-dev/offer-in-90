@@ -616,6 +616,18 @@ The builder checks each link before adding it, the same way as §14.
   - Not a duplicate of the curated list, an earlier hot read, or a plan link.
   - No hype, funding news or minor releases.
   - Zero picks is a fine result.
+- **Where it looks.** Same pattern as `collect-interviews.mjs`: first a no-AI script gathers candidates with real engagement numbers, then Claude picks.
+  - The new `scripts/collect-reads.mjs` writes `.engine/read-candidates.json`, with title, URL, date, source and engagement for each candidate. It runs in `refresh-engine.yml` before the Claude step. Its sources:
+    - **Hugging Face daily papers** (`/api/daily_papers`, upvotes), already used by `fetch-news.mjs`.
+    - **Hacker News** via the Algolia API: the last 7 days, points and comments, for papers, engineering posts and postmortems.
+    - **Reddit, through the official API** (app-only OAuth, the same code path and secrets as `collect-interviews.mjs`): top posts of the week in r/MachineLearning, r/LocalLLaMA, r/ExperiencedDevs, r/programming and a few similar subs the builder picks, with score and comment counts.
+      - **Today the `REDDIT_CLIENT_ID` / `REDDIT_CLIENT_SECRET` repo secrets aren't set**, so Reddit is skipped. That's true for the interview pulse too.
+      - The owner creates a free Reddit "script" app and adds the two secrets. Then both features use Reddit.
+    - **Lobsters** (public JSON).
+    - **Engineering-blog RSS/Atom feeds,** for new case studies: Uber, Netflix, Stripe, Linear, Discord, Cloudflare, Figma, Swiggy Bytes, Zomato/Eternal, Razorpay, Airbnb, Meta and Google engineering, plus the AI labs' research pages (Anthropic, OpenAI, Google DeepMind) and Simon Willison.
+    - **Bluesky** public post search, where many researchers now post, **if** its public search endpoint works without logging in. The builder checks this and skips it if it doesn't.
+  - **X/Twitter:** there's no free API, and logging in or scraping isn't allowed (an existing engine rule). So X comes in only through web search (`site:x.com` results and pages anyone can open), the same way the interview pulse already uses X and LinkedIn. X posts count as a trend signal; a post is never itself the read.
+  - Claude then also runs its own web search to confirm each pick, and finds the primary source behind a buzzing thread.
 - **Output:** a new feed, `public/reads.json`:
 
   ```
