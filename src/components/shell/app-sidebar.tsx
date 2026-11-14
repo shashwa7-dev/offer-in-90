@@ -79,7 +79,7 @@ export function AppSidebar() {
       <SidebarHeader className="px-3 pt-3 group-data-[collapsible=icon]:px-2">
         <div className="flex items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element -- static export: plain img with the basePath prefix */}
-          <img data-logo src={`${BASE}/logo-64.png`} alt="Offer in 90" width={24} height={24} className="size-6 shrink-0 rounded-full ring-1 ring-border group-data-[collapsible=icon]:mx-auto" />
+          <img data-logo src={`${BASE}/logo-64.png`} alt="Offer in 90" width={24} height={24} className="size-6 shrink-0 rounded-full ring-1 ring-border group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-5" />
           <div className="min-w-0 leading-tight group-data-[collapsible=icon]:hidden">
             <div className="truncate text-[14px] font-semibold">Offer in 90</div>
             <div className="truncate text-[12px] text-muted-foreground tabular-nums" data-shell="status">{statusLine(days, todayIdx, state.done, state.status)}</div>

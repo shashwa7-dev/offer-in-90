@@ -67,7 +67,7 @@ export function Band({ title, icon, count, right, defaultOpen = true, open: open
   const open = openProp ?? own;
   const setOpen = (v: boolean) => { setOwn(v); onOpenChange?.(v); };
   return (
-    <Collapsible open={open} onOpenChange={setOpen} data-band={id} className="scroll-mt-4 border-b border-border last:border-b-0">
+    <Collapsible open={open} onOpenChange={setOpen} data-band={id} className="border-b border-border last:border-b-0">
       <div className="flex h-9 items-center gap-2 bg-band px-4">
         <CollapsibleTrigger className="-ml-1 flex min-w-0 flex-1 items-center gap-1.5 rounded-[5px] py-1 pl-1 text-left text-[13px] font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
           <ChevronRight className={cn('size-3.5 shrink-0 text-muted-foreground transition-transform', open && 'rotate-90')} />

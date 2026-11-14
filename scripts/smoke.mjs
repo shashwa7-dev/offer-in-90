@@ -264,7 +264,7 @@ try {
     const bar = page.locator('[data-filter-bar]');
     if (await bar.isVisible().catch(() => false)) ok(`${W}: filter bar visible`); else fail(`${W}: no filter bar`);
     const hdrText = (await page.locator('header').first().innerText().catch(() => '')).replace(/\s+/g, ' ');
-    if (width === 1100 ? /Week 2 Day 9 of 91 Thu/.test(hdrText) : /^Day 9 of 91 Thu/.test(hdrText) && await page.locator('header').getByText('Week 2').count()) ok(`${W}: header crumbs ${hdrText}`); else fail(`${W}: header crumbs "${hdrText}"`);
+    if (width === 1100 ? /Week 2 Day 9 of 91 Thu/.test(hdrText) : /^Day 9 Thu/.test(hdrText) && await page.locator('header').getByText('Week 2').count()) ok(`${W}: header crumbs ${hdrText}`); else fail(`${W}: header crumbs "${hdrText}"`);
     const taskIds = () => page.locator('[data-task]').evaluateAll(els => els.filter(e => e.offsetParent).map(e => e.getAttribute('data-task')));
     const pill = k => bar.locator(`[data-pill="${k}"]`);
     if (width === 1100) await page.screenshot({ path: join(shots, `filters-${width}-none.png`), fullPage: true });
@@ -611,7 +611,7 @@ try {
       const bar = cyc.locator('[data-cycle-day]:not([data-today])').first();
       const no = await bar.getAttribute('data-day-no');
       await bar.click(); await page.waitForTimeout(400);
-      if ((await page.locator('header').first().innerText()).includes(`Day ${no} of`)) ok(`${W}: day bar opens Day ${no}`); else fail(`${W}: day bar did not open Day ${no}`);
+      if ((await page.locator('header').first().innerText()).match(new RegExp(`Day ${no}\\b`))) ok(`${W}: day bar opens Day ${no}`); else fail(`${W}: day bar did not open Day ${no}`);
       await page.screenshot({ path: join(shots, `rail-${width}-other-day.png`), fullPage: true });
       // a day in next week: the cycle says when it starts, not "7 days left"
       for (let k = 0; k < 8; k++) { await page.getByRole('button', { name: 'Next day' }).click(); await page.waitForTimeout(80); }
@@ -1203,7 +1203,7 @@ try {
     await page.waitForTimeout(500);
     const peek = page.locator('[data-peek]');
     const header = await page.locator('main, [data-slot="sidebar-inset"]').first().innerText().catch(() => '');
-    if (!(await isOpen()) && await peek.isVisible().catch(() => false) && /Two Sum II/.test(await peek.innerText()) && new RegExp(`Day ${dayNo} of`).test(header)) ok(`${W}: Enter opens Day ${dayNo} with the peek`); else fail(`${W}: Enter did not open Day ${dayNo} with the peek (open ${await isOpen()}, peek ${await peek.count()})`);
+    if (!(await isOpen()) && await peek.isVisible().catch(() => false) && /Two Sum II/.test(await peek.innerText()) && new RegExp(`Day ${dayNo}\\b`).test(header)) ok(`${W}: Enter opens Day ${dayNo} with the peek`); else fail(`${W}: Enter did not open Day ${dayNo} with the peek (open ${await isOpen()}, peek ${await peek.count()})`);
     await page.screenshot({ path: join(shots, `search-${width}-peek.png`) });
     await page.keyboard.press('Escape');
     await page.waitForTimeout(300);
@@ -1305,6 +1305,20 @@ try {
         }
         await page.screenshot({ path: join(shots, `frame-${width}-${v}-bottom.png`) });
         await page.evaluate(() => window.scrollTo(0, 0));
+        if (v === 'today' && width !== 1440) {
+          // "N missed earlier" scrolls its band into view below the sticky header, not under it
+          await page.waitForTimeout(150);
+          await page.locator('[data-notice] button').filter({ hasText: /missed earlier/ }).first().click();
+          await page.waitForTimeout(900);
+          const j = await page.evaluate(() => ({
+            hb: document.querySelector('[data-slot="sidebar-inset"] [data-page-header]').getBoundingClientRect().bottom,
+            bt: document.querySelector('[data-band="missed-earlier"]')?.getBoundingClientRect().top ?? null,
+            y: scrollY,
+          }));
+          if (j.bt != null && j.y > 0 && j.bt >= j.hb - 1) ok(`${W}: missed-earlier band lands below the header (${Math.round(j.bt)} >= ${Math.round(j.hb)}, scrollY ${Math.round(j.y)})`); else fail(`${W}: missed-earlier band top ${j.bt} vs header bottom ${j.hb} (scrollY ${j.y})`);
+          await page.screenshot({ path: join(shots, `frame-${width}-today-missed-jump.png`) });
+          await page.evaluate(() => window.scrollTo(0, 0));
+        }
       }
       if (width === 1100) {
         const logo = page.locator('[data-slot="sidebar"] img[data-logo]').first();
@@ -1326,6 +1340,32 @@ try {
     for (const w of [1100, 1440]) {
       const vals = Object.values(widths[w]);
       if (vals.length === 6 && new Set(vals).size === 1) ok(`frame ${w}: content width ${vals[0]}px on all six pages`); else fail(`frame ${w}: content widths ${JSON.stringify(widths[w])}`);
+    }
+    // Phone: a long note title truncates in the header (no horizontal scroll), "Notes" stays tappable
+    {
+      const long = 'A really long page title that keeps going well past the width of any phone screen';
+      const fx = { ...fixture, pages: { pgLong: { title: long, body: 'Body text.', upd: now + 1000 } } };
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+      await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
+      const page = await ctx.newPage();
+      const errors = [];
+      page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+      await page.goto(`${URL}/#notes`, { waitUntil: 'networkidle' });
+      await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+      await page.waitForTimeout(400);
+      const W = 'frame 390 notes long title';
+      await page.locator('[data-notes-list] [data-note-row]').filter({ hasText: long.slice(0, 20) }).first().click();
+      await page.waitForTimeout(400);
+      const r = await page.evaluate(() => {
+        const h = document.querySelector('[data-page-header]');
+        const b = [...h.querySelectorAll('button')].find(e => e.textContent.trim() === 'Notes');
+        const br = b?.getBoundingClientRect();
+        return { sw: document.documentElement.scrollWidth, hw: h.scrollWidth, notes: br ? br.left >= 0 && br.right <= innerWidth : false };
+      });
+      if (r.sw <= 390 && r.hw <= 390 && r.notes) ok(`${W}: no horizontal scroll (${r.sw}), "Notes" in view`); else fail(`${W}: scrollWidth ${r.sw}, header ${r.hw}, Notes in view ${r.notes}`);
+      await page.screenshot({ path: join(shots, 'frame-390-notes-long-title.png') });
+      checkErrors(errors, W);
+      await ctx.close();
     }
     const g0 = gaps[0]?.[1];
     const off = gaps.filter(([, g]) => Math.abs(g - g0) > 1);

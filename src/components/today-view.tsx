@@ -13,6 +13,7 @@ import { Band, Chip, PageFrame, PageHeader, Ring, Row, Surface, SummaryRow } fro
 import { TaskRow } from './task-row';
 import { QuickAdd } from './own-task';
 import { useUI } from './ui-state';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { STATUS_ORDER, StatusIcon } from './status-control';
 import { TodayRail } from './today-rail';
 import { DisplayMenu, TodayFilters, useTodayFilter } from './today-filters';
@@ -25,6 +26,7 @@ export function TodayView() {
   const { viewIdx, setViewIdx, go, newTask, setRoadmapTab, setOpenChanges, openSearch } = useUI();
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [missedOpen, setMissedOpen] = useState(false);
+  const phone = useIsMobile(); // phones: "Day 9" (the header has no room for "of 91")
   const [fv, setFv] = useTodayFilter();
   const setGroupBy = useCallback((g: GroupBy) => setFv({ ...fv, groupBy: g }), [fv, setFv]);
   const [nm, setNm] = useState(() => { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); });
@@ -86,7 +88,7 @@ export function TodayView() {
 
   return (
     <PageFrame header={<PageHeader
-        crumbs={[{ label: `Week ${d.week}`, phoneHidden: true }, d.no === 0 ? 'Day 0 · prep' : `Day ${d.no} of ${TOTAL}`, fmtDate(d.date)]}
+        crumbs={[{ label: `Week ${d.week}`, phoneHidden: true }, d.no === 0 ? 'Day 0 · prep' : phone ? `Day ${d.no}` : `Day ${d.no} of ${TOTAL}`, fmtDate(d.date)]}
         keepLast
         actions={<>
           <Button variant="outline" size="icon-sm" onClick={openSearch} aria-label="Search" title="Search" data-search-phone className="md:hidden"><Search /></Button>

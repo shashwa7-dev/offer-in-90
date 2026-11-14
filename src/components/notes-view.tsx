@@ -125,7 +125,7 @@ export function NotesView() {
   return (
     <PageFrame header={showList || !active
       ? <PageHeader crumbs={['Notes']} count={`${allPages.length + Object.values(state.tnotes).filter(n => n.body.trim()).length}`} />
-      : <PageHeader crumbs={[{ label: 'Notes', onClick: back }, titleOf(state, active)]} keepLast />}>
+      : <PageHeader crumbs={[{ label: 'Notes', onClick: back }, titleOf(state, active)]} />}>
       {/* Two panes fill the window below the header: 100svh − 48px header − 12px gap − 24px bottom padding.
           Phones (document open): also less the 44px header and the 56px bottom bar plus safe areas. */}
       <Surface className={cn('md:grid md:h-[calc(100svh-84px)] md:min-h-[480px] md:grid-cols-[280px_minmax(0,1fr)]', !showList && 'min-h-[calc(100svh-136px-env(safe-area-inset-top)-env(safe-area-inset-bottom))]')}>

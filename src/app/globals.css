@@ -88,6 +88,9 @@
   }
   /* No rubber-band / overscroll drag: the sticky page header stays put. */
   html, body, [data-slot="sidebar-inset"] { overscroll-behavior-y: none; }
+  /* Scroll-to targets and focus scrolling land below the sticky header: header + 12px gap (44+12 phones, 48+12 from md). */
+  html { scroll-padding-top: calc(56px + env(safe-area-inset-top)); }
+  @media (min-width: 48rem) { html { scroll-padding-top: 60px; } }
 }
 .tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
 .md h1 { font-size: 1.5rem; font-weight: 600; margin: .6rem 0 .4rem; }
