@@ -56,6 +56,15 @@ const all = bars.reduce((n, b) => n + b.total, 0);
 assert.ok(!bars.some((b) => b.label === 'Arrays → Trees' && b.total > 4));
 assert.equal(bars.filter((b) => b.track === 'ai').reduce((n, b) => n + b.total, 0), 2);
 
+// skipped tasks never count (done wins over skipped)
+{
+  const sk = stageBars(days, done, { 'p-valid-anagram': 'skipped', 'p-two-sum': 'skipped', 'fe-1': 'skipped' });
+  const a2 = sk.find((b) => b.label === 'Arrays → Trees')!;
+  assert.equal(a2.total, 3); // valid-anagram dropped; done two-sum stays counted
+  assert.equal(a2.done, 2);
+  assert.equal(sk.find((b) => b.label === 'JS, browser, React, web'), undefined); // all skipped -> no bar
+}
+
 // bars follow STAGES order
 const order = bars.map((b) => STAGES.findIndex((s) => s.label === b.label));
 assert.deepEqual(order, [...order].sort((a, b) => a - b));

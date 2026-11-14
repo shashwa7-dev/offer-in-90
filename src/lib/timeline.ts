@@ -53,14 +53,17 @@ export interface StageBar {
   total: number;
 }
 
-export function stageBars(days: TimelineDay[], done: Record<string, number>): StageBar[] {
+/** Skipped (not done, status 'skipped') tasks are left out of totals. Local predicate: this module has no runtime imports. */
+const isSkippedTask = (id: string, done: Record<string, number>, status: Record<string, 'progress' | 'skipped'>) => !done[id] && status[id] === 'skipped';
+
+export function stageBars(days: TimelineDay[], done: Record<string, number>, status: Record<string, 'progress' | 'skipped'> = {}): StageBar[] {
   const bars: (StageBar | null)[] = STAGES.map(() => null);
   for (const d of days) {
     if (d.s == null) continue;
     for (const t of d.tasks) {
       if (t.own || t.id.endsWith('-news')) continue;
       const i = STAGES.findIndex((st) => st.match(t, d.s as number));
-      if (i < 0) continue;
+      if (i < 0 || isSkippedTask(t.id, done, status)) continue;
       const b = bars[i] ?? (bars[i] = { track: STAGES[i].track, label: STAGES[i].label, fromWeek: d.week, toWeek: d.week, done: 0, total: 0 });
       b.fromWeek = Math.min(b.fromWeek, d.week);
       b.toWeek = Math.max(b.toWeek, d.week);

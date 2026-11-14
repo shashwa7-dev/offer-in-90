@@ -47,7 +47,7 @@ export function ProgressView() {
   else {
     const w = byCat[0];
     insights.push(w && w.pct < 0.9 ? ['late', `${catName[w.c]} is your weakest track: ${w.done} of ${w.due} tasks done so far.`] : ['ok', 'Every track is at 90% or better. Keep going.']);
-    if (worstBlock && worstBlock.d / worstBlock.n < 0.8) insights.push(['behind', `You skip the ${worstBlock.s} block (${worstBlock.title}) most: ${Math.round((worstBlock.d / worstBlock.n) * 100)}% done.`]);
+    if (worstBlock && worstBlock.d / worstBlock.n < 0.8) insights.push(['behind', `You miss the ${worstBlock.s} block (${worstBlock.title}) most: ${Math.round((worstBlock.d / worstBlock.n) * 100)}% done.`]);
     if (dows.length > 1 && dows[0].pct < 0.8) insights.push(['behind', `${DAY_NAMES[dows[0].k]} are your weakest day (${Math.round(dows[0].pct * 100)}% average).`]);
     if (o.behindMin > 60) insights.push(['late', `${hrs(o.behindMin)} h behind. Sunday catch-up has 2 h; add 30 min to evenings until you are even.`]);
     const missed = past.filter(d => (rates[d.i] ?? 1) < 0.5).length;

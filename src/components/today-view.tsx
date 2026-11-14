@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import { TRACKS, bandOf } from '@/lib/timeline';
 import { STATUS_LABEL, isSkipped, statusOf } from '@/lib/task-status';
-import { isActive, matches, statusCounts, trackOfCat, type GroupBy } from '@/lib/task-filter';
+import { EMPTY_FILTER, isActive, matches, statusCounts, trackOfCat, type GroupBy } from '@/lib/task-filter';
 import { TOTAL, type Block, type Day, type Task, dayStats, dayTitle, fmtDate, hrs, overall, parseISO, study, toMin } from '@/lib/engine';
 import { Band, Chip, PageFrame, PageHeader, Ring, Row, Surface, SummaryRow } from './shell/page';
 import { TaskRow } from './task-row';
@@ -104,7 +104,7 @@ export function TodayView() {
       {/* One sheet: the list, then the rail (a column with a vertical hairline at xl, a section below it otherwise). */}
       <Surface className="xl:grid xl:grid-cols-[minmax(0,1fr)_300px]">
       <div data-today-list className="min-w-0">
-        <SummaryRow ring={{ pct: st.planMin ? st.doneMin / st.planMin : 0, label: dayTitle(d) }} items={items} />
+        <SummaryRow ring={{ pct: st.total === 0 ? null : st.planMin ? st.doneMin / st.planMin : 0, label: dayTitle(d) }} items={items} />
         {(unseen > 0 || overdue.length > 0) && (
           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-border px-4 py-2.5 text-[13px] text-muted-foreground" data-notice>
             {unseen > 0 && <button type="button" onClick={() => { setRoadmapTab('reference'); setOpenChanges(true); go('roadmap'); }} className="rounded-[5px] font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">{unseen} plan update{unseen > 1 ? 's' : ''}</button>}
@@ -120,7 +120,7 @@ export function TodayView() {
         )}
         <TodayFilters value={fv} onChange={setFv} counts={counts} blocks={blockOpts} />
         <div className="border-t border-border">
-          {empty && <p className="px-4 py-6 text-center text-[13px] text-muted-foreground">No tasks match these filters.</p>}
+          {empty && <div className="flex flex-col items-center gap-2 px-4 py-6 text-center text-[13px] text-muted-foreground"><p>No tasks match these filters.</p><button type="button" data-clear-filters onClick={() => setFv({ ...fv, filter: { ...EMPTY_FILTER } })} className="rounded-[5px] font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">Clear filters</button></div>}
           {shownOverdue.length > 0 && (
             <Band id="missed-earlier" title="Missed earlier" count={shownOverdue.length} open={missedOpen} onOpenChange={setMissedOpen}>
               {shownOverdue.slice(0, 50).map(({ t, day }) => <TaskRow key={t.id} t={t} dayIdx={day.i} extra={`day ${day.no}`} status="missed" />)}

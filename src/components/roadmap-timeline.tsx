@@ -32,7 +32,7 @@ function lanes(bars: StageBar[]) {
 export function RoadmapTimeline() {
   const { state, days, todayIdx } = useStore();
   const { openDay } = useUI();
-  const bars = useMemo(() => stageBars(days, state.done), [days, state.done]);
+  const bars = useMemo(() => stageBars(days, state.done, state.status), [days, state.done, state.status]);
   const today = todayIdx >= 0 && todayIdx < days.length ? days[todayIdx] : undefined;
   const nowWeek = today && today.week >= 1 && today.week <= WEEKS ? today.week : null;
   // Today line: inside the current week by weekday position (prep Day 0 sits at the start of week 1).
@@ -41,7 +41,7 @@ export function RoadmapTimeline() {
   const openBar = (b: StageBar) => {
     const stage = STAGES.find(s => s.track === b.track && s.label === b.label);
     const inRange = days.filter(d => d.week >= b.fromWeek && d.week <= b.toWeek && d.s != null);
-    const hit = stage && inRange.find(d => d.tasks.some(t => !t.own && !t.id.endsWith('-news') && !state.done[t.id] && stage.match(t, d.s as number)));
+    const hit = stage && inRange.find(d => d.tasks.some(t => !t.own && !t.id.endsWith('-news') && !state.done[t.id] && state.status[t.id] !== 'skipped' && stage.match(t, d.s as number)));
     const first = hit ?? inRange.find(d => d.week === b.fromWeek) ?? days.find(d => d.week === b.fromWeek);
     if (first) openDay(first.i);
   };

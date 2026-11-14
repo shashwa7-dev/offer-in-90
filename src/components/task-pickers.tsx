@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react';
 import { CalendarDays, Check, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
+import { isSkipped } from '@/lib/task-status';
 import { pickable } from '@/lib/own-tasks';
 import { fmtDate, iso, parseISO, toMin, type Day } from '@/lib/engine';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -50,7 +51,7 @@ export function BlockPick({ day, value, onChange, className }: { day: Day; value
   const nm = nowMin(), today = day.i === todayIdx;
   const hint = (b: Day['blocks'][number]): ReactNode =>
     today && nm >= toMin(b.s) && nm < toMin(b.e) ? 'now'
-      : b.tasks.length && b.tasks.every(t => state.done[t.id]) ? 'done' : null;
+      : b.tasks.length && b.tasks.every(t => state.done[t.id] || isSkipped(t.id, state.done, state.status)) && b.tasks.some(t => state.done[t.id]) ? 'done' : null;
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger className={cn(chipBtn, className)} data-chip="block" aria-label={`Block: ${cur ? `${cur.s} ${cur.title}` : 'none'}`}>

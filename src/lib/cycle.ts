@@ -14,6 +14,7 @@ export interface CycleSummary {
       never shifts the trailing count by itself. `total` excludes skipped tasks (same scope as the summary total). */
   burndown: Record<CycleUnit, { pending: (number | null)[]; ideal: number[]; total: number }>;
   trailing: Record<CycleUnit, number | null>;
+  /** progress = share of the track's (non-skipped) tasks in progress and not done (0..1); done/total are counts. */
   tracks: { track: TrackKey; name: string; done: number; progress: number; total: number }[];
 }
 
@@ -44,7 +45,7 @@ export function cycleOf(
   if (!wk.length) return null;
   const start = startOfDate(wk[0].date);
   const byStatus = empty();
-  const trk = new Map<TrackKey, { done: number; total: number }>();
+  const trk = new Map<TrackKey, { done: number; doing: number; total: number }>();
   // time each task stopped being pending; -Infinity = before the cycle
   const all: { day: number; min: number; resolved: number; skipped: boolean; end: number }[] = [];
 
@@ -60,8 +61,8 @@ export function cycleOf(
       all.push({ day: k, min: t.min, resolved, skipped: st === 'skipped', end: t.end ?? 1440 });
       const tr = trackOfCat(t.cat);
       if (tr && st !== 'skipped') {
-        const e = trk.get(tr) ?? { done: 0, total: 0 };
-        e.total++; if (st === 'done') e.done++;
+        const e = trk.get(tr) ?? { done: 0, doing: 0, total: 0 };
+        e.total++; if (st === 'done') e.done++; else if (st === 'progress') e.doing++;
         trk.set(tr, e);
       }
     }
@@ -97,7 +98,7 @@ export function cycleOf(
     days: dayRows, burndown, trailing,
     tracks: TRACKS.filter((t) => trk.get(t.key)?.total).map((t) => {
       const e = trk.get(t.key)!;
-      return { track: t.key, name: t.name, done: e.done, progress: e.done / e.total, total: e.total };
+      return { track: t.key, name: t.name, done: e.done, progress: e.doing / e.total, total: e.total };
     }),
   };
 }

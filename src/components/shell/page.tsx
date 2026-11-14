@@ -152,14 +152,17 @@ export function Seg<T extends string>({ value, options, onChange }: { value: T; 
 }
 
 /** Plane-cycle style summary: a percentage ring, then label/value pairs. */
-export function SummaryRow({ ring, items }: { ring: { pct: number; label: string }; items: { k: string; v: ReactNode }[] }) {
-  const pct = Math.max(0, Math.min(1, Number.isFinite(ring.pct) ? ring.pct : 0));
+export function SummaryRow({ ring, items }: { ring: { pct: number | null; label: string }; items: { k: string; v: ReactNode }[] }) {
+  const none = ring.pct == null; // nothing to measure (e.g. every task skipped)
+  const pct = Math.max(0, Math.min(1, ring.pct != null && Number.isFinite(ring.pct) ? ring.pct : 0));
   return (
     <div className="flex flex-wrap items-center gap-x-8 gap-y-3 px-4 py-3">
       <div className="flex items-center gap-2.5">
-        <Ring done={Math.round(pct * 100)} total={100} size={32} />
+        {none
+          ? <svg viewBox="0 0 16 16" width={32} height={32} className="shrink-0" role="img" aria-label="nothing to measure" data-ring-empty><circle cx="8" cy="8" r="6" fill="none" stroke="var(--border)" strokeWidth="1.5" /></svg>
+          : <Ring done={Math.round(pct * 100)} total={100} size={32} />}
         <div className="leading-tight">
-          <div className="text-[15px] font-semibold tabular-nums">{Math.round(pct * 100)}%</div>
+          <div className="text-[15px] font-semibold tabular-nums">{none ? '—' : `${Math.round(pct * 100)}%`}</div>
           <div className="text-[12px] text-muted-foreground">{ring.label}</div>
         </div>
       </div>

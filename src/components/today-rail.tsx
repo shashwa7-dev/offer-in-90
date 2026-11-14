@@ -212,7 +212,10 @@ function TracksCard({ cyc }: { cyc: CycleSummary }) {
             <li key={t.track} className="flex items-center gap-2 text-[13px]" data-rail-track={t.track}>
               <span className="w-28 shrink-0 truncate">{t.name}</span>
               <span className="h-1 min-w-0 flex-1 overflow-hidden rounded-full" style={{ background: FILL.todo }} aria-hidden="true">
-                <span className="block h-full rounded-full bg-primary" style={{ width: `${t.progress * 100}%` }} />
+                <span className="flex h-full">
+                  <span className="block h-full bg-primary" style={{ width: `${(t.done / t.total) * 100}%` }} />
+                  <span className="block h-full" data-track-progress style={{ width: `${t.progress * 100}%`, background: '#8b8f93' }} />
+                </span>
               </span>
               <span className="w-10 shrink-0 text-right text-[12px] text-muted-foreground tabular-nums">{t.done}/{t.total}</span>
             </li>

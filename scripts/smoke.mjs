@@ -319,6 +319,11 @@ try {
     // nothing matches
     await pill('skipped').click(); await page.waitForTimeout(300);
     if (await page.getByText('No tasks match these filters.').isVisible().catch(() => false)) ok(`${W}: empty copy shown`); else fail(`${W}: empty copy missing`);
+    if (await page.locator('[data-clear-filters]').isVisible().catch(() => false)) {
+      await page.locator('[data-clear-filters]').click(); await page.waitForTimeout(300);
+      if (!(await page.getByText('No tasks match these filters.').isVisible().catch(() => false))) ok(`${W}: Clear filters resets the empty state`); else fail(`${W}: Clear filters did not reset`);
+      await pill('skipped').click(); await page.waitForTimeout(300);
+    } else fail(`${W}: Clear filters button missing`);
     await pill('all').click(); await page.waitForTimeout(300);
     if ((await page.locator('[data-now]').count()) === 1) ok(`${W}: clearing returns the now row`); else fail(`${W}: now row count ${await page.locator('[data-now]').count()} after clearing`);
     // layout: list and right column
