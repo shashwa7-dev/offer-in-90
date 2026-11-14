@@ -1,12 +1,12 @@
 # Roadmap v2: content, DSA patterns, revision quizzes
 
-Date: 2026-11-15 · Status: ready for the owner's approval (builder check done) · Companion page: brainstorm screen `roadmap-v5` · Research notes: sources listed at the end
+Date: 2026-11-15 · Status: ready for the owner's approval (review fixes applied; second builder check pending) · Companion page: brainstorm screen `roadmap-v5` · Research notes: sources listed at the end
 
 ## Intent and why
 
-The owner wants to be hireable within 13 weeks as a **product engineer**, **forward-deployed engineer (FDE)** or **full-stack engineer**. They're a frontend developer in India with roughly 4–5 years of experience (assumed; it sets the LLD/HLD depth at SDE-2).
+The owner wants to be hireable within 4 months (Steady, the default) or 3 months (Grind) as a **product engineer**, **forward-deployed engineer (FDE)** or **full-stack engineer**. They're a frontend developer in India with roughly 4–5 years of experience (assumed; it sets the LLD/HLD depth at SDE-2).
 
-The 3 months are for **preparation**. Applying is optional and runs alongside.
+These months are for **preparation**. Applying is optional and runs alongside.
 
 The plan should leave them able to:
 - make and explain engineering decisions;
@@ -34,14 +34,15 @@ What the research found (the owner has seen these findings):
 5. **Daily optional quizzes per section, plus a graded weekly test** from reliable, current, existing question sources, with a score trend over time.
 6. **Readiness checks** that make "prepared" measurable.
 7. **Two paces with the same content.** Steady is 4 months (17 weeks) and the default. Grind is 3 months (13 weeks).
-8. **Depth in 4 areas** where AI-written code most often fails quietly, each with a few carefully chosen readings (§14).
-9. **AI help using the owner's own API key,** with 3 expert personas, plus the option to save responses (§16).
-10. **An "Explore later" library** outside the daily plan (§17).
+8. **Depth in 4 areas** where AI-written code most often fails quietly, each with a few carefully chosen readings (§13).
+9. **AI help using the owner's own API key,** with 3 expert personas, plus the option to save responses (§15).
+10. **An "Explore later" library** outside the daily plan (§16).
 
 ## Non-goals
 
 - UI and layout. A separate design follows once the content lands.
-- Changing the Gist sync model or the update engine.
+- Changing the Gist sync model.
+- Changing the update engine, apart from adding hot reads (§17). Daily news is untouched.
 - Writing our own long explanations or our own question banks.
 
 ## Anti-goals: what would make this a failure even if it works
@@ -50,14 +51,14 @@ What the research found (the owner has seen these findings):
 - **Stale or wrong content.** Examples: class-component React, IE-era trivia, JSONP, `document.write`, deprecated APIs, unsourced claims.
 - **Memorisation.** DSA work that rewards remembering answers instead of recognising patterns.
 - **Losing anything from the Whimsical board track.** Amazon structure, LPs, OA, LLD, HLD, advanced DSA and mocks all stay.
-- **Losing the owner's existing progress.** See constraints.
+- **Progress that moves.** After v2 ships, editing content must never shift ticked progress onto other tasks (see Task IDs).
 
 ## Constraints
 
-- **Two modes, one content sequence** (§15).
-  - **Steady**, the default: 17 weeks, about 8 study hours per weekday.
+- **Two modes, one content sequence** (§14).
+  - **Steady**, the default: 17 weeks, about 8.5 study hours per weekday.
   - **Grind:** 13 weeks, on today's timetable (about 10.75 h). Grind's block times are the ones in §1.
-  - Sundays follow §18 in both modes.
+  - Sundays follow §17 in both modes.
   - **Nothing is cut to save time in either mode.**
 - **The owner hasn't started the plan.** They'll start on **Mon 16 Nov 2026**. v2 replaces the curriculum cleanly, with no migration of past days.
 - **Task IDs.** IDs may be redesigned now. From v2 on, they must stay attached to their content, so future edits don't move progress around: explicit, content-based IDs, never position-based. The builder chooses the scheme.
@@ -69,7 +70,7 @@ What the research found (the owner has seen these findings):
 **Roadmap structure**
 1. **Keep the block skeleton and engine (13 weeks in Grind, 17 in Steady); change the content and add data (chosen).** The structure works and the owner likes it.
 2. Rebuild the curriculum around tracks. Rejected: it throws away a working structure.
-3. Add a month 4. Originally rejected. After review, the owner chose a 4-month **Steady** mode as the default, with the 3-month **Grind** kept as an option (§15).
+3. Add a month 4. Originally rejected. After review, the owner chose a 4-month **Steady** mode as the default, with the 3-month **Grind** kept as an option (§14).
 
 **DSA**
 1. **Topic sets the order; pattern is the unit of practice, tracking and revision (chosen).** Patterns sit on top of data structures, so you learn the structure first.
@@ -87,9 +88,9 @@ What the research found (the owner has seen these findings):
 
 ## Design (decided)
 
-### 1. Time budget (weekday, Grind mode; Steady is in §15)
+### 1. Time budget (weekday, Grind mode; Steady is in §14)
 
-Week numbers anywhere in this doc are **Grind weeks**. §15 maps them to Steady.
+Week numbers anywhere in this doc are **Grind weeks**. §14 maps them to Steady.
 
 Block times stay. The contents are re-split as follows (total study time is unchanged at 10.75 h):
 
@@ -183,7 +184,7 @@ Card text is short and checked against the linked source.
 
 **Tiers:**
 - **Must-solve:** about 4 per pattern (about 90–100 in total).
-  - Per pattern: 1 **teaching** problem, 2 **variations**, and 1 **unseen check** (shown with its title and topic hidden in the drill and on Sundays).
+  - Per pattern: 1 **teaching** problem, 2 **variations**, and 1 **unseen check** (shown with its title and topic hidden, in the recognition drill and in Saturday mocks).
   - Prefer 🔥 problems when choosing.
   - Must-solve covers the 5 capstone hards (Trapping Rain Water, Minimum Window Substring, Merge k Sorted Lists, Find Median from Data Stream, Word Ladder).
   - Must-solve covers these frequent non-NeetCode problems: Subarray Sum Equals K, Minimum Remove to Make Valid Parentheses, Lowest Common Ancestor of a Binary Tree, Basic Calculator II, Next Permutation, Find Peak Element, Merge Sorted Array.
@@ -223,7 +224,7 @@ Card text is short and checked against the linked source.
 - **The rule:** 2 problems you hadn't seen, solved within time (easy 15 / medium 25 / hard 40 min), plus one blank-file re-solve 7+ days later.
 - **Where the unseen problems come from:**
   - the scheduled unseen check;
-  - plus one of: a Sunday blind mock problem, a Phase 3 timed-set problem, an optional-pool problem, or one of the owner's own problems.
+  - plus one of: a Saturday mock problem, a Phase 3 timed-set problem, an optional-pool problem, or one of the owner's own problems.
 - **How it's recorded:** the owner logs it. Ticking a must-solve or pool problem lets them mark "unseen" and enter the minutes taken (optional field). Green is computed from those entries.
 - No built-in timer is required.
 
@@ -280,7 +281,7 @@ Exceptions:
 - **New builds:** 3 "match this screenshot" builds (45 min, pixel-accurate, responsive, accessible), in the Mon/Wed/Fri rotation in weeks 4–8.
 
 **Fitting the lists** (my call, after review):
-- **No build is dropped.** Small builds are paired in one 90-min block: accordion + tabs, star rating + OTP input, pagination + toast, modal + tooltip, event emitter + promise pool, debounced search + like button with optimistic UI. That gives 34 builds in about 28 slots.
+- **No build is dropped.** Small builds are paired in one 90-min block: accordion + tabs, star rating + OTP input, pagination + toast, modal + tooltip, event emitter + promise pool, debounced search + like button with optimistic UI, tic-tac-toe + image carousel, useFetch hook + Redux `createStore` with middleware. That gives 34 builds in 26 slots, plus the 3 screenshot builds: 29 slots, which is what Mon/Wed/Fri has after the take-homes and timed passes.
 - **The flagship's 20 steps fit 18 slots** by merging "product brief" with "UX wireframes", and "search + ⌘K" with "performance pass".
 
 Flagship content is otherwise unchanged; it now runs weeks 2–11, at a learning pace.
@@ -315,10 +316,10 @@ The AI build slot then also takes the build steps from the existing AI units, so
 
 - Resume, pitch, story bank and Amazon LPs stay; they move earlier, with the LPs done by week 4.
 - **Positioning text:** "product engineer who ships AI features", with FDE second.
-- The FDE stage sessions stay as they are, including separate Terraform, Kubernetes and Spark/Airflow sessions. They stay at breadth level (§14).
-- **Python moves to weeks 1–2** ("Python for JS devs" and pandas), before the first Python practical-coding rep.
-- **Deep dives of your own past work** (weeks 2–4): 3 real projects from your jobs. Each covers an architecture sketch, trade-offs, metrics, your own part, and what you'd change, and is rehearsed as a 15-min talk with its list of drill-down questions.
-- **Level calibration** (week 3): what L4/E4/SDE-2 vs L5/E5/senior must show, from public level guides. Then re-tag the story bank by the scope each story shows.
+- The FDE stage sessions stay as they are, including separate Terraform, Kubernetes and Spark/Airflow sessions. They stay at breadth level (§13).
+- **Python moves to week 1**, in two of that week's 06:45 AI-build slots ("Python for JS devs", then pandas), before the first Python practical-coding rep. The AI-build items they displace shift back by two days.
+- **Deep dives of your own past work** (weeks 2–4): 3 real projects from your jobs, one per Saturday career block. The `BEH`/`UX` items for those Saturdays shift by one day. Each covers an architecture sketch, trade-offs, metrics, your own part, and what you'd change, and is rehearsed as a 15-min talk with its list of drill-down questions.
+- **Level calibration** (week 3, replacing one `UX` item, which moves to the end of the `UX` list): what L4/E4/SDE-2 vs L5/E5/senior must show, from public level guides. Then re-tag the story bank by the scope each story shows.
 - **Offers and negotiation** (2 sessions, week 12 in Grind and week 16 in Steady): how pay is made up in India (base, joining bonus, RSUs and vesting, variable), levels.fyi, competing offers, and the recruiter call.
 - **Company map:** add **Apple** (team-specific, deep frontend craft, a11y, performance, privacy, long project deep dive) and **Stripe** (bug squash, integration round, API design, code review).
 - Decomposition and client simulation move to Thursday in the judgment thread (§4).
@@ -385,12 +386,11 @@ The AI build slot then also takes the build steps from the existing AI units, so
   Each stage has to land before the plan reaches that content. Weekly tests draw only from sections that have shipped.
 
 **Daily quiz (optional):**
-- One per section the day covered: 5 items, about 5 minutes.
 - Drawn from items tagged with that day's topics, plus any items due again (below).
-- Shown as one optional task, "Optional: quick quiz", at the end of each study block. It doesn't count towards hours or "behind".
+- Shown as **one** optional task a day, "Optional: quick quiz", in the evening daily review. It covers every section studied that day (about 5 items per section, 5–10 min in total). It doesn't count towards hours or "behind".
 
 **Weekly test (graded):**
-- Sunday, in the fixed core (§18), 40 minutes.
+- Sunday, in the fixed core (§17), 40 minutes.
 - **Week 1 also has a baseline test** to compare every later score against: 2 timed DSA problems, a 20-item frontend quiz, and one 20-min mini system design.
 - About 30 items, drawn from everything covered that week, spread across sections in proportion to the week's study time.
 - **Score:** mcq and pattern-id right = 1, wrong = 0; recall Nailed = 1, Partial = 0.5, Missed = 0.
@@ -408,10 +408,10 @@ The AI build slot then also takes the build steps from the existing AI units, so
 - **Week 12:** all 24 patterns green; the top-12 machine-coding builds done in ≤ 45 min.
 - **Week 13:** 3 full mock loops (product engineer, FDE, frontend SDE-2); flagship case study published; weekly test ≥ 80% for 3 weeks running.
 
-If a check fails, it's suggested first in the next revision Sunday (§18). Rest time is never taken for it automatically.
+If a check fails, it's suggested first in the next revision Sunday (§17). Rest time is never taken for it automatically.
 
 **Week-8 review** (Grind week 8 / Steady week 10), a fixed Sunday task:
-- Read the weekly-test trend, which patterns are green, the readiness checks, and the four depth tests (§14).
+- Read the weekly-test trend, which patterns are green, the readiness checks, and the four depth tests (§13).
 - Then rebalance the remaining weeks: move optional reps into weak areas and note what to drop to optional.
 - Write the result as a Notes page.
 
@@ -429,7 +429,7 @@ The owner wants to create their own labels and put several of them on anything. 
 - **Frequency:** 🔥 Frequent, ⭐ Hard but frequent.
 - **Source:** Plan, Yours.
 - **Flagged:** the existing `flags` re-solve mark, kept as it is so the Sunday re-solve logic works.
-- **Depth:** marks tasks in the four depth areas (§14).
+- **Depth:** marks tasks in the four depth areas (§13).
 
 **Owner labels:**
 - **Create, rename, recolour, delete:** labels and groups. Deleting a label removes it from every item.
@@ -446,7 +446,7 @@ The owner wants to create their own labels and put several of them on anything. 
 
 The UI for creating and applying labels belongs to the later UI design. This design only fixes the model and the rules above.
 
-### 14. Depth areas: where to know things inside out
+### 13. Depth areas: where to know things inside out
 
 **The bar is application-level depth.** For each area, you can:
 - explain why it behaves the way it does;
@@ -478,14 +478,15 @@ There are four areas. Tasks in them get a system label **Depth** (§12). Every D
 
 The JS runtime fundamentals stay at working depth (§9).
 
-### 15. Two modes: Steady (default) and Grind
+### 14. Two modes: Steady (default) and Grind
 
 - **Same content sequence and same item durations in both.** Each track gets the same number of slots in each mode, so nothing is cut or compressed.
 - **Grind:** 13 weeks (78 study days), the §1 timetable, about 10.75 study hours per weekday.
-- **Steady (default):** 17 weeks (102 study days), about 8 study hours per weekday.
+- **Steady (default):** 17 weeks (102 study days), about 8.5 study hours per weekday.
   - Each day runs the same block types at their Grind durations, but not every block every day.
-  - The rotating blocks (FE, machine coding, system design, judgment, career, AI evening) each run on about 76% of days (78 ÷ 102), so each still gets its 78 slots.
-  - Daily habits run every day: DSA must-solve (until the pattern sequence ends), DSA revision with the recognition drill, the AI build slot, and the daily review.
+  - Every content block rotates: DSA must-solve, the AI build slot, FE, machine coding, system design, judgment, career and the AI evening. Each runs on about 76% of days (78 ÷ 102), so each still gets its 78 slots.
+  - Two habits run every day: DSA revision with the recognition drill (30 min) and the daily review (30 min).
+  - That's about 9.75 h × 0.765 + 1 h ≈ 8.5 h per weekday.
   - The builder designs the rotation and the Steady timetable times.
 - **Week mapping** for week-pinned items (take-homes, readiness checks, the week-8 review, negotiation):
   - Steady week = round(Grind week × 17/13).
@@ -495,7 +496,13 @@ The JS runtime fundamentals stay at working depth (§9).
   - Switching mid-plan keeps everything already done. Only unfinished tasks are laid out again at the new pace, from today.
 - The app name "Offer in 90" stays.
 
-### 16. AI help using your own API key (BYOK)
+### 15. AI help using your own API key (BYOK)
+
+**The rule:**
+- Every AI feature inside the app runs only on the user's own key: Ask AI, the three personas, and anything AI added to the app later.
+- The app ships with no key of ours and never calls an AI with one.
+- With no key saved, AI features show a single line, "Add your API key in Setup to use AI help", and everything else works as normal.
+- The only AI that uses the owner's credential is the weekly GitHub engine (below).
 
 - **Setup:**
   - The owner pastes their own API key.
@@ -519,8 +526,9 @@ The JS runtime fundamentals stay at working depth (§9).
     - "Your key stays in this browser and goes only to <provider>."
     - Create a separate key for this app, with a monthly spend limit set in the provider's console.
   - **Guarding the page.** Anything that runs on the page could read the key, so:
-    - add a Content-Security-Policy that limits `connect-src` to the provider API domains plus the existing ones (GitHub API for the Gist, the app's own JSON feeds);
-    - keep `script-src` to `'self'`;
+    - add a Content-Security-Policy as a `<meta http-equiv>` tag, since GitHub Pages can't send response headers;
+    - the part that matters most is `connect-src`: only the provider API domains, the GitHub API (for the Gist) and the app's own origin, so a key can't be sent anywhere else;
+    - for `script-src`, Next.js's static export injects inline scripts, so a plain `'self'` would break the site. Use build-time hashes of those scripts. If that proves fragile, fall back to `'self' 'unsafe-inline'`, and keep `connect-src` strict;
     - add no third-party scripts;
     - never write the key to logs or error messages.
 - **The weekly engine doesn't use this key.**
@@ -528,7 +536,8 @@ The JS runtime fundamentals stay at working depth (§9).
   - The engine keeps its own repo secret. Today that's `CLAUDE_CODE_OAUTH_TOKEN`, from `claude setup-token` on the owner's own Claude account, so it's already the owner's credential, not a shared one.
   - Claude Code also accepts an `ANTHROPIC_API_KEY` secret instead, if the owner prefers paying per use.
   - Anyone who forks the repo sets their own secret, and the engine then runs on their account.
-  - **For now the engine stays exactly as it is** (the owner's decision, 2026-11-15). Daily news and the weekly AI step are unchanged.
+  - **For now the engine stays as it is** (the owner's decision, 2026-11-15). Daily news is unchanged. The weekly AI step gains only hot reads (§17).
+  - **Budget:** the owner sets the repo variable `ENGINE_BUDGET_USD` to **0.50** (applied by Claude Code as `--max-budget-usd`, per run).
   - **Considered for later: a manual "Run this week's refresh" button.**
     - The Actions would keep only the no-AI collectors and publish their raw results.
     - The AI step would run in the browser on the BYOK key: four steps, a spend cap, results validated and saved to the Gist.
@@ -558,7 +567,7 @@ The JS runtime fundamentals stay at working depth (§9).
   - Conversations that aren't saved or bookmarked are not stored.
 - **Personas:** the system prompts are in the Appendix. Each is one shared base block plus the persona block. Owners can't edit them in v2; maybe later.
 
-### 17. Explore later (replaces "Month 4")
+### 16. Explore later (replaces "Month 4")
 
 - Outside the daily plan, so it adds no noise. It's a reference page grouped by area, with 1–3 trusted resources each.
 - The Parking lot page stays for things the owner finds.
@@ -575,9 +584,9 @@ The JS runtime fundamentals stay at working depth (§9).
 | Career growth | *Staff Engineer* (Will Larson); The Pragmatic Engineer; open-source beyond the plan's fixes |
 | Interview extras | Extra mock loops; company-specific lists for loops you've booked |
 
-The builder checks each link before adding it, the same way as §14.
+The builder checks each link before adding it, the same way as §13.
 
-### 18. Sundays: active rest, or revision mode (per-Sunday toggle)
+### 17. Sundays: active rest, or revision mode (per-Sunday toggle)
 
 **Fixed core** (about 1.5 h, every Sunday):
 - the weekly test (40 min, §10);
@@ -645,6 +654,14 @@ The builder checks each link before adding it, the same way as §14.
   - Not a duplicate of the curated list, an earlier hot read, or a plan link.
   - No hype, funding news or minor releases.
   - Zero picks is a fine result.
+- **Budget order:**
+  - The prompt runs its jobs in this order: fix links → plan updates (interview formats, AI, outdated content, market) → interview pulse → hot reads.
+  - Hot reads come last, so a tight budget skips them first.
+  - The whole run stays under the per-run cap (`ENGINE_BUDGET_USD`, set by the owner to $0.50).
+- **Optional weekly lock:**
+  - The workflow checks whether `public/updates.json`'s `generatedAt` shows a full run already this IST week.
+  - If it does, a manual run does the free link check only and skips the AI step, unless it's dispatched with `force: true`.
+  - The cap is then a true weekly maximum.
 - **Where it looks.** Same pattern as `collect-interviews.mjs`: first a no-AI script gathers candidates with real engagement numbers, then Claude picks.
   - The new `scripts/collect-reads.mjs` writes `.engine/read-candidates.json`, with title, URL, date, source and engagement for each candidate. It runs in `refresh-engine.yml` before the Claude step. Its sources:
     - **Hugging Face daily papers** (`/api/daily_papers`, upvotes), already used by `fetch-news.mjs`.
@@ -670,7 +687,7 @@ The builder checks each link before adding it, the same way as §14.
 - **In the app:**
   - That Sunday shows the curated read, plus one optional "🔥 Hot this week" item: the newest `reads.json` item for that week.
   - Both are optional and never count as "behind".
-  - Done hot reads (and hot reads you skip) stay listed in an "Earlier hot reads" group in Explore later (§17).
+  - Done hot reads (and hot reads you skip) stay listed in an "Earlier hot reads" group in Explore later (§16).
   - If a hot paper also changes what the plan should teach, the engine can still add a normal `updates.json` item for it, as it does today. The two feeds stay separate.
 
 **Rules:**
@@ -679,7 +696,7 @@ The builder checks each link before adding it, the same way as §14.
 - Missed weekday tasks never take rest time automatically. They wait for a revision Sunday or roll into the week.
 - **Burnout guard:** if the owner is more than 8 h behind, the app suggests a revision Sunday and shows optional tasks last. It never extends a day.
 
-### 19. Other additions from the review
+### 18. Other additions from the review
 
 - **Interview environment practice** (Phase 3, short tasks):
   - code in CoderPad/HackerRank;
@@ -688,7 +705,7 @@ The builder checks each link before adding it, the same way as §14.
   - check your camera and mic before a virtual onsite.
 - **The ordering fix:** Python lands before the first Python rep (§8).
 
-### 20. Focus rules (added to `FOCUS_RULES`)
+### 19. Focus rules (added to `FOCUS_RULES`)
 
 - The daily plan shows only that day's list. Pools, stretch lists and quizzes stay optional and out of the way.
 - One link per task.
@@ -706,7 +723,6 @@ The builder checks each link before adding it, the same way as §14.
 - Parsing and curating the question sources.
 - Data file layout: where patterns, the question bank and flags live.
 - The data shape for the owner's own problems and quiz results in `State`.
-- Small wording.
 - UI is out of scope here. The builder only needs data and engine support so a later UI design can show it.
 
 ## Sources
@@ -734,11 +750,11 @@ The builder checks each link before adding it, the same way as §14.
   - donnemartin/system-design-primer (flash_cards); donnemartin/interactive-coding-challenges
   - amitshekhariitbhu/ai-engineering-interview-questions; KalyanKS-NLP/LLM-Interview-Questions-and-Answers-Hub
   - shawlu95/Beyond-LeetCode-SQL; bigocheatsheet.com
-- **Depth reading (§14):** use-the-index-luke.com; stripe.com/blog/idempotency; inkandswitch.com/essay/local-first; applied-llms.org; eugeneyan.com/writing/llm-patterns; sre.google/sre-book/effective-troubleshooting
+- **Depth reading (§13):** use-the-index-luke.com; stripe.com/blog/idempotency; inkandswitch.com/essay/local-first; applied-llms.org; eugeneyan.com/writing/llm-patterns; sre.google/sre-book/effective-troubleshooting
 
-- **Sunday reads (§18):** uber.com/blog/h3; uber.com/blog/deepeta-how-uber-predicts-arrival-times; about.gitlab.com postmortem (2017); aws.amazon.com/message/101925; CrowdStrike Channel File 291 RCA; openai.com/index/why-language-models-hallucinate; anthropic.com/research/tracing-thoughts-language-model; allthingsdistributed.com Dynamo; bytes.swiggy.com; blog.swiggy.com group ordering; razorpay.com/blog/payment-gateway-uptime-slas; AWS Database Blog (Zomato); linear.app/blog (multi-region, delta sync); blog.hotstar.com
+- **Sunday reads (§17):** uber.com/blog/h3; uber.com/blog/deepeta-how-uber-predicts-arrival-times; about.gitlab.com postmortem (2017); aws.amazon.com/message/101925; CrowdStrike Channel File 291 RCA; openai.com/index/why-language-models-hallucinate; anthropic.com/research/tracing-thoughts-language-model; allthingsdistributed.com Dynamo; bytes.swiggy.com; blog.swiggy.com group ordering; razorpay.com/blog/payment-gateway-uptime-slas; AWS Database Blog (Zomato); linear.app/blog (multi-region, delta sync); blog.hotstar.com
 
-## Appendix: AI persona prompts (§16)
+## Appendix: AI persona prompts (§15)
 
 ### Shared base (prepended to every persona)
 
