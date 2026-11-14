@@ -111,6 +111,51 @@ try {
     }
     await ctx.close();
   }
+  // ---------- phone: getting back to today after opening another day ----------
+  {
+    const { ctx, page, errors } = await open(390, 844);
+    const W = 'today 390 return';
+    const bar = page.locator('[data-shell="bottom-bar"]');
+    const hdr = () => page.locator('header').first().innerText().then(t => t.replace(/\s+/g, ' '));
+    const todayHdr = await hdr();
+    await bar.locator('[data-nav="progress"]').click();
+    await page.waitForTimeout(500);
+    await page.getByRole('radio', { name: 'Whole plan' }).click().catch(() => {});
+    await page.waitForTimeout(300);
+    await page.locator('[data-day="3"]').first().click({ force: true });
+    await page.waitForTimeout(400);
+    const dayHdr = await hdr();
+    if (/Day 3\b/.test(dayHdr)) ok(`${W}: opened day 3 (${dayHdr})`); else fail(`${W}: day 3 not opened (${dayHdr})`);
+    const phoneToday = page.locator('[data-today-phone]');
+    if (await phoneToday.isVisible()) ok(`${W}: phone Today control visible on a non-today day`); else fail(`${W}: phone Today control hidden`);
+    const dateVisible = await page.evaluate(() => { const h = document.querySelector('header'); const els = [...h.querySelectorAll('li')]; const last = els[els.length - 1]; return last ? last.scrollWidth <= last.clientWidth + 1 : false; });
+    if (dateVisible) ok(`${W}: date not truncated`); else fail(`${W}: date truncated in header`);
+    await page.screenshot({ path: join(shots, 'today-390-otherday.png') });
+    await phoneToday.click();
+    await page.waitForTimeout(300);
+    if (await hdr() === todayHdr) ok(`${W}: Today control returns to today`); else fail(`${W}: Today control did not return (${await hdr()})`);
+    if (await phoneToday.count()) fail(`${W}: phone Today control still shown on today`); else ok(`${W}: control hidden on today`);
+    // open day 3 again, then the bottom-bar Today
+    await bar.locator('[data-nav="progress"]').click();
+    await page.waitForTimeout(400);
+    await page.getByRole('radio', { name: 'Whole plan' }).click().catch(() => {});
+    await page.waitForTimeout(300);
+    await page.locator('[data-day="3"]').first().click({ force: true });
+    await page.waitForTimeout(400);
+    await bar.locator('[data-nav="progress"]').click();
+    await page.waitForTimeout(300);
+    await bar.locator('[data-nav="today"]').click();
+    await page.waitForTimeout(400);
+    if (await hdr() === todayHdr) ok(`${W}: bottom-bar Today after Progress resets to today`); else fail(`${W}: bottom-bar Today left on ${await hdr()}`);
+    await page.getByRole('button', { name: 'Previous day' }).click();
+    await page.waitForTimeout(200);
+    await bar.locator('[data-nav="today"]').click();
+    await page.waitForTimeout(300);
+    if (await hdr() === todayHdr) ok(`${W}: tapping Today while on Today resets the day`); else fail(`${W}: Today tap on Today did not reset`);
+    await page.screenshot({ path: join(shots, 'today-390.png') });
+    checkErrors(errors, W);
+    await ctx.close();
+  }
   // ---------- Today (clock fixed at 14:10 on a weekday, day 9 of the plan) ----------
   for (const [width, height] of [[1100, 900], [390, 844]]) {
     const at = new Date(2026, 10, 12, 14, 10); // Thu 12 Nov 2026, 14:10 local
@@ -542,6 +587,25 @@ try {
     if (!wasRead && await first.getAttribute('data-read') !== null) ok(`${W}: opened link turns grey (data-read)`); else fail(`${W}: opened link not marked read`);
     const sw2 = await page.evaluate(() => document.documentElement.scrollWidth);
     if (sw2 > width) fail(`${W}: horizontal scroll on Reading (${sw2})`); else ok(`${W}: Reading scrollWidth ${sw2}`);
+    // manual read/unread toggle writes seenUpdates['n-<id>']; Mark all read clears the latest day
+    const seenKeys = () => page.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('offer90.v1')).seenUpdates).filter(k => k.startsWith('n-')));
+    const toggles = page.locator('[data-reading] [data-read-toggle]');
+    const secondRow = toggles.nth(1);
+    const k0 = (await seenKeys()).length;
+    const pressed0 = await secondRow.getAttribute('aria-pressed');
+    await secondRow.click();
+    await page.waitForTimeout(400);
+    const k1 = (await seenKeys()).length;
+    if (pressed0 === 'false' ? k1 === k0 + 1 : k1 === k0 - 1) ok(`${W}: read toggle writes seenUpdates (n- keys ${k0} → ${k1})`); else fail(`${W}: read toggle did not write (${k0} → ${k1})`);
+    await secondRow.click();
+    await page.waitForTimeout(400);
+    if ((await seenKeys()).length === k0) ok(`${W}: toggling again restores`); else fail(`${W}: second toggle did not restore`);
+    await page.getByRole('radio', { name: /^All/ }).first().click().catch(() => {});
+    await page.locator('[data-mark-all]').first().click();
+    await page.waitForTimeout(400);
+    const latestUnread = await page.locator('[data-reading] [data-read-toggle][aria-pressed="false"]').count();
+    if (latestUnread === 0) ok(`${W}: Mark all read clears the latest day`); else fail(`${W}: ${latestUnread} unread after Mark all read`);
+    if (width === 1100) { const after = await badgeN(); ok(`${W}: sidebar News badge after Mark all read: ${after}`); }
     await page.screenshot({ path: join(shots, `news-${width}-reading.png`) });
     // Saved: the saved post is listed, search, note and remove still work
     await tab('Saved').click();
@@ -730,6 +794,15 @@ try {
     const sw = await page.evaluate(() => document.documentElement.scrollWidth);
     if (sw > 390) fail(`${W}: horizontal scroll (${sw})`); else ok(`${W}: scrollWidth ${sw}`);
     await page.screenshot({ path: join(shots, 'setup-390-connected.png'), fullPage: true });
+    // sync error shows on the phone: dot on More + the error line in the sheet
+    if (await page.locator('[data-shell="bottom-bar"] [data-dot="sync"]').count()) ok(`${W}: sync-problem dot on More`); else fail(`${W}: no sync dot on More`);
+    await page.locator('[data-shell="bottom-bar"] [data-nav="more"]').click();
+    await page.waitForTimeout(400);
+    const syncTxt = await page.locator('[data-shell="more-sheet"] [data-shell="sync"]').innerText().catch(() => '');
+    if (/Sync problem/.test(syncTxt)) ok(`${W}: More sheet shows "${syncTxt.trim()}"`); else fail(`${W}: More sheet has no sync error line ("${syncTxt}")`);
+    await page.screenshot({ path: join(shots, 'more-390-sync-error.png') });
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
     await page.getByRole('button', { name: /Disconnect/ }).click();
     await page.waitForTimeout(300);
     if (await page.locator('input[type="password"]').isVisible().catch(() => false)) ok(`${W}: Disconnect brings back the token field`); else fail(`${W}: no token field after Disconnect`);

@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import { useUI, type View } from '@/components/ui-state';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
-import { NAV, SETUP_NAV, newsUnread } from './app-sidebar';
+import { NAV, SETUP_NAV, newsUnread, syncLine } from './app-sidebar';
 
 const pick = (v: View) => [...NAV, SETUP_NAV].find(n => n.v === v)!;
 const MAIN = (['today', 'progress', 'notes'] as View[]).map(pick);
@@ -14,17 +14,18 @@ const MORE = (['roadmap', 'news', 'setup'] as View[]).map(pick);
 
 export function BottomBar() {
   const { view, go } = useUI();
-  const { state, news, threads } = useStore();
+  const { state, news, threads, sync, syncConfigured } = useStore();
+  const syncErr = syncConfigured && sync.state === 'error';
   const [more, setMore] = useState(false);
   const unread = newsUnread(state, news, threads);
   const inMore = MORE.some(n => n.v === view);
 
-  const tab = (key: string, label: string, Icon: LucideIcon, active: boolean, onClick: () => void, dot?: boolean) => (
+  const tab = (key: string, label: string, Icon: LucideIcon, active: boolean, onClick: () => void, dot?: 'unread news' | 'sync problem') => (
     <button key={key} type="button" data-nav={key} onClick={onClick} aria-current={active ? 'page' : undefined}
       className={cn('relative flex h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium outline-none focus-visible:bg-hover', active ? 'text-foreground' : 'text-muted-foreground')}>
       <Icon className="size-5" strokeWidth={active ? 2 : 1.75} />
       {label}
-      {dot && <span className="absolute top-2.5 left-[calc(50%+8px)] size-1.5 rounded-full bg-primary" aria-label="unread news" />}
+      {dot && <span data-dot={dot === 'sync problem' ? 'sync' : 'news'} className={cn('absolute top-2.5 left-[calc(50%+8px)] size-1.5 rounded-full', dot === 'sync problem' ? 'bg-muted-foreground ring-2 ring-card' : 'bg-primary')} aria-label={dot} />}
     </button>
   );
 
@@ -32,7 +33,7 @@ export function BottomBar() {
     <>
       <nav data-shell="bottom-bar" aria-label="Pages" className="fixed inset-x-0 bottom-0 z-30 flex border-t border-border bg-card pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] md:hidden">
         {MAIN.map(n => tab(n.v, n.label, n.icon, view === n.v, () => go(n.v)))}
-        {tab('more', 'More', MoreHorizontal, inMore || more, () => setMore(true), unread > 0)}
+        {tab('more', 'More', MoreHorizontal, inMore || more, () => setMore(true), syncErr ? 'sync problem' : unread > 0 ? 'unread news' : undefined)}
       </nav>
       <Sheet open={more} onOpenChange={setMore}>
         <SheetContent side="bottom" data-shell="more-sheet" className="rounded-t-[12px] pb-[max(12px,env(safe-area-inset-bottom))] md:hidden">
@@ -52,6 +53,11 @@ export function BottomBar() {
               </li>
             ))}
           </ul>
+          {syncConfigured && (
+            <p data-shell="sync" role={syncErr ? 'status' : undefined} className={cn('px-5 pb-1 text-[12px] tabular-nums', syncErr ? 'text-muted-foreground' : 'text-faint')}>
+              {syncErr ? `Sync problem: ${syncLine(sync, true)}` : syncLine(sync, true)}
+            </p>
+          )}
         </SheetContent>
       </Sheet>
     </>

@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { CalendarCheck, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -62,6 +62,7 @@ export function TodayView() {
         actions={<>
           <Button variant="outline" size="icon-sm" onClick={() => setViewIdx(clamp(viewIdx - 1))} aria-label="Previous day"><ChevronLeft /></Button>
           <Button variant="outline" size="sm" onClick={() => setViewIdx(clamp(todayIdx))} disabled={isToday} className="hidden sm:inline-flex">Today</Button>
+          {!isToday && <Button variant="outline" size="icon-sm" onClick={() => setViewIdx(clamp(todayIdx))} aria-label="Go to today" title="Go to today" data-today-phone className="sm:hidden"><CalendarCheck /></Button>}
           <Button variant="outline" size="icon-sm" onClick={() => setViewIdx(clamp(viewIdx + 1))} aria-label="Next day"><ChevronRight /></Button>
           <Button size="icon-sm" onClick={() => newTask()} aria-label="New task" title="New task (C)"><Plus /></Button>
         </>}

@@ -134,6 +134,14 @@ export function NewsInterviews() {
                   </ul>
                 </div>
               )}
+              {week.companies.some(c => c.questions?.length) && (
+                <div>
+                  <p className="font-medium text-foreground">Questions mentioned</p>
+                  <ul className="mt-1 list-disc space-y-0.5 pl-4">
+                    {week.companies.flatMap(c => (c.questions || []).map((q, i) => <li key={`${c.company}-q${i}`}><span className="text-foreground">{c.company}:</span> {q}</li>))}
+                  </ul>
+                </div>
+              )}
               {week.companies.some(c => c.prep) && (
                 <div>
                   <p className="font-medium text-foreground">What to change in your prep</p>
@@ -152,6 +160,12 @@ export function NewsInterviews() {
           <p className="text-[12px] text-faint">#{summary.company} this week · {summary.reports} report{summary.reports === 1 ? '' : 's'} · {summary.confidence} confidence</p>
           {summary.loop && <p className="text-foreground">{summary.loop}</p>}
           {!!summary.changes.length && <ul className="list-disc space-y-0.5 pl-4">{summary.changes.map((c, i) => <li key={i}>{c}</li>)}</ul>}
+          {!!summary.questions?.length && (
+            <div data-questions>
+              <p className="font-medium text-foreground">Questions mentioned</p>
+              <ul className="mt-1 list-disc space-y-0.5 pl-4">{summary.questions.map((q, i) => <li key={i}>{q}</li>)}</ul>
+            </div>
+          )}
           {summary.prep && <p><span className="font-medium text-foreground">Prep:</span> {summary.prep}</p>}
         </div>
       )}
