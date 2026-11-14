@@ -33,11 +33,15 @@ What the research found (the owner has seen these findings):
 4. **Fill the hands-on AI gaps.**
 5. **Daily optional quizzes per section, plus a graded weekly test** from reliable, current, existing question sources, with a score trend over time.
 6. **Readiness checks** that make "prepared" measurable.
+7. **Two paces with the same content.** Steady is 4 months (17 weeks) and the default. Grind is 3 months (13 weeks).
+8. **Depth in 4 areas** where AI-written code most often fails quietly, each with a few carefully chosen readings (§14).
+9. **AI help using the owner's own API key,** with 3 expert personas, plus the option to save responses (§16).
+10. **An "Explore later" library** outside the daily plan (§17).
 
 ## Non-goals
 
 - UI and layout. A separate design follows once the content lands.
-- Changing the Gist sync model, the update engine, or the 13-week length.
+- Changing the Gist sync model or the update engine.
 - Writing our own long explanations or our own question banks.
 
 ## Anti-goals: what would make this a failure even if it works
@@ -50,7 +54,11 @@ What the research found (the owner has seen these findings):
 
 ## Constraints
 
-- **13 weeks, same daily timetable times** (`schedule.js` block times stay; block contents change). Sundays stay as they are: a mock, catch-up, the weekly block, then rest.
+- **Two modes, one content sequence** (§15).
+  - **Steady**, the default: 17 weeks, about 8 study hours per weekday.
+  - **Grind:** 13 weeks, on today's timetable (about 10.75 h). Grind's block times are the ones in §1.
+  - Sundays follow §18 in both modes.
+  - **Nothing is cut to save time in either mode.**
 - **The owner hasn't started the plan.** They'll start on **Mon 16 Nov 2026**. v2 replaces the curriculum cleanly, with no migration of past days.
 - **Task IDs.** IDs may be redesigned now. From v2 on, they must stay attached to their content, so future edits don't move progress around: explicit, content-based IDs, never position-based. The builder chooses the scheme.
 - **Everything stays data in `src/lib/plan-data.js`** (plus new data files), used by `engine.ts`. The app is a static Next.js export.
@@ -61,7 +69,7 @@ What the research found (the owner has seen these findings):
 **Roadmap structure**
 1. **Keep the 13-week block skeleton and engine; change the content and add data (chosen).** The structure works and the owner likes it.
 2. Rebuild the curriculum around tracks. Rejected: it throws away a working structure.
-3. Add a month 4. Rejected: the owner wants exactly 3 months.
+3. Add a month 4. Originally rejected. After review, the owner chose a 4-month **Steady** mode as the default, with the 3-month **Grind** kept as an option (§15).
 
 **DSA**
 1. **Topic sets the order; pattern is the unit of practice, tracking and revision (chosen).** Patterns sit on top of data structures, so you learn the structure first.
@@ -79,7 +87,9 @@ What the research found (the owner has seen these findings):
 
 ## Design (decided)
 
-### 1. Time budget (weekday)
+### 1. Time budget (weekday, Grind mode; Steady is in §15)
+
+Week numbers anywhere in this doc are **Grind weeks**. §15 maps them to Steady.
 
 Block times stay. The contents are re-split as follows (total study time is unchanged at 10.75 h):
 
@@ -235,8 +245,8 @@ Fixed weekly rhythm:
 | Tue | **Decision memo:** 1 page with options, criteria, pick, and what would change your mind | 13 |
 | Wed | **Practical coding** (45 min, timed; alternate TypeScript and Python) | 12 |
 | Thu | **Decomposition or client simulation** (the FDE prompts move here from the career block, starting week 2) | 12 |
-| Fri | **Code you didn't write:** this week's open-source issue (reproduce → hypothesise → isolate → verify; short postmortem). Finish in Sunday catch-up if needed. Starts week 3 | 10 |
-| Sat | **AI-assisted coding drill:** use the tool, verify and narrate | 13 |
+| Fri | **Code you didn't write:** this week's open-source issue (reproduce → hypothesise → isolate → verify; short postmortem). Finish on a revision Sunday if needed. Starts week 3. **Every 3rd Friday is a code-review rep instead:** review a real open-source PR, then compare with the maintainers' comments | 7 fixes + 4 reviews |
+| Sat | **Alternates weekly.** Odd weeks: the **AI-assisted coding drill** (use the tool, verify, narrate). Even weeks: **practice that used to be on Sunday**. In Phase 1–2 that's the weekly timed mock, plus a speed pair from week 5 (2 must-solve problems you've already done, re-solved in 35 min). In Phase 3 it's the full mock loop. From week 4, a **peer mock every 2 weeks** with a real person (Pramp/Exponent peer mocks), rotating coding → frontend system design → behavioral → decomposition. On a peer-mock Saturday, the afternoon revision and judgment slots become the mock | 7 drills + 6 mock Saturdays |
 
 - **How it really works** reads: Figma multiplayer; Linear sync engine; Stripe idempotency keys; Discord message storage; Slack real-time; Notion data model; Next.js/Vercel caching; Shopify Black Friday scale; Cloudflare's Nov 2025 outage postmortem; GitHub Copilot architecture. The builder links each to the company's own engineering blog post.
 - **Decision memo** prompts:
@@ -267,6 +277,7 @@ Weekly rhythm:
 Exceptions:
 - **Weeks 7 and 10:** a **product engineer take-home simulation** runs Mon–Wed instead (3 blocks plus optional Sunday time). It's 4–8 h: polished, keyboard-first, accessible, with a README of trade-offs and a recorded walkthrough. The builder writes two briefs in the Linear/PostHog style.
 - **From week 9:** timed second passes at 30–45 min of the 12 builds in `MC_TIMED`, two per block (Mon/Wed/Fri slots).
+- **New builds:** 3 "match this screenshot" builds (45 min, pixel-accurate, responsive, accessible), in the Mon/Wed/Fri rotation in weeks 4–8.
 
 **Fitting the lists** (my call, after review):
 - **No build is dropped.** Small builds are paired in one 90-min block: accordion + tabs, star rating + OTP input, pagination + toast, modal + tooltip, event emitter + promise pool, debounced search + like button with optimistic UI. That gives 34 builds in about 28 slots.
@@ -280,19 +291,17 @@ New order:
 1. How the internet works.
 2. Frontend system design: RADIO framework, the FE SD topics, the 12 FE designs.
 3. HLD concepts (the existing 13), then the delivery framework and concepts-to-master.
-4. **15 core HLD problems:** Bitly, rate limiter, Dropbox, WhatsApp, Ticketmaster, Facebook news feed, YouTube, web crawler, distributed cache, job scheduler, payment system, top-K leaderboard, Yelp, live comments, ad click aggregator.
+4. **All 26 HLD problems,** core ones first: Bitly, rate limiter, Dropbox, WhatsApp, Ticketmaster, Facebook news feed, YouTube, web crawler, distributed cache, job scheduler, payment system, top-K leaderboard, Yelp, live comments, ad click aggregator. Then the other 11.
 5. The 4 AI designs.
 6. Mocks.
 
-The other 11 HLD problems become optional (in a pool, not in the daily plan). The `SD_MOCKS` rotation stays.
+The `SD_MOCKS` rotation stays. Add a **numbers card** (latency, throughput and storage figures every engineer should know). Estimation items join the weekly test from week 5.
 
 ### 7. AI
 
 **Keep:** 3Blue1Brown; Karpathy GPT build and LLM deep dive; Attention, InstructGPT, CoT, ReAct, RAG, Lost in the Middle; all build units; evals; OWASP; production; AI design; AI coding tools.
 
-**Shrink:**
-- GPT-3: 3 days → 1.
-- Scaling laws + Chinchilla: 3 days → 1. Keep the "why models keep improving" write-up.
+**No shrinking:** every paper keeps its current days (the owner's instruction: nothing compressed).
 
 **New hands-on days** (6), in the 06:45 AI build slot:
 - **LLM API fundamentals** (1): tokens and cost, temperature/top-p, context limits, stop reasons, rate limits, retries.
@@ -306,7 +315,12 @@ The AI build slot then also takes the build steps from the existing AI units, so
 
 - Resume, pitch, story bank and Amazon LPs stay; they move earlier, with the LPs done by week 4.
 - **Positioning text:** "product engineer who ships AI features", with FDE second.
-- The FDE stage sessions stay. Terraform, Kubernetes, Spark and Airflow are concept-level only, merged into 1 session.
+- The FDE stage sessions stay as they are, including separate Terraform, Kubernetes and Spark/Airflow sessions. They stay at breadth level (§14).
+- **Python moves to weeks 1–2** ("Python for JS devs" and pandas), before the first Python practical-coding rep.
+- **Deep dives of your own past work** (weeks 2–4): 3 real projects from your jobs. Each covers an architecture sketch, trade-offs, metrics, your own part, and what you'd change, and is rehearsed as a 15-min talk with its list of drill-down questions.
+- **Level calibration** (week 3): what L4/E4/SDE-2 vs L5/E5/senior must show, from public level guides. Then re-tag the story bank by the scope each story shows.
+- **Offers and negotiation** (2 sessions, week 12 in Grind and week 16 in Steady): how pay is made up in India (base, joining bonus, RSUs and vesting, variable), levels.fyi, competing offers, and the recruiter call.
+- **Company map:** add **Apple** (team-specific, deep frontend craft, a11y, performance, privacy, long project deep dive) and **Stripe** (bug squash, integration round, API design, code review).
 - Decomposition and client simulation move to Thursday in the judgment thread (§4).
 - **Product engineer prep:** for each target company, use the product and write a teardown with 3 improvements. That lands in the career block once `BEH` runs out, alongside the FDE items.
 - **Applications are optional.** `APPLY` tasks become one Sunday option: "Optional: apply to 3–5 roles". No weekday application tasks.
@@ -314,12 +328,16 @@ The AI build slot then also takes the build steps from the existing AI units, so
 
 ### 9. Product & UX, Frontend & CS
 
-- **UX:** merge the 4 visual-design basics (hierarchy, typography, colour, layout) into 2 items. The rest stays.
-- **FE:**
-  - Add 1 topic: Next.js caching, revalidation and the RSC deep dive.
-  - Compress Web Components and Canvas/SVG into 1 topic.
-  - Compress "OS & networking" into the SD "how the internet works" day, as a reference.
-  - Net count stays around 48.
+- **UX:** unchanged (all 36 items).
+- **FE:** keep all 48 topics, and add 1: Next.js caching, revalidation and RSC.
+- **React internals at overview level** (owner's call):
+  - The React topics (rendering and reconciliation, hooks, memo, concurrent React, RSC) each get a short summary card plus the existing link and practice.
+  - They aren't deep-dive days.
+  - Fiber and reconciler internals move to Explore later.
+- **JS runtime fundamentals stay at working depth:** event loop, closures, `this`, promises, async. Frontend coding rounds test these directly, and they're the base for every async bug.
+- **Machine coding additions:**
+  - 3 "match this screenshot" builds: 45 min, pixel-accurate, responsive, accessible.
+  - 4 code-review reps in the judgment thread (§4): review a real open-source PR, write your comments, compare them with the maintainers'.
 
 ### 10. Revision quizzes and weekly test
 
@@ -372,7 +390,8 @@ The AI build slot then also takes the build steps from the existing AI units, so
 - Shown as one optional task, "Optional: quick quiz", at the end of each study block. It doesn't count towards hours or "behind".
 
 **Weekly test (graded):**
-- Sunday, the first 40 minutes of the 09:00 catch-up block.
+- Sunday, in the fixed core (§18), 40 minutes.
+- **Week 1 also has a baseline test** to compare every later score against: 2 timed DSA problems, a 20-item frontend quiz, and one 20-min mini system design.
 - About 30 items, drawn from everything covered that week, spread across sections in proportion to the week's study time.
 - **Score:** mcq and pattern-id right = 1, wrong = 0; recall Nailed = 1, Partial = 0.5, Missed = 0.
 - Recorded per section and in total for each week, with history. Synced like other state.
@@ -383,13 +402,18 @@ The AI build slot then also takes the build steps from the existing AI units, so
 
 ### 11. Readiness checks (shown as Sunday checks; applying never required)
 
-- **Week 4:** story bank of 12 stories; pitch recorded; pattern groups Arrays and Stack green; 3 decision memos; weekly test ≥ 70%.
+- **Week 4:** 3 past-project deep dives rehearsed; story bank of 12 stories; pitch recorded; pattern groups Arrays and Stack green; 3 decision memos; weekly test ≥ 70%.
 - **Week 8:** Linked List, Trees and Heaps green; 4 open-source fixes submitted; flagship has real-time and 1 AI feature working; take-home 1 done.
 - **Week 10:** 18 of the 24 patterns green; 6 decomposition reps.
 - **Week 12:** all 24 patterns green; the top-12 machine-coding builds done in ≤ 45 min.
 - **Week 13:** 3 full mock loops (product engineer, FDE, frontend SDE-2); flagship case study published; weekly test ≥ 80% for 3 weeks running.
 
-If a check fails, the next Sunday's catch-up block starts with it.
+If a check fails, it's suggested first in the next revision Sunday (§18). Rest time is never taken for it automatically.
+
+**Week-8 review** (Grind week 8 / Steady week 10), a fixed Sunday task:
+- Read the weekly-test trend, which patterns are green, the readiness checks, and the four depth tests (§14).
+- Then rebalance the remaining weeks: move optional reps into weak areas and note what to drop to optional.
+- Write the result as a Notes page.
 
 ### 12. Labels (inspired by Linear and Plane)
 
@@ -405,6 +429,7 @@ The owner wants to create their own labels and put several of them on anything. 
 - **Frequency:** 🔥 Frequent, ⭐ Hard but frequent.
 - **Source:** Plan, Yours.
 - **Flagged:** the existing `flags` re-solve mark, kept as it is so the Sunday re-solve logic works.
+- **Depth:** marks tasks in the four depth areas (§14).
 
 **Owner labels:**
 - **Create, rename, recolour, delete:** labels and groups. Deleting a label removes it from every item.
@@ -421,7 +446,146 @@ The owner wants to create their own labels and put several of them on anything. 
 
 The UI for creating and applying labels belongs to the later UI design. This design only fixes the model and the rules above.
 
-### 13. Focus rules (added to `FOCUS_RULES`)
+### 14. Depth areas: where to know things inside out
+
+**The bar is application-level depth.** For each area, you can:
+- explain why it behaves the way it does;
+- predict how it fails;
+- choose between the options;
+- debug it;
+- spot AI-written code that's subtly wrong.
+
+Internals beyond that are breadth.
+
+There are four areas. Tasks in them get a system label **Depth** (§12). Every Depth task ends with an explain-back. Depth topics are weighted ×2 in the weekly test, and they're the default subjects for decision memos and "how it really works" reads.
+
+| Area | Where in the plan | Added reading (verified Nov 2026) | You're deep enough when you can… |
+|---|---|---|---|
+| **1. Data and state:** data modelling, indexes, transactions and isolation, caching and consistency, API design (idempotency, pagination, retries) | FE/CS SQL, NoSQL, Redis, queues, API design; SD concepts; practical coding; decision memos | **Use The Index, Luke** (Markus Winand, free, maintained): the index chapters, 2 FE/CS days. **Stripe, "Designing robust and predictable APIs with idempotency"** (Brandur Leach): 1 judgment-thread read. **Designing Data-Intensive Applications** (Kleppmann): the chapters on data models, storage and indexes, replication, and transactions, one evening each (4 AI-block evenings, or the FE block when its topics run out). | Name the race condition or stale-data bug in a design, and pick the fix and its cost |
+| **2. Real-time and sync:** WebSockets/SSE, presence, CRDTs vs OT, offline-first, conflicts | Flagship real-time and offline steps; how-it-works (Figma, Linear, Slack); chat/doc/whiteboard designs | **Ink & Switch, "Local-first software"** (Kleppmann et al., 2019): 1 read before the flagship's real-time step. Yjs docs (already linked) | Explain what happens when two people edit offline and reconnect, and why your design handles it |
+| **3. Building LLM applications:** retrieval, evals, tool and agent loops, cost and latency, failure handling | AI build slot, AI evening, FDE stages 5 and 7, AI designs, flagship AI steps | **"What We've Learned From A Year of Building with LLMs"** (applied-llms.org, Yan, Husain et al., 2024): 2 evenings. **Eugene Yan, "Patterns for Building LLM-based Systems & Products"**: 1 evening. Plus Anthropic's Building Effective Agents and Hamel's evals (already in the plan) | Take an AI feature that "sometimes gives wrong answers", find the cause with evals and traces, and fix it, with numbers |
+| **4. Debugging and reading unfamiliar code** | Open-source fixes, re-engineering reps, the Meta AI drill, code-review reps | **Google SRE book, ch. 12 "Effective Troubleshooting"** (free): 1 read in week 3, before the first open-source fix | Find and explain a bug in a codebase you've never seen, in under an hour, with a clear write-up |
+
+**Breadth only** (what it is, when to use it, its main trade-off):
+- React internals (Fiber, reconciler)
+- DSA beyond medium + the frequent hards
+- transformer maths and the papers
+- Kubernetes, Terraform, Spark, Airflow
+- consensus internals (Raft)
+- the full design-patterns catalogue
+- data warehouses
+- advanced DSA
+
+The JS runtime fundamentals stay at working depth (§9).
+
+### 15. Two modes: Steady (default) and Grind
+
+- **Same content sequence and same item durations in both.** Each track gets the same number of slots in each mode, so nothing is cut or compressed.
+- **Grind:** 13 weeks (78 study days), the §1 timetable, about 10.75 study hours per weekday.
+- **Steady (default):** 17 weeks (102 study days), about 8 study hours per weekday.
+  - Each day runs the same block types at their Grind durations, but not every block every day.
+  - The rotating blocks (FE, machine coding, system design, judgment, career, AI evening) each run on about 76% of days (78 ÷ 102), so each still gets its 78 slots.
+  - Daily habits run every day: DSA must-solve (until the pattern sequence ends), DSA revision with the recognition drill, the AI build slot, and the daily review.
+  - The builder designs the rotation and the Steady timetable times.
+- **Week mapping** for week-pinned items (take-homes, readiness checks, the week-8 review, negotiation):
+  - Steady week = round(Grind week × 17/13).
+  - So Grind 4 → Steady 5, 6 → 8, 7 → 9, 8 → 10, 10 → 13, 12 → 16, 13 → 17.
+- **Choosing a mode:**
+  - The mode is picked in Setup and stored in `State` (synced).
+  - Switching mid-plan keeps everything already done. Only unfinished tasks are laid out again at the new pace, from today.
+- The app name "Offer in 90" stays.
+
+### 16. AI help using your own API key (BYOK)
+
+- **Setup:**
+  - The owner pastes their own API key.
+  - Anthropic comes first, using the official `@anthropic-ai/sdk`. The builder checks the SDK's documented browser-use option, since the app is a static site that calls the API from the browser.
+  - The model is picked in Setup. Default is `claude-opus-5-5` at effort `medium` (the model's default). Cheaper options are offered: `claude-sonnet-5-5`, `claude-haiku-5-5`.
+  - Other providers can be added later, each through its own official SDK.
+  - Nothing is sold or promoted; there's no upsell.
+- **The key stays on this device:**
+  - Stored in `localStorage` only, never in `State`, and never synced to the Gist.
+  - There's a "Remove key" button.
+  - Setup says plainly that the key is stored in this browser and used only from it.
+- **Where it shows:**
+  - An "Ask AI" action on any task, pattern card, quiz item, or Notes page.
+  - The persona picker sits next to the input (3 personas, below).
+- **Context sent with each question**, built by the app:
+  - who the owner is (one paragraph from the Intent section);
+  - which mode they're in and which day it is;
+  - the item's text, track, topic, pattern card or quiz item, and its one link;
+  - the owner's notes on that item (a toggle, on by default).
+- **Calls:**
+  - Responses stream.
+  - Follow the current API guidance:
+    - adaptive thinking (the default on this model);
+    - check `stop_reason` before reading content;
+    - turn on server-side refusal fallbacks (`fallbacks: "default"` under beta `server-side-fallback-2026-07-01`) and tell the owner they're on;
+    - prompt caching on the stable persona prompt plus the context;
+    - typed SDK errors, with a plain message for a bad key or a rate limit.
+- **Saving:**
+  - Any response can be saved to the item's note (`tnotes`) or to a Notes page, so it syncs like other notes.
+  - Saved responses keep the persona name and date.
+  - Conversations that aren't saved are not stored.
+- **Personas:** the system prompts are in the Appendix. Each is one shared base block plus the persona block. Owners can't edit them in v2; maybe later.
+
+### 17. Explore later (replaces "Month 4")
+
+- Outside the daily plan, so it adds no noise. It's a reference page grouped by area, with 1–3 trusted resources each.
+- The Parking lot page stays for things the owner finds.
+- Items can be labelled (§12), and moved into a day as an own task if the owner wants.
+
+| Area | Contents |
+|---|---|
+| DSA | The optional pool and remaining hards; advanced topics (Fenwick, segment tree, line sweep, DP on trees, digit DP); LeetCode weekly contests; Striver A2Z for gaps |
+| Systems | *Designing Data-Intensive Applications*, the rest of it; MIT 6.5840 distributed-systems labs; classic papers (Dynamo, Bigtable, Spanner, Raft); ByteByteGo and HighScalability |
+| Frontend | "Inside look at a modern web browser" (Chrome team); React internals (Fiber, reconciler); Josh Comeau's CSS material; patterns.dev in depth; web performance deep dives |
+| AI | Karpathy micrograd + makemore; fast.ai Practical Deep Learning; Chip Huyen's *AI Engineering*; Anthropic and OpenAI cookbooks; fine-tune a small model end to end |
+| Infra | Kubernetes hands-on, Terraform deeper, Spark, a second cloud (GCP) |
+| Product | *Shape Up* (Basecamp, free); *Inspired* (Cagan); Lenny's Newsletter archive |
+| Career growth | *Staff Engineer* (Will Larson); The Pragmatic Engineer; open-source beyond the plan's fixes |
+| Interview extras | Extra mock loops; company-specific lists for loops you've booked |
+
+The builder checks each link before adding it, the same way as §14.
+
+### 18. Sundays: active rest, or revision mode (per-Sunday toggle)
+
+**Fixed core** (about 1.5 h, every Sunday):
+- the weekly test (40 min, §10);
+- the weekly reflection, with a **listen-back**: listen to one recording of yourself explaining something that week, and write one thing to change;
+- a 10-minute preview of next week;
+- readiness checks or the week-8 review, when due.
+
+**Then one of two modes**, chosen per Sunday. The default is Active rest, and the choice is stored per date and synced.
+
+- **Active rest (default):**
+  - No new material and no practice problems.
+  - Suggested, all optional and never counted as "behind": one Explore-later item, an engineering blog, a product teardown, time outside.
+  - The morning walk/run stays.
+- **Revision mode:** revision blocks, still with nothing new:
+  - re-solve flagged problems;
+  - quiz items due again;
+  - recall cards for the week's topics;
+  - re-read that week's pattern cards and decision memos;
+  - catch up on missed tasks;
+  - finish the week's open-source fix.
+
+**Rules:**
+- Mocks, speed pairs and peer mocks are on Saturdays now (§4).
+- "Optional: apply to 3–5 roles" shows as an optional Sunday item from week 8.
+- Missed weekday tasks never take rest time automatically. They wait for a revision Sunday or roll into the week.
+- **Burnout guard:** if the owner is more than 8 h behind, the app suggests a revision Sunday and shows optional tasks last. It never extends a day.
+
+### 19. Other additions from the review
+
+- **Interview environment practice** (Phase 3, short tasks):
+  - code in CoderPad/HackerRank;
+  - type in a Google Doc with no autocomplete;
+  - draw in Excalidraw while talking;
+  - check your camera and mic before a virtual onsite.
+- **The ordering fix:** Python lands before the first Python rep (§8).
+
+### 20. Focus rules (added to `FOCUS_RULES`)
 
 - The daily plan shows only that day's list. Pools, stretch lists and quizzes stay optional and out of the way.
 - One link per task.
@@ -430,7 +594,9 @@ The UI for creating and applying labels belongs to the later UI design. This des
 ## Left to the builder
 
 - Exact must-solve selection per pattern, within the rules in §2.
-- Exact day-by-day placement across the 78 study days.
+- Exact day-by-day placement: 78 study days in Grind, 102 in Steady, including the Steady rotation and its timetable times.
+- Checking the browser-use option of the Anthropic SDK, and the exact request shape for BYOK, against the current SDK docs.
+- Small wording changes to the persona prompts. Their substance is decided.
 - Choosing the per-item ID scheme that keeps progress attached to content.
 - The two take-home briefs.
 - Choosing the engineering-blog link for each "how it really works" item.
@@ -465,3 +631,62 @@ The UI for creating and applying labels belongs to the later UI design. This des
   - donnemartin/system-design-primer (flash_cards); donnemartin/interactive-coding-challenges
   - amitshekhariitbhu/ai-engineering-interview-questions; KalyanKS-NLP/LLM-Interview-Questions-and-Answers-Hub
   - shawlu95/Beyond-LeetCode-SQL; bigocheatsheet.com
+- **Depth reading (§14):** use-the-index-luke.com; stripe.com/blog/idempotency; inkandswitch.com/essay/local-first; applied-llms.org; eugeneyan.com/writing/llm-patterns; sre.google/sre-book/effective-troubleshooting
+
+## Appendix: AI persona prompts (§16)
+
+### Shared base (prepended to every persona)
+
+```
+You're helping one engineer prepare, over a few focused months, for product engineer, forward-deployed engineer and full-stack roles at strong product companies and startups. They're an experienced frontend developer in India. They want to understand systems well enough to make good decisions and to direct AI tools confidently. They don't want to memorise answers.
+
+The app gives you the context for this question below: the plan item, its topic, its link and the owner's notes. Stay on that topic. Depth matters more than breadth, and one clear idea matters more than five loose ones.
+
+Be accurate. When you aren't sure, say so, and point to the primary documentation (MDN, react.dev, the TypeScript handbook, nodejs.org, the database's own docs, the model provider's docs) rather than guessing. Never invent links, APIs, numbers or quotes. Prefer the plan's linked resource when it answers the question.
+
+Talk to them as a capable colleague would: direct, warm, no filler, no hype. Use short paragraphs. Use a small code sample or an ASCII/Mermaid sketch when it helps. Finish with one concrete next step they can take in the next 15 minutes.
+```
+
+### Persona 1: The Explainer (understand a topic)
+
+```
+Your job is to make the idea click and stay clicked.
+
+Start from what the idea is for: the problem that made it necessary. Then build the mechanism step by step, from fundamentals they already know. Give one concrete example, ideally from real product engineering. Name the most common misconception and why it's wrong. Say where this idea breaks down or stops applying. Then ask one short question that checks they understood. If they answer, tell them honestly what was right and what was missing.
+
+Pitch it at application level. They should come away able to explain why it behaves this way, predict how it fails, and choose between alternatives. Go deeper into internals only if they ask. If they seem lost, step back to a simpler foundation instead of adding detail.
+```
+
+### Persona 2: The Coach (break a problem down)
+
+```
+Your job is to help them solve it themselves. Coding problems, system design prompts and vague business problems all count.
+
+Don't give the solution first. Begin by asking what they've tried or what they're thinking, unless they've already said. Then help with the smallest useful nudge, escalating only when they ask or stay stuck. Escalate in this order:
+1. A clarifying question they should be asking.
+2. What the brute force would be, and where it wastes work.
+3. The signal in the problem that points to an approach, named as a pattern.
+4. The approach in plain words, with its complexity.
+5. Pseudocode.
+6. Full code, only when they explicitly ask.
+
+For a system design or decomposition problem, push them through the same structure: who the users are and what they need, the requirements and constraints, the core entities and data, the simplest design that works, then where it breaks and what it costs to fix.
+
+When they share an attempt, review it the way a strong senior engineer would. Start with whether it's correct, then the edge cases, then the complexity, then clarity. Point out the single most important fix first.
+```
+
+### Persona 3: The Interviewer (practise under real conditions)
+
+```
+Your job is to run a realistic interview round on this topic at a strong product company, at mid-level (SDE-2 / L4 / E4) unless they ask for another level.
+
+Say the format and time box in one line, then give the prompt as an interviewer would: slightly underspecified, so that clarifying questions are part of the test. Ask one thing at a time. Answer their clarifying questions briefly and consistently. While they work, stay mostly quiet, the way a real interviewer would. Help only if they're stuck for a long time, and give the kind of small hint a real interviewer gives. Push back on weak choices with follow-ups like "what happens at 10× the load?", "what if this call fails halfway?" and "why not the simpler option?". Don't accept hand-waving.
+
+When they say they're done, or the time box ends, grade them honestly on the dimensions that round uses:
+- **Coding:** communication, problem solving, code quality, testing.
+- **System design:** requirements, design, trade-offs, depth, communication.
+- **Behavioral:** situation clarity, personal ownership, impact with evidence, reflection.
+- **Decomposition:** clarifying first, user focus, data, scoping, iterating.
+
+Give each dimension a short verdict with evidence from what they said. Then give an overall signal (strong hire, hire, lean no, no), the 2 things that most helped them, and the 3 changes that would most raise the score next time. Be kind and specific. Don't inflate.
+```
