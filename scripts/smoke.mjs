@@ -317,6 +317,72 @@ try {
       await ctx.close();
     }
   }
+  // ---------- Roadmap: Timeline (default), Weeks, Reference › Changes ----------
+  for (const [width, height] of [[1100, 900], [390, 844]]) {
+    const ctx = await browser.newContext({ viewport: { width, height } });
+    await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fixture));
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+    page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+    await page.goto(`${URL}/#roadmap`, { waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+    await page.waitForTimeout(500);
+    const W = `roadmap ${width}`;
+    const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem('offer90.v1') || '{}'));
+    const noScroll = async label => { if (width !== 390) return; const sw = await page.evaluate(() => document.documentElement.scrollWidth); if (sw > 390) fail(`${W} ${label}: horizontal scroll (${sw})`); else ok(`${W} ${label}: scrollWidth ${sw}`); };
+    const tl = page.locator('[data-timeline]');
+    if (await tl.count()) ok(`${W}: Timeline is the default tab`); else fail(`${W}: no [data-timeline] on load`);
+    const tracks = ['DSA', 'Frontend & CS', 'System design', 'Machine coding', 'AI', 'Career'];
+    const missing = [];
+    for (const t of tracks) if (!(await tl.locator('[data-track-name]').filter({ hasText: new RegExp(`^${t.replace(/[&]/g, '\\$&')}$`) }).count())) missing.push(t);
+    if (!missing.length) ok(`${W}: 6 track names`); else fail(`${W}: missing tracks ${missing.join(', ')}`);
+    if (await tl.getByText(/W\d+ · now/).count()) ok(`${W}: "W n · now" marker`); else fail(`${W}: no "W n · now" marker`);
+    await noScroll('timeline');
+    await page.screenshot({ path: join(shots, `roadmap-${width}-timeline.png`), fullPage: true });
+    await page.getByRole('radio', { name: 'Weeks' }).click();
+    await page.waitForTimeout(300);
+    if (await page.getByText('Week 1', { exact: true }).first().isVisible().catch(() => false)) ok(`${W}: Weeks shows "Week 1"`); else fail(`${W}: no "Week 1" on Weeks`);
+    await noScroll('weeks');
+    await page.screenshot({ path: join(shots, `roadmap-${width}-weeks.png`), fullPage: true });
+    await page.getByRole('radio', { name: 'Reference' }).click();
+    await page.waitForTimeout(300);
+    await noScroll('reference');
+    await page.screenshot({ path: join(shots, `roadmap-${width}-reference.png`), fullPage: true });
+    if (width === 1100) {
+      // Today's plan-update link lands on Reference with Changes open; Mark read clears the notice.
+      await page.locator('[data-slot="sidebar"] [data-nav="today"]').first().click();
+      await page.waitForTimeout(300);
+      const link = page.getByRole('button', { name: /^\d+ plan updates?$/ });
+      if (await link.count()) {
+        await link.click(); await page.waitForTimeout(400);
+        const hash = await page.evaluate(() => location.hash);
+        const changes = page.locator('[data-band="changes"]');
+        const row = changes.locator('[data-update]').filter({ hasText: 'Google piloting an AI-assisted code comprehension round' });
+        if (hash === '#roadmap' && await row.first().isVisible().catch(() => false)) ok(`${W}: plan update link opens Reference › Changes with the update`); else fail(`${W}: Changes not open after the notice link (hash ${hash})`);
+        if ((await page.getByRole('radio', { name: 'Reference' }).getAttribute('data-state')) === 'on') ok(`${W}: Reference tab selected`); else fail(`${W}: Reference tab not selected`);
+        await page.screenshot({ path: join(shots, `roadmap-${width}-changes.png`), fullPage: true });
+        await row.first().getByRole('button', { name: 'Mark read' }).click();
+        await page.waitForTimeout(200);
+        if ((await saved()).seenUpdates?.['2026-11-09-google-ai-assisted-coding']) ok(`${W}: Mark read sets seenUpdates`); else fail(`${W}: Mark read did not save`);
+        await page.locator('[data-slot="sidebar"] [data-nav="today"]').first().click();
+        await page.waitForTimeout(300);
+        if (await page.getByRole('button', { name: /^\d+ plan updates?$/ }).count()) fail(`${W}: notice still shows plan updates`); else ok(`${W}: Today notice cleared`);
+      } else fail(`${W}: no plan update link in the Today notice`);
+      // clicking a timeline bar opens a day on Today
+      await page.locator('[data-slot="sidebar"] [data-nav="roadmap"]').first().click();
+      await page.waitForTimeout(300);
+      await page.getByRole('radio', { name: 'Timeline' }).click();
+      await page.waitForTimeout(200);
+      await page.locator('[data-timeline] [data-bar]').first().click();
+      await page.waitForTimeout(400);
+      const hash = await page.evaluate(() => location.hash);
+      const hdr = await page.locator('header').first().innerText().catch(() => '');
+      if (hash === '' && /Day \d+/.test(hdr)) ok(`${W}: bar click opens a day on Today (${hdr.replace(/\s+/g, ' ')})`); else fail(`${W}: bar click → hash "${hash}"`);
+    }
+    checkErrors(errors, W);
+    await ctx.close();
+  }
 } catch (e) {
   fail(`crashed: ${e.stack || e}`);
 } finally {

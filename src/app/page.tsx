@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast as sonnerToast } from 'sonner';
 import { StoreProvider, useStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
-import { UICtx, type NoteTarget, type View } from '@/components/ui-state';
+import { UICtx, type NoteTarget, type RoadmapTab, type View } from '@/components/ui-state';
 import { TodayView } from '@/components/today-view';
 import { ProgressView } from '@/components/progress-view';
 import { RoadmapView } from '@/components/roadmap-view';
@@ -33,6 +33,8 @@ function App() {
   const [note, setNote] = useState<NoteTarget | null>(null);
   const [peek, setPeek] = useState<PeekTarget | null>(null);
   const [nt, setNt] = useState<NewTaskPreset | null>(null);
+  const [roadmapTab, setRoadmapTab] = useState<RoadmapTab>('timeline');
+  const [openChanges, setOpenChanges] = useState(false);
 
   useEffect(() => { if (ready) setViewIdx(Math.max(0, Math.min(days.length - 1, todayIdx))); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
@@ -55,7 +57,7 @@ function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [newTask]);
 
-  const ui = useMemo(() => ({ view, go, viewIdx, setViewIdx, openDay, openNote: setNote, newTask, openTask, toast }), [view, go, viewIdx, openDay, newTask, openTask, toast]);
+  const ui = useMemo(() => ({ view, go, viewIdx, setViewIdx, openDay, openNote: setNote, newTask, openTask, toast, roadmapTab, setRoadmapTab, openChanges, setOpenChanges }), [view, go, viewIdx, openDay, newTask, openTask, toast, roadmapTab, openChanges]);
 
   if (!ready) return <div className="p-8 text-muted-foreground">Loading your plan…</div>;
   return (

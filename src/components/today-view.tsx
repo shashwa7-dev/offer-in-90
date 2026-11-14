@@ -17,7 +17,7 @@ const BANDS = [['morning', 'Morning'], ['afternoon', 'Afternoon'], ['evening', '
 
 export function TodayView() {
   const { state, days, todayIdx, update, updates } = useStore();
-  const { viewIdx, setViewIdx, go, newTask } = useUI();
+  const { viewIdx, setViewIdx, go, newTask, setRoadmapTab, setOpenChanges } = useUI();
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [missedOpen, setMissedOpen] = useState(false);
   const [nm, setNm] = useState(() => { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); });
@@ -71,7 +71,7 @@ export function TodayView() {
         <SummaryRow ring={{ pct: st.planMin ? st.doneMin / st.planMin : 0, label: dayTitle(d) }} items={items} />
         {(unseen > 0 || overdue.length > 0) && (
           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-border px-4 py-2.5 text-[13px] text-muted-foreground" data-notice>
-            {unseen > 0 && <button type="button" onClick={() => go('roadmap')} className="rounded-[5px] font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">{unseen} plan update{unseen > 1 ? 's' : ''}</button>}
+            {unseen > 0 && <button type="button" onClick={() => { setRoadmapTab('reference'); setOpenChanges(true); go('roadmap'); }} className="rounded-[5px] font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">{unseen} plan update{unseen > 1 ? 's' : ''}</button>}
             {unseen > 0 && overdue.length > 0 && <span aria-hidden="true">·</span>}
             {overdue.length > 0 && <button type="button" onClick={showMissed} className="rounded-[5px] font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">{overdue.length} missed earlier</button>}
             {overdue.length > 0 && <span>· {hrs(overdue.reduce((a, x) => a + x.t.min, 0))} h. Clear them in Sunday&apos;s catch-up block.</span>}
