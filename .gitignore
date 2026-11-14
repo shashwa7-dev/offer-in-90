@@ -42,3 +42,6 @@ next-env.d.ts
 
 # refresh engine scratch
 .engine/
+
+# brainstorm mockups
+.superpowers/

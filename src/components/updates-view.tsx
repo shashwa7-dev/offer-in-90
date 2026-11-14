@@ -96,7 +96,7 @@ export function NewsView() {
               <p className="text-sm text-muted-foreground">{u.why}</p>
               <div className="flex flex-wrap items-center gap-3 text-sm">
                 {(u.replacementUrl || u.url) && <a href={u.replacementUrl || u.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-primary">Open <ExternalLink className="size-3.5" /></a>}
-                {day && <span className="text-muted-foreground">Added to day {day.i + 1} ({fmtDate(day.date)})</span>}
+                {day && <span className="text-muted-foreground">Added to day {day.no} ({fmtDate(day.date)})</span>}
                 {(u.replacementUrl || u.url) && <BookmarkButton item={{ kind: 'update', title: u.title, url: (u.replacementUrl || u.url)!, source: catName[u.area] || u.area, detail: PRIO[u.priority] }} />}
                 <Button variant="ghost" size="sm" className="ml-auto" onClick={() => toggleSeen(u.id)}>{seen ? 'Mark unread' : 'Mark read'}</Button>
               </div>

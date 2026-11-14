@@ -1,0 +1,55 @@
+'use client';
+/* The user's own tasks: quick add at the end of a block, and inline edit. Built-in tasks never come through here. */
+import { useEffect, useRef, useState } from 'react';
+import { Plus } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { useStore } from '@/lib/store';
+import { iso, type Day } from '@/lib/engine';
+
+/** "Read the React docs https://react.dev" → text + link. A link on its own becomes the text too. */
+export function parseTask(raw: string) {
+  const url = raw.match(/https?:\/\/\S+/)?.[0];
+  const text = (url ? raw.replace(url, '') : raw).replace(/\s+/g, ' ').trim() || url || '';
+  return { text, url };
+}
+
+/** One-line input: Enter saves, Esc cancels, an empty value cancels.
+ *  keepOpen: after Enter, clear the input and stay focused so several tasks can be added in a row. */
+export function TaskInput({ initial = '', placeholder, onSave, onCancel, onDone, keepOpen, className }: { initial?: string; placeholder: string; onSave: (v: string) => void; onCancel: () => void; onDone?: () => void; keepOpen?: boolean; className?: string }) {
+  const [v, setV] = useState(initial);
+  const ref = useRef<HTMLInputElement>(null), finished = useRef(false);
+  useEffect(() => { ref.current?.focus(); }, []);
+  const save = (fromEnter: boolean) => {
+    if (finished.current) return;
+    const t = v.trim();
+    if (t && fromEnter && keepOpen) { onSave(t); setV(''); return; }
+    finished.current = true;
+    if (t) { onSave(t); onDone?.(); } else onCancel();
+  };
+  return (
+    <div className={cn('flex min-w-0 items-center gap-2', className)}>
+      <input ref={ref} value={v} onChange={e => setV(e.target.value)} placeholder={placeholder} aria-label={placeholder}
+        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); save(true); } if (e.key === 'Escape') { e.preventDefault(); finished.current = true; onCancel(); } }}
+        onBlur={() => save(false)}
+        className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2.5 text-[15px] outline-none focus-visible:ring-3 focus-visible:ring-ring/30" />
+      <span className="hidden shrink-0 text-xs italic text-muted-foreground sm:block">Enter to save · Esc to cancel</span>
+    </div>
+  );
+}
+
+export function QuickAdd({ day, block }: { day: Day; block: string }) {
+  const { update } = useStore();
+  const [on, setOn] = useState(false);
+  if (!on) return (
+    <button onClick={() => setOn(true)} className="-mx-2 mt-1 flex w-[calc(100%+1rem)] items-center gap-2 rounded-lg px-2 py-2 text-left text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
+      <Plus className="size-3.5" />Add your own task
+    </button>
+  );
+  return (
+    <TaskInput keepOpen className="mt-1.5 py-1" placeholder="Task name, paste a link to attach it" onCancel={() => setOn(false)}
+      onSave={raw => {
+        const { text, url } = parseTask(raw), id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+        update(s => ({ ...s, custom: { ...s.custom, [id]: { date: iso(day.date), block, text, ...(url ? { url } : {}), at: Date.now() } } }));
+      }} onDone={() => setOn(false)} />
+  );
+}

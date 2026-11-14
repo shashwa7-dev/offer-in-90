@@ -2,7 +2,7 @@
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
-import { P, TOTAL, aiUnitOf, dayStats, fmtDate, parseISO, phaseName } from '@/lib/engine';
+import { P, aiUnitOf, dayStats, fmtDate, parseISO, phaseName } from '@/lib/engine';
 import { useUI } from './ui-state';
 
 const PHASES: [number, string, string][] = [
@@ -34,7 +34,7 @@ export function RoadmapView() {
   return (
     <div className="pb-16">
       <div className="pt-6 pb-4">
-        <p className="font-mono text-xs font-semibold uppercase tracking-wider text-muted-foreground">{fmtDate(parseISO(state.start))} → {fmtDate(days[TOTAL - 1].date)}</p>
+        <p className="font-mono text-xs font-semibold uppercase tracking-wider text-muted-foreground">{fmtDate(parseISO(state.start))} → {fmtDate(days[days.length - 1].date)}</p>
         <h1 className="mt-1.5 font-display text-3xl font-bold tracking-tight sm:text-4xl">13 weeks, one page</h1>
         <p className="mt-1.5 text-muted-foreground">Click a day to open it. Dashed squares are Sundays.</p>
       </div>
@@ -51,7 +51,7 @@ export function RoadmapView() {
                   {days.filter(x => x.week === w).map(x => {
                     const st = dayStats(x, state.done), lvl = st.n === 0 ? 0 : st.pct < 0.5 ? 1 : st.pct < 1 ? 2 : 3;
                     return (
-                      <button key={x.i} onClick={() => openDay(x.i)} title={`Day ${x.i + 1} · ${fmtDate(x.date)} · ${st.n}/${st.total}`}
+                      <button key={x.i} onClick={() => openDay(x.i)} title={`Day ${x.no} · ${fmtDate(x.date)} · ${st.n}/${st.total}`}
                         className={cn('grid aspect-square place-items-center rounded-md border font-mono text-[11px] font-semibold', x.type === 'sun' && 'border-dashed', x.i === ti && 'outline-2 outline-offset-1 outline-foreground', x.i < ti && st.pct < 0.8 && 'border-bad',
                           lvl === 0 && 'bg-muted text-muted-foreground', lvl === 1 && 'bg-primary/25', lvl === 2 && 'bg-primary/55', lvl === 3 && 'bg-primary text-primary-foreground')}>{x.date.getDate()}</button>
                     );

@@ -10,6 +10,7 @@
   --font-sans: var(--font-body);
   --font-mono: var(--font-code);
   --font-display: var(--font-head);
+  --color-missed: var(--missed); --color-missed-foreground: var(--missed-foreground); --color-missed-border: var(--missed-border);
   --color-good: var(--good); --color-warn: var(--warn); --color-bad: var(--bad);
   --color-c-dsa: var(--c-dsa); --color-c-fe: var(--c-fe); --color-c-mc: var(--c-mc); --color-c-sd: var(--c-sd); --color-c-beh: var(--c-beh); --color-c-ai: var(--c-ai); --color-c-fde: var(--c-fde); --color-c-proj: var(--c-proj); --color-c-ux: var(--c-ux); --color-c-review: var(--c-review); --color-c-update: var(--c-update); --color-c-health: var(--c-health);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -58,6 +59,8 @@
   --muted: #e8edeb; --muted-foreground: #5f6e68;
   --accent: #dcefe7; --accent-foreground: #0b4d3c;
   --destructive: #b42318; --border: #dbe2df; --input: #dbe2df; --ring: #0b6e55;
+  /* Stone grey for work whose time has passed but is not ticked off. */
+  --missed: #ece9e5; --missed-foreground: #57534e; --missed-border: #d3cdc7;
   --good: #1d7a3a; --warn: #a65b00; --bad: #b42318; --ink: #15201c;
   --c-dsa: #2f5fd0; --c-fe: #0b7f86; --c-mc: #b06a00; --c-sd: #7a45c4; --c-beh: #c23d6b; --c-ai: #0f766e; --c-fde: #6b7a1a; --c-proj: #c2410c; --c-ux: #a21caf; --c-review: #6b7b74; --c-update: #b42318; --c-health: #3d8b2f;
   --chart-1: #0b6e55; --chart-2: #2f5fd0; --chart-3: #7a45c4; --chart-4: #b06a00; --chart-5: #c23d6b;
@@ -73,6 +76,7 @@
     --muted: #1f2926; --muted-foreground: #95a59e;
     --accent: #15382d; --accent-foreground: #b9f0dc;
     --destructive: #f2756a; --border: #2a3632; --input: #2a3632; --ring: #3cc49b;
+    --missed: #25221f; --missed-foreground: #aaa29b; --missed-border: #3d3834;
     --good: #4cc46e; --warn: #f0a640; --bad: #f2756a; --ink: #e4ece8;
     --c-dsa: #7d9ff0; --c-fe: #4cc3c9; --c-mc: #e7a245; --c-sd: #b58cf0; --c-beh: #ef7ea3; --c-ai: #5fd3c2; --c-fde: #bccb6c; --c-proj: #fb8c5a; --c-ux: #e879f9; --c-review: #95a59e; --c-update: #f2756a; --c-health: #82c96f;
     --sidebar: #161e1b; --sidebar-foreground: #e4ece8; --sidebar-primary: #3cc49b; --sidebar-primary-foreground: #06231a; --sidebar-accent: #1f2926; --sidebar-accent-foreground: #e4ece8; --sidebar-border: #2a3632; --sidebar-ring: #3cc49b;

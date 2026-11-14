@@ -1,7 +1,7 @@
 'use client';
 /* App state: saved in this browser first, then synced to a private Gist when a token is set. */
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { buildPlan, dayIndexOf, iso, type Day, type NewsFeed, type PulseWeek, type UpdateItem, type UpdatesFeed } from './engine';
+import { buildPlan, dayIndexOf, iso, type CustomTask, type Day, type NewsFeed, type PulseWeek, type UpdateItem, type UpdatesFeed } from './engine';
 import { seedPages, type Page } from './seed-pages';
 import * as gist from './gist';
 import type { ThreadsFeed } from '@/components/interview-pulse';
@@ -13,7 +13,7 @@ export interface Bookmark { kind: 'news' | 'thread' | 'update'; title: string; u
 export interface State {
   v: number; start: string; kickoff: boolean;
   done: Record<string, number>; flags: Record<string, number>; notes: Record<string, string>;
-  tnotes: Record<string, TaskNote>; pages: Record<string, Page>; seenUpdates: Record<string, number>; bookmarks: Record<string, Bookmark>;
+  tnotes: Record<string, TaskNote>; pages: Record<string, Page>; seenUpdates: Record<string, number>; bookmarks: Record<string, Bookmark>; custom: Record<string, CustomTask>;
   meta: Record<string, number>; updatedAt: number;
 }
 type SyncStatus = { state: 'off' | 'syncing' | 'synced' | 'error'; msg?: string; at?: number };
@@ -21,11 +21,11 @@ type SyncStatus = { state: 'off' | 'syncing' | 'synced' | 'error'; msg?: string;
 const KEY = 'offer90.v1', SYNC_KEY = 'offer90.sync';
 export const BASE = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
-const fresh = (): State => ({ v: 5, start: iso(new Date()), kickoff: true, done: {}, flags: {}, notes: {}, tnotes: {}, pages: seedPages(), seenUpdates: {}, bookmarks: {}, meta: {}, updatedAt: 0 });
+const fresh = (): State => ({ v: 5, start: iso(new Date()), kickoff: true, done: {}, flags: {}, notes: {}, tnotes: {}, pages: seedPages(), seenUpdates: {}, bookmarks: {}, custom: {}, meta: {}, updatedAt: 0 });
 function normalize(s: Partial<State> | null): State {
   const f = fresh();
   if (!s || !s.start) return f;
-  return { ...f, ...s, pages: s.pages ?? seedPages(), seenUpdates: s.seenUpdates || {}, bookmarks: s.bookmarks || {}, meta: s.meta || {}, v: 5 };
+  return { ...f, ...s, pages: s.pages ?? seedPages(), seenUpdates: s.seenUpdates || {}, bookmarks: s.bookmarks || {}, custom: s.custom || {}, meta: s.meta || {}, v: 5 };
 }
 const readLS = <T,>(k: string): T | null => { try { const v = localStorage.getItem(k); return v ? (JSON.parse(v) as T) : null; } catch { return null; } };
 const writeLS = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage blocked */ } };
@@ -144,7 +144,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const disconnectSync = useCallback(() => { try { localStorage.removeItem(SYNC_KEY); } catch { /* ignore */ } cfgRef.current = null; setCfg(null); setSync({ state: 'off' }); }, []);
   const syncNow = useCallback(async () => { await syncOnce(); }, [syncOnce]);
 
-  const days = useMemo(() => buildPlan(state.start, state.kickoff, updates), [state.start, state.kickoff, updates]);
+  const days = useMemo(() => buildPlan(state.start, state.kickoff, updates, state.custom), [state.start, state.kickoff, updates, state.custom]);
   const todayIdx = dayIndexOf(state.start, now);
 
   const value: Ctx = { ready, state, days, todayIdx, updates, feedAt, news, pulse, threads, update, replace, sync, syncConfigured: !!cfg?.gistId, connectSync, disconnectSync, syncNow };

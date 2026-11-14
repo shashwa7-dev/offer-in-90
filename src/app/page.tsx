@@ -15,13 +15,13 @@ import { NoteSheet } from '@/components/note-sheet';
 const TABS: [View, string][] = [['today', 'Today'], ['progress', 'Progress'], ['roadmap', 'Roadmap'], ['notes', 'Notes'], ['news', 'News'], ['setup', 'Setup']];
 
 function App() {
-  const { ready, todayIdx, updates, state, sync, syncConfigured, news } = useStore();
+  const { ready, todayIdx, days, updates, state, sync, syncConfigured, news } = useStore();
   const [view, setView] = useState<View>('today');
   const [viewIdx, setViewIdx] = useState(0);
   const [note, setNote] = useState<NoteTarget | null>(null);
   const [toastMsg, setToastMsg] = useState('');
 
-  useEffect(() => { if (ready) setViewIdx(Math.max(0, Math.min(TOTAL - 1, todayIdx))); // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (ready) setViewIdx(Math.max(0, Math.min(days.length - 1, todayIdx))); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
   useEffect(() => { const h = location.hash.slice(1) as View; if (TABS.some(t => t[0] === h)) setView(h); }, []);
   const go = useCallback((v: View) => { setView(v); history.replaceState(null, '', v === 'today' ? location.pathname : `#${v}`); window.scrollTo(0, 0); }, []);
@@ -36,7 +36,7 @@ function App() {
       <header className="sticky top-0 z-20 border-b bg-background/90 backdrop-blur pt-[env(safe-area-inset-top)]">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 py-2.5 pl-[max(16px,env(safe-area-inset-left))] pr-[max(16px,env(safe-area-inset-right))]">
           <div className="flex items-baseline gap-2 font-display text-lg font-bold tracking-tight">Offer in 90
-            <small className="font-mono text-xs font-medium text-muted-foreground">{todayIdx < 0 ? `starts in ${-todayIdx}d` : todayIdx >= TOTAL ? 'complete' : `day ${todayIdx + 1}/${TOTAL}`}</small>
+            <small className="font-mono text-xs font-medium text-muted-foreground">{todayIdx < 0 ? `starts in ${-todayIdx}d` : todayIdx >= days.length ? 'complete' : days[todayIdx].no === 0 ? 'prep day' : `day ${days[todayIdx].no}/${TOTAL}`}</small>
             {syncConfigured && <span title={sync.state === 'error' ? sync.msg : 'Synced to your Gist'} className={cn('size-2 self-center rounded-full', sync.state === 'error' ? 'bg-bad' : sync.state === 'syncing' ? 'bg-warn' : 'bg-good')} />}
           </div>
           <nav className="-mx-1 flex max-w-full gap-0.5 overflow-x-auto sm:ml-auto" role="tablist">

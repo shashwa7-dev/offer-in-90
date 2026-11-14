@@ -2,7 +2,7 @@
 import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
-import { P, TOTAL, catName, dayStats, fmtDate, hrs, overall, parseISO, study } from '@/lib/engine';
+import { P, catName, dayStats, fmtDate, hrs, overall, parseISO, study } from '@/lib/engine';
 import { catColor, useUI } from './ui-state';
 
 const DAY_NAMES = ['Sundays', 'Mondays', 'Tuesdays', 'Wednesdays', 'Thursdays', 'Fridays', 'Saturdays'];
@@ -13,13 +13,13 @@ export function ProgressView() {
   const done = state.done, o = overall(days, done, ti);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const solved = P.DSA.filter((p: any) => done['p-' + p.slug]).length;
-  const daysDone = Math.max(0, Math.min(TOTAL, ti));
+  const daysDone = Math.max(0, Math.min(days.length, ti));
   const goodDays = days.filter(d => d.i < ti && dayStats(d, done).pct >= 0.8).length;
-  let streak = 0; for (let i = Math.min(ti, TOTAL) - 1; i >= 0; i--) { if (dayStats(days[i], done).pct >= 0.8) streak++; else break; }
-  if (ti >= 0 && ti < TOTAL && dayStats(days[ti], done).pct >= 0.8) streak++;
+  let streak = 0; for (let i = Math.min(ti, days.length) - 1; i >= 0; i--) { if (dayStats(days[i], done).pct >= 0.8) streak++; else break; }
+  if (ti >= 0 && ti < days.length && dayStats(days[ti], done).pct >= 0.8) streak++;
 
   // chart geometry
-  const W = 920, H = 190, L = 30, B = 26, TOP = 12, slot = (W - L) / TOTAL, bw = Math.max(3, slot - 2.5), maxH = 12;
+  const W = 920, H = 190, L = 30, B = 26, TOP = 12, slot = (W - L) / days.length, bw = Math.max(3, slot - 2.5), maxH = 12;
   const y = (h: number) => TOP + (H - TOP - B) * (1 - Math.min(h, maxH) / maxH);
 
   const cats = ['dsa', 'sd', 'fe', 'mc', 'proj', 'ai', 'ux', 'fde', 'beh'];
@@ -53,7 +53,7 @@ export function ProgressView() {
   return (
     <div className="pb-16">
       <div className="pt-6 pb-4">
-        <p className="font-mono text-xs font-semibold uppercase tracking-wider text-muted-foreground">{fmtDate(parseISO(state.start))} → {fmtDate(days[TOTAL - 1].date)}</p>
+        <p className="font-mono text-xs font-semibold uppercase tracking-wider text-muted-foreground">{fmtDate(parseISO(state.start))} → {fmtDate(days[days.length - 1].date)}</p>
         <h1 className="mt-1.5 font-display text-3xl font-bold tracking-tight sm:text-4xl">Where you stand</h1>
       </div>
       <div className="mb-4 grid grid-cols-[repeat(auto-fit,minmax(160px,1fr))] gap-2.5">
@@ -72,7 +72,7 @@ export function ProgressView() {
               const st = dayStats(d, done), x = L + d.i * slot + 1, ph = st.planMin / 60, dh = st.doneMin / 60, missed = d.i < ti && st.pct < 0.5;
               return (
                 <g key={d.i} onClick={() => openDay(d.i)} className="group cursor-pointer">
-                  <title>{`Day ${d.i + 1} · ${fmtDate(d.date)} · ${hrs(st.doneMin)} of ${hrs(st.planMin)} h`}</title>
+                  <title>{`Day ${d.no} · ${fmtDate(d.date)} · ${hrs(st.doneMin)} of ${hrs(st.planMin)} h`}</title>
                   <rect x={x} y={y(ph)} width={bw} height={y(0) - y(ph)} rx={1.5} className="fill-muted group-hover:fill-border" />
                   {dh > 0 && <rect x={x} y={y(dh)} width={bw} height={y(0) - y(dh)} rx={1.5} className="fill-primary" />}
                   {missed && <rect x={x} y={y(0) + 3} width={bw} height={3} rx={1} className="fill-bad" />}
@@ -80,7 +80,7 @@ export function ProgressView() {
                 </g>
               );
             })}
-            {ti >= 0 && ti < TOTAL && <g><line x1={L + ti * slot + slot / 2} x2={L + ti * slot + slot / 2} y1={TOP - 6} y2={y(0)} stroke="var(--foreground)" strokeDasharray="3 3" strokeWidth={1.5} /><text x={L + ti * slot + slot / 2 + 4} y={TOP + 2} className="fill-foreground font-mono text-[10px]">today</text></g>}
+            {ti >= 0 && ti < days.length && <g><line x1={L + ti * slot + slot / 2} x2={L + ti * slot + slot / 2} y1={TOP - 6} y2={y(0)} stroke="var(--foreground)" strokeDasharray="3 3" strokeWidth={1.5} /><text x={L + ti * slot + slot / 2 + 4} y={TOP + 2} className="fill-foreground font-mono text-[10px]">today</text></g>}
           </svg>
         </div>
         <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">

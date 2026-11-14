@@ -5,7 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useStore, type State } from '@/lib/store';
 import { buildICS, WEEKDAY_BLOCKS, SUNDAY_BLOCKS } from '@/lib/schedule';
-import { TOTAL } from '@/lib/engine';
+import { iso } from '@/lib/engine';
 import { useUI } from './ui-state';
 
 function download(name: string, text: string, type: string) {
@@ -13,11 +13,12 @@ function download(name: string, text: string, type: string) {
 }
 
 export function SetupView() {
-  const { state, update, replace, sync, syncConfigured, connectSync, disconnectSync, syncNow } = useStore();
+  const { state, days, update, replace, sync, syncConfigured, connectSync, disconnectSync, syncNow } = useStore();
   const { toast } = useUI();
   const [start, setStart] = useState(state.start);
   const [token, setToken] = useState('');
   const [armed, setArmed] = useState(false);
+  const [restartArmed, setRestartArmed] = useState(false);
   const file = useRef<HTMLInputElement>(null);
   const H2 = ({ children }: { children: React.ReactNode }) => <h2 className="font-display text-lg font-bold">{children}</h2>;
   const P = ({ children }: { children: React.ReactNode }) => <p className="text-sm text-muted-foreground">{children}</p>;
@@ -48,14 +49,14 @@ export function SetupView() {
         </Card>
         <Card className="gap-3 p-4">
           <H2>Start date</H2>
-          <P>Day 1 of 91. Sundays become review days automatically. Your ticks and notes stay.</P>
+          <P>The first day of your plan. Sundays become review days automatically. Your ticks and notes stay.</P>
           <div className="flex gap-2"><Input type="date" value={start} onChange={e => setStart(e.target.value)} className="w-auto" /><Button onClick={() => { update(s => ({ ...s, start })); toast('Start date saved. Download the calendar again.'); }}>Save</Button></div>
-          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={state.kickoff} onChange={e => update(s => ({ ...s, kickoff: e.target.checked }))} className="accent-primary" />Day 1 is a half day (kickoff from 15:30)</label>
+          <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={state.kickoff} onChange={e => update(s => ({ ...s, kickoff: e.target.checked }))} className="accent-primary" />Start with Day 0, a half prep day from 15:30. Off: Day 1 starts on this date.</label>
         </Card>
         <Card className="gap-3 p-4">
           <H2>Calendar reminders</H2>
           <P>Every block as a repeating event with an alert 2 minutes before, for 13 weeks. Import into Google Calendar for phone alerts.</P>
-          <div><Button onClick={() => download('reminders.ics', buildICS(state.start, TOTAL), 'text/calendar')}>Download reminders.ics</Button></div>
+          <div><Button onClick={() => download('reminders.ics', buildICS(state.start, days.length), 'text/calendar')}>Download reminders.ics</Button></div>
         </Card>
         <Card className="gap-3 p-4">
           <H2>Backup</H2>
@@ -72,12 +73,22 @@ export function SetupView() {
         </Card>
         <Card className="col-span-full gap-3 p-4">
           <H2>Daily timetable</H2>
-          <P>Sleep 22:00–05:00. Mon–Sat has about 10.75 h of study blocks. Sunday is a 3.5 h morning, then rest.</P>
+          <P>Sleep 22:00–05:00. Gym at 18:00, Mon–Sat. Mon–Sat has about 10.75 h of study blocks. Sunday is a 3.5 h morning, then rest.</P>
           <div className="overflow-x-auto"><table className="w-full border-collapse text-[13.5px]"><tbody>
             {Array.from({ length: Math.max(WEEKDAY_BLOCKS.length, SUNDAY_BLOCKS.length) }, (_, i) => { const a = WEEKDAY_BLOCKS[i], b = SUNDAY_BLOCKS[i]; return (
               <tr key={i} className="border-b"><td className="whitespace-nowrap px-2 py-1.5 font-mono tnum">{a ? `${a.s}–${a.e}` : ''}</td><td className="px-2 py-1.5">{a?.title}</td><td className="whitespace-nowrap px-2 py-1.5 font-mono tnum">{b ? `${b.s}–${b.e}` : ''}</td><td className="px-2 py-1.5">{b?.title}</td></tr>
             ); })}
           </tbody></table></div>
+        </Card>
+        <Card className="gap-3 p-4">
+          <H2>Start over from today</H2>
+          <P>Makes today the first day (Day 0 if the prep day is on, otherwise Day 1) and clears every tick, flag and daily log, here and in the Gist. Your notes pages and bookmarks stay.</P>
+          <div><Button variant="outline" onClick={() => {
+            if (!restartArmed) { setRestartArmed(true); setTimeout(() => setRestartArmed(false), 4000); return; }
+            const today = iso(new Date());
+            update(s => ({ ...s, start: today, done: {}, flags: {}, notes: {} }));
+            setStart(today); setRestartArmed(false); toast(`${state.kickoff ? 'Day 0' : 'Day 1'} is today. Download the calendar again.`);
+          }}>{restartArmed ? 'Click again to restart from today' : 'Start over from today'}</Button></div>
         </Card>
         <Card className="gap-3 p-4">
           <H2>Reset</H2>
