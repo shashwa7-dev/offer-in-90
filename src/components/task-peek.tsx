@@ -1,6 +1,6 @@
 'use client';
 /* Plane-style side peek for one task: tick, title, properties, note. Only the user's own tasks can be edited or deleted. */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, CalendarDays, Clock, Flag, Gauge, Link2, Maximize2, Minimize2, MoreHorizontal, Newspaper, Trash2, User, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
@@ -33,6 +33,10 @@ export function TaskPeek({ target, onClose }: { target: PeekTarget | null; onClo
   const { days } = useStore();
   const [wide, setWide] = useState(false);
   const hit = target ? locate(days, target) : null;
+  // Keep showing the last task while the sheet slides closed, so an empty panel never slides out.
+  const last = useRef(hit);
+  useEffect(() => { if (hit) last.current = hit; });
+  const shown = hit ?? last.current;
   // The task went away (deleted elsewhere, plan restarted): close.
   useEffect(() => { if (target && !hit) onClose(); }, [target, hit, onClose]);
   return (
@@ -42,7 +46,7 @@ export function TaskPeek({ target, onClose }: { target: PeekTarget | null; onClo
         className={cn('w-full gap-0 bg-card p-0 sm:inset-y-2 sm:right-2 sm:h-auto sm:rounded-[12px] sm:border sm:border-border sm:shadow-[0_8px_32px_rgba(0,0,0,0.12)]',
           wide ? 'sm:w-[calc(100vw-1rem)] sm:max-w-none' : 'sm:max-w-[54vw] sm:min-w-[480px]')}
         data-peek>
-        {hit && <PeekBody key={hit.task.id} d={hit.d} b={hit.b} t={hit.task} wide={wide} setWide={setWide} onClose={onClose} />}
+        {shown && <PeekBody key={shown.task.id} d={shown.d} b={shown.b} t={shown.task} wide={wide} setWide={setWide} onClose={onClose} />}
       </SheetContent>
     </Sheet>
   );

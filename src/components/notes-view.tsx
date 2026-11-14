@@ -1,55 +1,133 @@
 'use client';
-import { useState } from 'react';
-import { Plus } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
+/* Notes: two panes on desktop (list left, document right); on phones the list, then the document full width.
+   Pages and task notes (including notes on saved items, `bm-<key>`) all open in the document pane. */
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Plus, Search } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
-import { useUI } from './ui-state';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Band, PageHeader, Row, Surface } from './shell/page';
+import { NoteEditor, ago } from './note-editor';
+import type { NoteTarget } from './ui-state';
 
-const strip = (b: string) => b.replace(/[#*`>\[\]|-]/g, ' ').replace(/\s+/g, ' ').trim();
-const ago = (ts: number) => { const m = Math.round((Date.now() - ts) / 6e4); return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
+/** One-line preview: markdown marks and links stripped, and a first heading that only repeats the title dropped. */
+const strip = (b: string, title = '') => b
+  .replace(/^\s*#{1,6}\s+(.*)\n?/, (m, h: string) => (h.trim().toLowerCase() === title.trim().toLowerCase() ? '' : m))
+  .replace(/^\s*\|?[\s:|-]*-{3,}[\s:|-]*$/gm, '')
+  .replace(/\[([^\]]*)\]\([^)]*\)/g, '$1')
+  .replace(/^\s*(#{1,6}|>|[-*+]( \[[ x]\])?|\d+\.)\s+/gm, '')
+  .replace(/[*_`~|#>]/g, '')
+  .replace(/\s+/g, ' ').trim();
+
+const keyOf = (t: NoteTarget) => (t.kind === 'page' ? `p:${t.id}` : `t:${t.key}`);
+
+const typing = (el: EventTarget | null) => {
+  const t = el as HTMLElement | null;
+  return !!t && (t.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(t.tagName));
+};
 
 export function NotesView() {
   const { state, update } = useStore();
-  const { openNote } = useUI();
+  const phone = useIsMobile();
   const [q, setQ] = useState('');
+  const [sel, setSel] = useState<NoteTarget | null>(null);
+  const [open, setOpen] = useState(false); // phones: the document is showing
+  const [fresh, setFresh] = useState<string | null>(null); // a page just created, to focus its title
+  const search = useRef<HTMLInputElement>(null);
+
   const match = (title: string, body: string) => !q || `${title} ${body}`.toLowerCase().includes(q.toLowerCase());
-  const pages = Object.entries(state.pages).filter(([, p]) => match(p.title, p.body)).sort((a, b) => b[1].upd - a[1].upd);
+  const allPages = useMemo(() => Object.entries(state.pages).sort((a, b) => b[1].upd - a[1].upd), [state.pages]);
+  const pages = allPages.filter(([, p]) => match(p.title, p.body));
   const tn = Object.entries(state.tnotes).filter(([, n]) => n.body.trim() && match(n.title, n.body)).sort((a, b) => b[1].upd - a[1].upd);
-  const newPage = () => { const id = 'pg' + Date.now(); update(s => ({ ...s, pages: { ...s.pages, [id]: { title: 'Untitled', body: '', upd: Date.now() } } })); openNote({ kind: 'page', id }); };
+
+  // The selected note; a deleted page falls back to the most recently updated one.
+  // A task note keeps its target even when its body is cleared (the entry is removed then).
+  const active: NoteTarget | null = sel && (sel.kind === 'task' || state.pages[sel.id]) ? sel : allPages[0] ? { kind: 'page', id: allPages[0][0] } : null;
+  const activeKey = active ? keyOf(active) : '';
+
+  const pick = (t: NoteTarget) => { setSel(t); setOpen(true); setFresh(null); };
+  const newPage = () => {
+    const id = 'pg' + Date.now();
+    update(s => ({ ...s, pages: { ...s.pages, [id]: { title: 'Untitled', body: '', upd: Date.now() } } }));
+    setSel({ kind: 'page', id }); setOpen(true); setFresh(id);
+  };
+  const back = () => setOpen(false);
+
+  // "/" focuses search when not typing somewhere else.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey || typing(e.target)) return;
+      if (document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]')) return;
+      e.preventDefault();
+      setOpen(false);
+      setTimeout(() => { search.current?.focus(); search.current?.select(); }, 0);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
+  const showDoc = phone ? open && !!active : !!active;
+  const showList = !phone || !open;
+
+  const row = (t: NoteTarget, title: string, body: string, upd: number) => {
+    const on = !phone && keyOf(t) === activeKey;
+    return (
+      <Row key={keyOf(t)} onClick={() => pick(t)} tone={on ? 'now' : undefined} aria-current={on || undefined} data-note-row
+        className={cn('items-start gap-0 py-2', on && 'bg-hover')}>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-baseline gap-2">
+            <span className="min-w-0 flex-1 truncate font-medium">{title || 'Untitled'}</span>
+            <span className="shrink-0 text-[12px] text-faint tabular-nums">{ago(upd)}</span>
+          </div>
+          <p className="truncate text-[12px] text-muted-foreground">{strip(body, title).slice(0, 160) || 'Empty'}</p>
+        </div>
+      </Row>
+    );
+  };
+
+  const list = (
+    <div className="flex min-h-0 flex-col md:border-r md:border-border" data-notes-list>
+      <div className="shrink-0 border-b border-border p-2">
+        <label className="relative block">
+          <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-faint" aria-hidden="true" />
+          <input ref={search} type="search" value={q} onChange={e => setQ(e.target.value)} onKeyDown={e => { if (e.key === 'Escape') e.currentTarget.blur(); }}
+            placeholder="Search notes" aria-label="Search notes" data-notes-search
+            className="h-8 w-full min-w-0 rounded-md border border-input bg-card pr-8 pl-8 text-[13px] text-foreground outline-none placeholder:text-faint focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30" />
+          <kbd className="pointer-events-none absolute top-1/2 right-2 hidden -translate-y-1/2 rounded-[4px] border border-border px-1 text-[11px] text-faint md:block">/</kbd>
+        </label>
+      </div>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <Band title="Pages" count={`· ${pages.length}`}
+          right={<button type="button" onClick={newPage} className="inline-flex h-6 items-center gap-1 rounded-[5px] px-1.5 text-[12px] text-muted-foreground outline-none hover:bg-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40"><Plus className="size-3.5" />New page</button>}>
+          {pages.map(([id, p]) => row({ kind: 'page', id }, p.title, p.body, p.upd))}
+          {!pages.length && <p className="px-4 py-3 text-[13px] text-muted-foreground">{q ? 'No pages match.' : 'No pages yet.'}</p>}
+        </Band>
+        <Band title="Task notes" count={`· ${tn.length}`}>
+          {tn.map(([k, n]) => row({ kind: 'task', key: k, title: n.title, url: n.url }, n.title, n.body, n.upd))}
+          {!tn.length && (
+            <p className="px-4 py-3 text-[13px] text-muted-foreground">
+              {q ? 'No task notes match.' : 'Open a task and write in its note. Problem notes follow the problem, so revision days show the same note.'}
+            </p>
+          )}
+        </Band>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="pb-16">
-      <div className="pt-6 pb-4">
-        <p className="font-mono text-xs font-semibold uppercase tracking-wider text-muted-foreground">Synced to your private Gist when connected</p>
-        <h1 className="mt-1.5 font-display text-3xl font-bold tracking-tight sm:text-4xl">Notes</h1>
-      </div>
-      <div className="mb-4 flex flex-wrap gap-2">
-        <Input type="search" value={q} onChange={e => setQ(e.target.value)} placeholder="Search all notes" className="min-w-[200px] flex-1 bg-card" />
-        <Button onClick={newPage}><Plus />New page</Button>
-      </div>
-      <h3 className="mb-2 font-mono text-xs font-semibold uppercase tracking-wider text-muted-foreground">Pages</h3>
-      <div className="mb-6 grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-2.5">
-        {pages.map(([id, p]) => (
-          <button key={id} onClick={() => openNote({ kind: 'page', id })} className="flex min-w-0 flex-col gap-1 rounded-xl border bg-card p-3.5 text-left hover:border-muted-foreground">
-            <b className="font-display">{p.title || 'Untitled'}</b>
-            <span className="line-clamp-2 text-[13px] text-muted-foreground">{strip(p.body).slice(0, 120) || 'Empty'}</span>
-          </button>
-        ))}
-        {!pages.length && <p className="text-muted-foreground">No pages match.</p>}
-      </div>
-      <h3 className="mb-2 font-mono text-xs font-semibold uppercase tracking-wider text-muted-foreground">Task notes · {tn.length}</h3>
-      {tn.length ? (
-        <Card className="gap-0 divide-y p-0">
-          {tn.map(([k, n]) => (
-            <button key={k} onClick={() => openNote({ kind: 'task', key: k, title: n.title, url: n.url })} className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-0.5 px-4 py-2.5 text-left">
-              <span className="truncate font-medium">{n.title}</span><span className="font-mono text-xs text-muted-foreground">{ago(n.upd)}</span>
-              <span className="col-span-2 truncate text-[13px] text-muted-foreground">{strip(n.body).slice(0, 140)}</span>
-            </button>
-          ))}
-        </Card>
-      ) : <p className="text-muted-foreground">Click the note icon next to any task to write notes for it. Problem notes follow the problem, so revision days show the same note.</p>}
+    <div className="pb-4 md:pb-6">
+      {showList && <PageHeader crumbs={['Notes']} count={`${allPages.length + Object.values(state.tnotes).filter(n => n.body.trim()).length}`} />}
+      {!showList && <div className="h-2" />}
+      <Surface className={cn('md:grid md:h-[calc(100svh-4.5rem)] md:min-h-[480px] md:grid-cols-[280px_minmax(0,1fr)]', !showList && 'min-h-[calc(100svh-7rem)]')}>
+        {showList && list}
+        {showDoc && active && (
+          <NoteEditor key={keyOf(active)} target={active} className="h-full"
+            onBack={phone ? back : undefined}
+            onDeleted={() => { setSel(null); setOpen(false); }}
+            focusTitle={active.kind === 'page' && fresh === active.id} />
+        )}
+        {!phone && !active && <p className="p-6 text-[13px] text-muted-foreground">Create a page to start writing.</p>}
+      </Surface>
     </div>
   );
 }

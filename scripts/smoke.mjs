@@ -383,6 +383,53 @@ try {
     checkErrors(errors, W);
     await ctx.close();
   }
+  // ---------- Notes: two panes on desktop, list → document on phones, "/" focuses search ----------
+  for (const [width, height] of [[1100, 800], [390, 844]]) {
+    const fx = { ...fixture, tnotes: { 'p-two-sum': { title: 'Two Sum', body: 'Use a **hash map** of value → index.', upd: now - 3600e3 } } };
+    const ctx = await browser.newContext({ viewport: { width, height } });
+    await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+    page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+    await page.goto(`${URL}/#notes`, { waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+    await page.waitForTimeout(500);
+    const W = `notes ${width}`;
+    const list = page.locator('[data-notes-list]');
+    const editor = page.locator('[data-note-editor]');
+    const row = list.locator('[data-note-row]').filter({ hasText: 'Pattern cheat sheet' }).first();
+    if (await row.isVisible().catch(() => false)) ok(`${W}: "Pattern cheat sheet" in the list`); else fail(`${W}: "Pattern cheat sheet" not in the list`);
+    if (await list.getByText(/^Task notes/).first().isVisible().catch(() => false)) ok(`${W}: Task notes band`); else fail(`${W}: no Task notes band`);
+    await page.locator('body').click({ position: { x: width - 5, y: 5 } }).catch(() => {});
+    await page.keyboard.press('/');
+    await page.waitForTimeout(150);
+    if (await page.evaluate(() => document.activeElement?.getAttribute('data-notes-search') !== null && document.activeElement?.tagName === 'INPUT')) ok(`${W}: "/" focuses search`); else fail(`${W}: "/" did not focus search`);
+    await page.keyboard.press('Escape');
+    await page.locator('body').click({ position: { x: width - 5, y: 5 } }).catch(() => {});
+    if (width === 1100) {
+      if (await editor.locator('h1').filter({ hasText: 'Pattern cheat sheet' }).first().isVisible().catch(() => false)) ok(`${W}: right pane shows the page heading`); else fail(`${W}: no page heading in the right pane`);
+      await page.screenshot({ path: join(shots, `notes-1100-page.png`) });
+      await list.locator('[data-note-row]').filter({ hasText: 'Two Sum' }).first().click();
+      await page.waitForTimeout(300);
+      if (await editor.getByText('hash map').first().isVisible().catch(() => false) && !(await page.locator('[role="dialog"]').count())) ok(`${W}: task note opens in the right pane`); else fail(`${W}: task note did not open in the right pane`);
+      await page.screenshot({ path: join(shots, `notes-1100-task.png`) });
+    } else {
+      if (await editor.count() && await editor.first().isVisible()) fail(`${W}: editor visible before a row is picked`); else ok(`${W}: list only at first`);
+      await page.screenshot({ path: join(shots, `notes-390-list.png`) });
+      await row.click();
+      await page.waitForTimeout(300);
+      if (await editor.locator('h1').filter({ hasText: 'Pattern cheat sheet' }).first().isVisible().catch(() => false) && !(await list.isVisible().catch(() => false))) ok(`${W}: row opens the document full width`); else fail(`${W}: row did not open the document`);
+      const sw = await page.evaluate(() => document.documentElement.scrollWidth);
+      if (sw > 390) fail(`${W}: horizontal scroll (${sw})`); else ok(`${W}: scrollWidth ${sw}`);
+      await page.screenshot({ path: join(shots, `notes-390-doc.png`) });
+      const crumb = editor.getByRole('button', { name: 'Notes', exact: true });
+      if (await crumb.count()) { await crumb.click(); await page.waitForTimeout(300); }
+      if (await list.isVisible().catch(() => false)) ok(`${W}: "Notes" crumb returns to the list`); else fail(`${W}: "Notes" crumb did not return to the list`);
+    }
+    checkErrors(errors, W);
+    await ctx.close();
+  }
 } catch (e) {
   fail(`crashed: ${e.stack || e}`);
 } finally {
