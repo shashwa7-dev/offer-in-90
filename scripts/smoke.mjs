@@ -1141,6 +1141,115 @@ try {
     checkErrors(errors, W);
     await ctx.close();
   }
+  // ---------- ⌘K search: open anywhere, task → day + peek, number → day, note → Notes, Esc closes ----------
+  for (const [width, height] of [[1100, 800], [390, 844]]) {
+    const at = new Date(2026, 10, 12, 14, 10);
+    const st = new Date(at); st.setDate(st.getDate() - 9);
+    const fx = { ...fixture, start: isoDay(st), updatedAt: +at, tnotes: { 'p-two-sum': { title: 'Two Sum', body: 'Use a quokkahash map of value to index.', upd: +at - 3600e3 } } };
+    const ctx = await browser.newContext({ viewport: { width, height } });
+    await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
+    const page = await ctx.newPage();
+    await page.clock.install({ time: at });
+    const errors = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+    page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+    await page.goto(URL, { waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+    await page.waitForTimeout(500);
+    const W = `search ${width}`;
+    const dlg = page.locator('[data-search-dialog]');
+    const input = page.locator('[data-search-input]');
+    const isOpen = () => dlg.isVisible().catch(() => false);
+    const noScroll = async label => { if (width !== 390) return; const sw = await page.evaluate(() => document.documentElement.scrollWidth); if (sw > 390) fail(`${W} ${label}: horizontal scroll (${sw})`); else ok(`${W} ${label}: scrollWidth ${sw}`); };
+
+    if (width === 1100) {
+      await page.keyboard.press('ControlOrMeta+k');
+      await page.waitForTimeout(300);
+      if (await isOpen()) ok(`${W}: ⌘K opens the palette`); else fail(`${W}: ⌘K did not open the palette`);
+      const acts = await dlg.locator('[data-search-action]').count();
+      const hits = await dlg.locator('[data-search-hit]').count();
+      if (acts === 8 && hits === 0) ok(`${W}: empty query shows the 8 actions only`); else fail(`${W}: empty query shows ${acts} actions, ${hits} hits`);
+      await page.screenshot({ path: join(shots, `search-${width}-empty.png`) });
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(300);
+      if (!(await isOpen())) ok(`${W}: Esc closes`); else fail(`${W}: Esc did not close`);
+      // "/" opens it on Today; the sidebar box opens it
+      await page.locator('body').click({ position: { x: width - 5, y: 5 } }).catch(() => {});
+      await page.keyboard.press('/');
+      await page.waitForTimeout(300);
+      if (await isOpen()) ok(`${W}: "/" opens the palette on Today`); else fail(`${W}: "/" did not open the palette`);
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(300);
+      await page.locator('[data-slot="sidebar"] [data-shell="search"]').click();
+      await page.waitForTimeout(300);
+      if (await isOpen()) ok(`${W}: sidebar "Search everything" opens the palette`); else fail(`${W}: sidebar box did not open the palette`);
+      const box = await page.locator('[data-slot="sidebar"] [data-shell="search"]').innerText().catch(() => '');
+      if (/Search everything/.test(box) && /K/.test(box)) ok(`${W}: sidebar box reads "${box.replace(/\s+/g, ' ')}"`); else fail(`${W}: sidebar box reads "${box}"`);
+    } else {
+      await page.locator('[data-search-phone]').click();
+      await page.waitForTimeout(300);
+      if (await isOpen()) ok(`${W}: header search icon opens the palette`); else fail(`${W}: header search icon did not open the palette`);
+    }
+    // task word → Enter opens its day with the peek
+    await input.fill('two sum sorted');
+    await page.waitForTimeout(250);
+    const first = dlg.locator('[data-search-hit="task"]').first();
+    const meta = await first.innerText().catch(() => '');
+    const dayNo = (meta.match(/Day (\d+)/) || [])[1];
+    if (/Two Sum II/.test(meta) && dayNo) ok(`${W}: task hit "${meta.replace(/\s+/g, ' ')}"`); else fail(`${W}: no Two Sum II task hit ("${meta}")`);
+    await page.screenshot({ path: join(shots, `search-${width}-tasks.png`) });
+    await noScroll('palette');
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(500);
+    const peek = page.locator('[data-peek]');
+    const header = await page.locator('main, [data-slot="sidebar-inset"]').first().innerText().catch(() => '');
+    if (!(await isOpen()) && await peek.isVisible().catch(() => false) && /Two Sum II/.test(await peek.innerText()) && new RegExp(`Day ${dayNo} of`).test(header)) ok(`${W}: Enter opens Day ${dayNo} with the peek`); else fail(`${W}: Enter did not open Day ${dayNo} with the peek (open ${await isOpen()}, peek ${await peek.count()})`);
+    await page.screenshot({ path: join(shots, `search-${width}-peek.png`) });
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+    // ⌘K works while typing in a field
+    if (width === 1100) {
+      await page.locator('[data-today-list] textarea, [data-today-list] input').first().focus().catch(() => {});
+      await page.keyboard.press('ControlOrMeta+k');
+      await page.waitForTimeout(300);
+      if (await isOpen()) ok(`${W}: ⌘K opens while typing in a field`); else fail(`${W}: ⌘K did not open while typing`);
+    } else {
+      await page.locator('[data-shell="bottom-bar"] [data-nav="more"]').click();
+      await page.waitForTimeout(400);
+      await page.locator('[data-shell="more-sheet"] [data-nav="search"]').click();
+      await page.waitForTimeout(400);
+      if (await isOpen()) ok(`${W}: More › Search opens the palette`); else fail(`${W}: More › Search did not open the palette`);
+    }
+    // number → Go to Day 30
+    await input.fill('30');
+    await page.waitForTimeout(250);
+    const goDay = dlg.locator('[data-search-hit="day"]').first();
+    if (/Go to Day 30/.test(await goDay.innerText().catch(() => ''))) ok(`${W}: "30" shows Go to Day 30`); else fail(`${W}: "30" shows no Go to Day 30`);
+    await input.fill('120');
+    await page.waitForTimeout(250);
+    if (!(await dlg.locator('[data-search-hit="day"]').count())) ok(`${W}: "120" shows no day`); else fail(`${W}: "120" shows a day`);
+    // note word → Notes with that note selected
+    await input.fill('quokkahash');
+    await page.waitForTimeout(250);
+    const note = dlg.locator('[data-search-hit="note"]').first();
+    if (/Two Sum/.test(await note.innerText().catch(() => ''))) ok(`${W}: note body word finds the note`); else fail(`${W}: no note hit for a body word`);
+    await page.keyboard.press('Enter');
+    await page.waitForTimeout(600);
+    const hash = await page.evaluate(() => location.hash);
+    const editor = page.locator('[data-note-editor]');
+    if (hash === '#notes' && await editor.getByText('quokkahash').first().isVisible().catch(() => false)) ok(`${W}: Enter opens Notes with the note selected`); else fail(`${W}: note not selected in Notes (hash ${hash})`);
+    await page.screenshot({ path: join(shots, `search-${width}-note.png`) });
+    // on Notes, "/" stays the Notes search
+    if (width === 1100) {
+      await page.locator('body').click({ position: { x: width - 5, y: 5 } }).catch(() => {});
+      await page.keyboard.press('/');
+      await page.waitForTimeout(250);
+      if (!(await isOpen()) && await page.evaluate(() => document.activeElement?.hasAttribute('data-notes-search'))) ok(`${W}: "/" on Notes focuses the Notes search`); else fail(`${W}: "/" on Notes opened the palette or missed the Notes search`);
+      await page.keyboard.press('Escape');
+    }
+    checkErrors(errors, W);
+    await ctx.close();
+  }
   // ---------- Every page: future start date, dark mode (desktop and phone) ----------
   for (const [label, opts, fx] of [
     ['future', { viewport: { width: 1100, height: 900 } }, { ...fixture, start: isoDay(new Date(Date.now() + 5 * 864e5)) }],

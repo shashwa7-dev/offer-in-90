@@ -13,6 +13,7 @@ import { SetupView } from '@/components/setup-view';
 import { NoteSheet } from '@/components/note-sheet';
 import { TaskPeek, type PeekTarget } from '@/components/task-peek';
 import { NewTaskDialog, type NewTaskPreset } from '@/components/new-task-dialog';
+import { SearchDialog } from '@/components/search-dialog';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/sonner';
 import { AppSidebar } from '@/components/shell/app-sidebar';
@@ -37,6 +38,8 @@ function App() {
   const [openChanges, setOpenChanges] = useState(false);
   const [focusWeek, setFocusWeek] = useState<number | null>(null);
   const [newsTab, setNewsTab] = useState<NewsTab>('interviews');
+  const [searching, setSearching] = useState(false);
+  const [notesSelect, setNotesSelect] = useState<NoteTarget | null>(null);
 
   useEffect(() => { if (ready) setViewIdx(Math.max(0, Math.min(days.length - 1, todayIdx))); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
@@ -50,6 +53,7 @@ function App() {
   const openTask = useCallback((taskId: string, dayIdx: number) => setPeek({ taskId, dayIdx }), []);
   const closePeek = useCallback(() => setPeek(null), []);
   const closeNew = useCallback(() => setNt(null), []);
+  const openSearch = useCallback(() => setSearching(true), []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -61,7 +65,21 @@ function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [newTask]);
 
-  const ui = useMemo(() => ({ view, go, viewIdx, setViewIdx, openDay, openNote: setNote, newTask, openTask, toast, roadmapTab, setRoadmapTab, focusWeek, setFocusWeek, openChanges, setOpenChanges, newsTab }), [view, go, viewIdx, openDay, newTask, openTask, toast, roadmapTab, focusWeek, openChanges, newsTab]);
+  // ⌘K / Ctrl+K opens search from anywhere, even while typing; "/" only when not typing and not on Notes
+  // (Notes keeps "/" for its own search).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.repeat || e.altKey || e.shiftKey) return;
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); setSearching(o => !o); return; }
+      if (e.key !== '/' || e.metaKey || e.ctrlKey || typing(e.target) || view === 'notes') return;
+      if (document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]')) return;
+      e.preventDefault(); setSearching(true);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [view]);
+
+  const ui = useMemo(() => ({ view, go, viewIdx, setViewIdx, openDay, openNote: setNote, newTask, openTask, toast, roadmapTab, setRoadmapTab, focusWeek, setFocusWeek, openChanges, setOpenChanges, newsTab, openSearch, notesSelect, setNotesSelect }), [view, go, viewIdx, openDay, newTask, openTask, toast, roadmapTab, focusWeek, openChanges, newsTab, openSearch, notesSelect]);
 
   if (!ready) return <div className="p-8 text-muted-foreground">Loading your plan…</div>;
   return (
@@ -83,6 +101,7 @@ function App() {
       <NoteSheet target={note} onClose={() => setNote(null)} />
       <TaskPeek target={peek} onClose={closePeek} />
       <NewTaskDialog preset={nt} onClose={closeNew} />
+      <SearchDialog open={searching} onOpenChange={setSearching} />
       <Toaster position="bottom-center" mobileOffset={{ bottom: 'calc(68px + env(safe-area-inset-bottom))' }} />
     </UICtx.Provider>
   );

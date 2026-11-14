@@ -8,7 +8,7 @@ import { useStore } from '@/lib/store';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { Band, PageHeader, Row, Surface } from './shell/page';
 import { NoteEditor, ago } from './note-editor';
-import type { NoteTarget } from './ui-state';
+import { useUI, type NoteTarget } from './ui-state';
 
 /** One-line preview: markdown marks and links stripped, and a first heading that only repeats the title dropped. */
 const strip = (b: string, title = '') => b
@@ -34,6 +34,13 @@ export function NotesView() {
   const [open, setOpen] = useState(false); // phones: the document is showing
   const [fresh, setFresh] = useState<string | null>(null); // a page just created, to focus its title
   const search = useRef<HTMLInputElement>(null);
+  const { notesSelect, setNotesSelect } = useUI();
+
+  // A note picked in ⌘K search: select it once (clearing any list filter), then drop the request.
+  useEffect(() => {
+    if (!notesSelect) return;
+    setQ(''); setSel(notesSelect); setOpen(true); setFresh(null); setNotesSelect(null);
+  }, [notesSelect, setNotesSelect]);
 
   const match = (title: string, body: string) => !q || `${title} ${body}`.toLowerCase().includes(q.toLowerCase());
   const allPages = useMemo(() => Object.entries(state.pages).sort((a, b) => b[1].upd - a[1].upd), [state.pages]);

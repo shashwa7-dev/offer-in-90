@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { CalendarCheck, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { CalendarCheck, ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -22,7 +22,7 @@ const BANDS = [['morning', 'Morning'], ['afternoon', 'Afternoon'], ['evening', '
 
 export function TodayView() {
   const { state, days, todayIdx, update, updates } = useStore();
-  const { viewIdx, setViewIdx, go, newTask, setRoadmapTab, setOpenChanges } = useUI();
+  const { viewIdx, setViewIdx, go, newTask, setRoadmapTab, setOpenChanges, openSearch } = useUI();
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [missedOpen, setMissedOpen] = useState(false);
   const [fv, setFv] = useTodayFilter();
@@ -90,6 +90,7 @@ export function TodayView() {
         crumbs={[{ label: `Week ${d.week}`, phoneHidden: true }, d.no === 0 ? 'Day 0 · prep' : `Day ${d.no} of ${TOTAL}`, fmtDate(d.date)]}
         keepLast
         actions={<>
+          <Button variant="outline" size="icon-sm" onClick={openSearch} aria-label="Search" title="Search" data-search-phone className="md:hidden"><Search /></Button>
           <Button variant="outline" size="icon-sm" onClick={() => setViewIdx(clamp(viewIdx - 1))} aria-label="Previous day"><ChevronLeft /></Button>
           <Button variant="outline" size="sm" onClick={() => setViewIdx(clamp(todayIdx))} disabled={isToday} className="hidden sm:inline-flex">Today</Button>
           {!isToday && <Button variant="outline" size="icon-sm" onClick={() => setViewIdx(clamp(todayIdx))} aria-label="Go to today" title="Go to today" data-today-phone className="sm:hidden"><CalendarCheck /></Button>}

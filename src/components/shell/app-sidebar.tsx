@@ -1,7 +1,7 @@
 'use client';
 /* Desktop sidebar: mark + status line, page nav with the News unread count, New task, Cycles, Setup and the sync line. */
-import { CalendarCheck2, ChartLine, Map as MapIcon, Newspaper, NotebookPen, Plus, Settings, type LucideIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { CalendarCheck2, ChartLine, Map as MapIcon, Newspaper, NotebookPen, Plus, Search, Settings, type LucideIcon } from 'lucide-react';
+import { cn, modKey } from '@/lib/utils';
 import { useStore, type State } from '@/lib/store';
 import { overall, TOTAL, type Day, type NewsFeed } from '@/lib/engine';
 import type { StatusMap } from '@/lib/task-status';
@@ -62,7 +62,7 @@ export function syncLine(sync: { state: string; msg?: string; at?: number }, con
 
 export function AppSidebar() {
   const { state, days, todayIdx, news, threads, sync, syncConfigured } = useStore();
-  const { view, go, newTask } = useUI();
+  const { view, go, newTask, openSearch } = useUI();
   const unread = newsUnread(state, news, threads);
   const item = (n: { v: View; label: string; icon: LucideIcon }, badge?: number) => (
     <SidebarMenuItem key={n.v}>
@@ -84,6 +84,15 @@ export function AppSidebar() {
             <div className="truncate text-[12px] text-muted-foreground tabular-nums" data-shell="status">{statusLine(days, todayIdx, state.done, state.status)}</div>
           </div>
         </div>
+        <SidebarMenu className="mt-2">
+          <SidebarMenuItem>
+            <SidebarMenuButton variant="outline" tooltip={`Search everything (${modKey()}K)`} onClick={openSearch} data-shell="search" className="bg-card text-muted-foreground">
+              <Search />
+              <span>Search everything</span>
+              <kbd className="ml-auto text-[11px] text-faint group-data-[collapsible=icon]:hidden">{modKey()}K</kbd>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>

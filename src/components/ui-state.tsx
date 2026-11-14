@@ -26,6 +26,10 @@ interface UI {
   focusWeek: number | null; setFocusWeek: (w: number | null) => void;
   /** Whether Roadmap › Reference › Changes is open. */
   openChanges: boolean; setOpenChanges: (v: boolean) => void;
+  /** Opens the ⌘K search palette. */
+  openSearch: () => void;
+  /** A note Notes should select once it renders (set by search); Notes clears it after honouring it. */
+  notesSelect: NoteTarget | null; setNotesSelect: (t: NoteTarget | null) => void;
   /** Thin wrapper over sonner's toast so callers stay unchanged. */
   toast: (msg: string) => void;
 }

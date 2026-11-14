@@ -1,7 +1,7 @@
 'use client';
 /* Phone tab bar: Today, Progress, Notes, More (sheet with Roadmap, News, Setup). Hidden from md up. */
 import { useState } from 'react';
-import { MoreHorizontal, type LucideIcon } from 'lucide-react';
+import { MoreHorizontal, Search, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import { useUI, type View } from '@/components/ui-state';
@@ -13,7 +13,7 @@ const MAIN = (['today', 'progress', 'notes'] as View[]).map(pick);
 const MORE = (['roadmap', 'news', 'setup'] as View[]).map(pick);
 
 export function BottomBar() {
-  const { view, go } = useUI();
+  const { view, go, openSearch } = useUI();
   const { state, news, threads, sync, syncConfigured } = useStore();
   const syncErr = syncConfigured && sync.state === 'error';
   const [more, setMore] = useState(false);
@@ -42,6 +42,13 @@ export function BottomBar() {
             <SheetDescription className="sr-only">Other pages</SheetDescription>
           </SheetHeader>
           <ul className="px-2 pb-2">
+            <li>
+              <button type="button" data-nav="search" onClick={() => { setMore(false); setTimeout(openSearch, 0); }}
+                className="flex h-11 w-full items-center gap-3 rounded-md px-3 text-[14px] text-foreground hover:bg-hover">
+                <Search className="size-4 text-muted-foreground" />
+                Search
+              </button>
+            </li>
             {MORE.map(n => (
               <li key={n.v}>
                 <button type="button" data-nav={n.v} onClick={() => { setMore(false); go(n.v); }} aria-current={view === n.v ? 'page' : undefined}
