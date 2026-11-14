@@ -11,7 +11,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
 /** White sheet on the grey canvas. */
 export function Surface({ children, className }: { children: ReactNode; className?: string }) {
-  return <div className={cn('overflow-hidden rounded-[10px] border border-border bg-card', className)}>{children}</div>;
+  return <div data-surface className={cn('overflow-hidden rounded-[10px] border border-border bg-card', className)}>{children}</div>;
 }
 
 type Crumb = string | { label: string; onClick: () => void };

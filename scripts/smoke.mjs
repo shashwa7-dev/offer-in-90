@@ -2,7 +2,8 @@
 // phone width shows the bottom bar with no horizontal scroll. Usage: node scripts/smoke.mjs <shots dir>
 // Audio is always muted: the owner must never hear sound from a test run.
 import { chromium } from 'playwright';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { execSync } from 'node:child_process';
 import { join } from 'node:path';
 
 const URL = process.env.SMOKE_URL || 'http://localhost:3000';
@@ -95,6 +96,16 @@ try {
       await page.waitForTimeout(400);
       const sw = await page.evaluate(() => document.documentElement.scrollWidth);
       if (sw > 390) fail(`390 ${v}: horizontal scroll (scrollWidth ${sw})`); else ok(`390 ${v}: scrollWidth ${sw}`);
+      // scrolled to the end, the last surface must sit fully above the fixed bottom bar
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      await page.waitForTimeout(200);
+      const clear = await page.evaluate(() => {
+        const bar = document.querySelector('[data-shell="bottom-bar"]')?.getBoundingClientRect().top ?? innerHeight;
+        const boxes = [...document.querySelectorAll('[data-slot="sidebar-inset"] [data-surface]')].map(e => e.getBoundingClientRect().bottom);
+        return { bar, bottom: boxes.length ? Math.max(...boxes) : null };
+      });
+      if (clear.bottom == null) fail(`390 ${v}: no [data-surface]`); else if (clear.bottom <= clear.bar) ok(`390 ${v}: last row clears the bottom bar (${Math.round(clear.bottom)} <= ${Math.round(clear.bar)})`); else fail(`390 ${v}: content hidden under the bottom bar (${Math.round(clear.bottom)} > ${Math.round(clear.bar)})`);
+      await page.evaluate(() => window.scrollTo(0, 0));
       checkErrors(errors, `390 ${v}`);
       await page.screenshot({ path: join(shots, `shell-390-${v}.png`), fullPage: false });
     }
@@ -553,6 +564,232 @@ try {
     if (!(await savedRows.count())) ok(`${W}: saved item removed`); else fail(`${W}: saved item not removed`);
     checkErrors(errors, W);
     await ctx.close();
+  }
+  // ---------- Setup: settings list, targets, confirmations, backup, reminders ----------
+  {
+    const fx = {
+      ...fixture, targets: ['Google', 'Meta', 'Amazon'],
+      flags: { 'two-sum': now }, notes: { 0: 'Set up the plan.', 1: 'Second day.' },
+      pages: { pgkeep: { title: 'Keep me', body: 'kept body', upd: now } },
+      bookmarks: { 'n-keep': { kind: 'news', title: 'Kept bookmark', url: 'https://example.com/a', source: 'Example', savedAt: now } },
+      custom: { ckeep: { text: 'Kept own task', date: fixture.start, block: 'dsa', at: now } },
+    };
+    const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 }, acceptDownloads: true });
+    await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+    page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+    await page.goto(`${URL}/#setup`, { waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+    await page.waitForTimeout(500);
+    const W = 'setup 1100';
+    const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem('offer90.v1') || '{}'));
+    const toastSeen = async re => page.locator('[data-sonner-toast]').filter({ hasText: re }).first().isVisible().catch(() => false);
+    const toGo = async v => { await page.locator(`[data-slot="sidebar"] [data-nav="${v}"]`).first().click(); await page.waitForTimeout(400); };
+
+    const titles = await page.locator('[data-band] [data-slot="collapsible-trigger"]').allInnerTexts();
+    const want = ['Your plan', 'Interviews', 'Sync and backup', 'Reminders', 'Start again'];
+    const miss = want.filter(t => !titles.some(x => x.trim().startsWith(t)));
+    if (!miss.length) ok(`${W}: five section titles`); else fail(`${W}: missing sections ${miss.join(', ')} (have ${titles.join(' | ')})`);
+    if (await page.locator('input[type="password"]').first().isVisible().catch(() => false)) ok(`${W}: Gist token field visible when not connected`); else fail(`${W}: no token field`);
+    if (await page.locator('a[href^="https://github.com/settings/personal-access-tokens"]').count()) ok(`${W}: GitHub token link`); else fail(`${W}: no GitHub token link`);
+    const primaries = await page.locator('[data-surface] [data-slot="button"][data-variant="default"]').count();
+    const ics = page.getByRole('button', { name: 'Download reminders.ics' });
+    if (primaries === 1 && await ics.count()) ok(`${W}: Download .ics is the only primary button`); else fail(`${W}: ${primaries} primary buttons`);
+    await page.screenshot({ path: join(shots, 'setup-1100.png'), fullPage: true });
+
+    // prep-day switch
+    const sw = page.getByRole('switch', { name: /prep day/i });
+    const k0 = (await saved()).kickoff;
+    await sw.click(); await page.waitForTimeout(200);
+    if ((await saved()).kickoff === !k0) ok(`${W}: prep-day switch toggles kickoff`); else fail(`${W}: prep-day switch did nothing`);
+    await sw.click(); await page.waitForTimeout(200);
+
+    // start date picker saves immediately
+    const s0 = (await saved()).start;
+    await page.locator('[data-start-date]').click();
+    await page.waitForTimeout(300);
+    const day = page.locator('[data-slot="popover-content"] button[data-day]:not([disabled])').filter({ hasNotText: /^$/ });
+    const pickN = await day.count();
+    let picked = null;
+    for (let i = 0; i < pickN; i++) { const d = day.nth(i); const v = await d.getAttribute('data-day'); if (v && !(await d.getAttribute('aria-selected'))) { picked = d; break; } }
+    if (picked) { await picked.click(); await page.waitForTimeout(300); }
+    const s1 = (await saved()).start;
+    if (s1 && s1 !== s0 && /^\d{4}-\d{2}-\d{2}$/.test(s1)) ok(`${W}: picking a date saves start (${s0} → ${s1})`); else fail(`${W}: start date not saved (${s0} → ${s1})`);
+    if (await toastSeen(/Download the calendar again/i)) ok(`${W}: start date toast`); else fail(`${W}: no start date toast`);
+    await page.keyboard.press('Escape');
+    await page.evaluate(st => { const s = JSON.parse(localStorage.getItem('offer90.v1')); s.start = st; localStorage.setItem('offer90.v1', JSON.stringify(s)); }, s0);
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+    await page.waitForTimeout(400);
+
+    // timetable sheet
+    await page.getByRole('button', { name: 'View timetable' }).click();
+    await page.waitForTimeout(400);
+    const sheet = page.getByRole('dialog', { name: 'Daily timetable' });
+    if (await sheet.isVisible().catch(() => false) && await sheet.getByText('Mon–Sat').count() && await sheet.getByText('Sunday').count() && await sheet.getByText('05:15–07:15').count()) ok(`${W}: timetable sheet shows both tables`); else fail(`${W}: timetable sheet missing`);
+    await page.screenshot({ path: join(shots, 'setup-1100-timetable.png') });
+    await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+
+    // targets: remove Amazon, add a free-text company
+    await page.getByRole('button', { name: 'Remove Amazon' }).click();
+    await page.waitForTimeout(200);
+    if (!(await saved()).targets.includes('Amazon')) ok(`${W}: Amazon removed from targets`); else fail(`${W}: Amazon still a target`);
+    await page.getByRole('button', { name: 'Add target company' }).click();
+    await page.waitForTimeout(300);
+    await page.screenshot({ path: join(shots, 'setup-1100-add-target.png') });
+    const feedOpt = await page.getByRole('option').count();
+    if (feedOpt > 0) ok(`${W}: Add lists ${feedOpt} feed companies`); else fail(`${W}: Add lists no companies`);
+    if (await page.getByRole('option', { name: /^Google/ }).count()) fail(`${W}: Add lists a company already targeted`); else ok(`${W}: Add skips existing targets`);
+    await page.locator('[cmdk-input]').fill('Zeta Labs');
+    await page.waitForTimeout(200);
+    await page.getByRole('option', { name: 'Add “Zeta Labs”' }).click();
+    await page.waitForTimeout(200);
+    if ((await saved()).targets.includes('Zeta Labs')) ok(`${W}: free-text target added`); else fail(`${W}: free-text target not added`);
+    await page.getByRole('button', { name: 'Remove Zeta Labs' }).click();
+    await page.waitForTimeout(200);
+    await toGo('news');
+    await page.getByRole('radio', { name: /^Interviews/ }).first().click().catch(() => {});
+    await page.waitForTimeout(300);
+    const amazonRows = await page.locator('[data-post][data-company="Amazon"]').count();
+    const amazonText = await page.locator('[data-post]').filter({ hasText: '#Amazon' }).count();
+    if (!amazonRows && !amazonText) ok(`${W}: My targets has no #Amazon rows`); else fail(`${W}: My targets still shows ${amazonRows || amazonText} Amazon rows`);
+    await toGo('setup');
+
+    // Start over… → Cancel leaves ticks intact
+    const done0 = Object.keys((await saved()).done || {}).length;
+    await page.getByRole('button', { name: 'Start over…' }).click();
+    await page.waitForTimeout(300);
+    const alert = page.getByRole('alertdialog');
+    if (await alert.isVisible().catch(() => false) && await alert.getByText('Start over from today?').count()) ok(`${W}: Start over opens an alert dialog`); else fail(`${W}: no Start over alert dialog`);
+    await page.screenshot({ path: join(shots, 'setup-1100-start-over.png') });
+    await alert.getByRole('button', { name: 'Cancel' }).click();
+    await page.waitForTimeout(300);
+    if (Object.keys((await saved()).done || {}).length === done0 && done0 > 0) ok(`${W}: Cancel keeps ${done0} ticks`); else fail(`${W}: Cancel changed ticks (${done0} → ${Object.keys((await saved()).done || {}).length})`);
+    // Erase… → Cancel leaves everything
+    await page.getByRole('button', { name: 'Erase…' }).click();
+    await page.waitForTimeout(300);
+    if (await alert.getByText('Erase everything?').count()) ok(`${W}: Erase opens an alert dialog`); else fail(`${W}: no Erase alert dialog`);
+    await alert.getByRole('button', { name: 'Cancel' }).click();
+    await page.waitForTimeout(300);
+    if (Object.keys((await saved()).done || {}).length === done0 && (await saved()).pages?.pgkeep) ok(`${W}: Erase cancel keeps everything`); else fail(`${W}: Erase cancel changed state`);
+
+    // export, then import a modified copy, then an invalid file
+    const [dl] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'Export backup' }).click()]);
+    const exported = JSON.parse(readFileSync(await dl.path(), 'utf8'));
+    if (exported.start && exported.pages?.pgkeep && /^offer90-backup-\d{4}-\d{2}-\d{2}\.json$/.test(dl.suggestedFilename())) ok(`${W}: export downloads the state (${dl.suggestedFilename()})`); else fail(`${W}: export wrong (${dl.suggestedFilename()})`);
+    const imp = join(shots, '..', 'smoke-import.json');
+    writeFileSync(imp, JSON.stringify({ ...exported, notes: { 0: 'Imported by smoke' } }));
+    await page.locator('input[type="file"]').setInputFiles(imp);
+    await page.waitForTimeout(400);
+    if ((await saved()).notes?.[0] === 'Imported by smoke' && await toastSeen(/Backup imported/)) ok(`${W}: import replaces the state`); else fail(`${W}: import did not apply`);
+    writeFileSync(imp, JSON.stringify({ nope: true }));
+    await page.locator('input[type="file"]').setInputFiles(imp);
+    await page.waitForTimeout(400);
+    if (await toastSeen(/not a valid backup/) && (await saved()).notes?.[0] === 'Imported by smoke') ok(`${W}: invalid import rejected`); else fail(`${W}: invalid import not rejected`);
+
+    // reminders.ics
+    const [ical] = await Promise.all([page.waitForEvent('download'), ics.click()]);
+    const icsText = readFileSync(await ical.path(), 'utf8');
+    if (ical.suggestedFilename() === 'reminders.ics' && icsText.startsWith('BEGIN:VCALENDAR') && /BEGIN:VEVENT/.test(icsText)) ok(`${W}: reminders.ics downloads`); else fail(`${W}: reminders.ics wrong`);
+
+    // Start over → confirm: today is the start; ticks, flags and logs cleared; pages, bookmarks and own tasks kept
+    await page.getByRole('button', { name: 'Start over…' }).click();
+    await page.waitForTimeout(300);
+    await alert.getByRole('button', { name: 'Start over' }).click();
+    await page.waitForTimeout(400);
+    let st = await saved();
+    if (st.start === isoDay(new Date()) && !Object.keys(st.done).length && !Object.keys(st.flags).length && !Object.keys(st.notes).length && st.pages?.pgkeep && st.bookmarks?.['n-keep'] && st.custom?.ckeep) ok(`${W}: Start over resets the plan and keeps pages, bookmarks, own tasks`); else fail(`${W}: Start over wrong (${JSON.stringify({ start: st.start, done: Object.keys(st.done).length, flags: Object.keys(st.flags).length, notes: Object.keys(st.notes).length })})`);
+    // Erase → confirm
+    await page.getByRole('button', { name: 'Erase…' }).click();
+    await page.waitForTimeout(300);
+    await alert.getByRole('button', { name: 'Erase' }).click();
+    await page.waitForTimeout(400);
+    st = await saved();
+    if (!st.pages?.pgkeep && !Object.keys(st.bookmarks || {}).length && !Object.keys(st.custom || {}).length && st.start && await toastSeen(/Everything cleared/)) ok(`${W}: Erase clears everything`); else fail(`${W}: Erase left data behind`);
+    checkErrors(errors, W);
+    await ctx.close();
+  }
+  // ---------- Setup at 390 with a Gist connected (status, Sync now, Disconnect) ----------
+  {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); localStorage.setItem('offer90.sync', JSON.stringify({ token: 'smoke-token', gistId: 'smoke-gist' })); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fixture));
+    await ctx.route('https://api.github.com/**', r => r.fulfill({ status: 401, contentType: 'application/json', body: '{"message":"Bad credentials"}' }));
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+    await page.goto(`${URL}/#setup`, { waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+    await page.waitForTimeout(800);
+    const W = 'setup 390 connected';
+    if (await page.getByRole('button', { name: 'Sync now' }).isVisible().catch(() => false) && await page.getByRole('button', { name: /Disconnect/ }).isVisible().catch(() => false)) ok(`${W}: Sync now and Disconnect shown`); else fail(`${W}: Sync now / Disconnect missing`);
+    if (await page.locator('[data-sync-status]').count()) ok(`${W}: status line (${(await page.locator('[data-sync-status]').innerText()).trim()})`); else fail(`${W}: no sync status`);
+    const sw = await page.evaluate(() => document.documentElement.scrollWidth);
+    if (sw > 390) fail(`${W}: horizontal scroll (${sw})`); else ok(`${W}: scrollWidth ${sw}`);
+    await page.screenshot({ path: join(shots, 'setup-390-connected.png'), fullPage: true });
+    await page.getByRole('button', { name: /Disconnect/ }).click();
+    await page.waitForTimeout(300);
+    if (await page.locator('input[type="password"]').isVisible().catch(() => false)) ok(`${W}: Disconnect brings back the token field`); else fail(`${W}: no token field after Disconnect`);
+    checkErrors(errors, W);
+    await ctx.close();
+  }
+  // ---------- Notes: New page clears the search so the new page shows ----------
+  {
+    const ctx = await browser.newContext({ viewport: { width: 1100, height: 800 } });
+    await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fixture));
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+    await page.goto(`${URL}/#notes`, { waitUntil: 'networkidle' });
+    await page.reload({ waitUntil: 'networkidle' });
+    await page.waitForTimeout(400);
+    const W = 'notes new page';
+    await page.locator('[data-notes-search]').fill('zzzz-nothing');
+    await page.waitForTimeout(150);
+    await page.getByRole('button', { name: 'New page' }).click();
+    await page.waitForTimeout(300);
+    const q = await page.locator('[data-notes-search]').inputValue();
+    const row = page.locator('[data-notes-list] [data-note-row]').filter({ hasText: 'Untitled' });
+    if (!q && await row.first().isVisible().catch(() => false)) ok(`${W}: search cleared and the new page is listed`); else fail(`${W}: search "${q}", new page row visible: ${await row.count()}`);
+    checkErrors(errors, W);
+    await ctx.close();
+  }
+  // ---------- Every page: future start date, dark mode (desktop and phone) ----------
+  for (const [label, opts, fx] of [
+    ['future', { viewport: { width: 1100, height: 900 } }, { ...fixture, start: isoDay(new Date(Date.now() + 5 * 864e5)) }],
+    ['future-390', { viewport: { width: 390, height: 844 } }, { ...fixture, start: isoDay(new Date(Date.now() + 5 * 864e5)) }],
+    ['dark', { viewport: { width: 1100, height: 900 }, colorScheme: 'dark' }, fixture],
+    ['dark-390', { viewport: { width: 390, height: 844 }, colorScheme: 'dark' }, fixture],
+    ['light-390', { viewport: { width: 390, height: 844 } }, fixture],
+  ]) {
+    const ctx = await browser.newContext(opts);
+    await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+    page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+    for (const v of ['today', 'progress', 'roadmap', 'notes', 'news', 'setup']) {
+      await page.goto(v === 'today' ? URL : `${URL}/#${v}`, { waitUntil: 'networkidle' });
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+      await page.waitForTimeout(400);
+      const W = `${label} ${v}`;
+      const t = await page.locator('body').innerText();
+      if (/NaN|Infinity|undefined/.test(t)) fail(`${W}: NaN/undefined in page text`);
+      if (opts.viewport.width === 390) { const sw = await page.evaluate(() => document.documentElement.scrollWidth); if (sw > 390) fail(`${W}: horizontal scroll (${sw})`); }
+      checkErrors(errors, W);
+      await page.screenshot({ path: join(shots, `all-${label}-${v}.png`), fullPage: true });
+    }
+    await ctx.close();
+  }
+  // ---------- No old design tokens left outside src/components/ui ----------
+  {
+    let hits = '';
+    try { hits = execSync(`grep -rnE "c-(dsa|fe|mc|sd|beh|ai|fde|proj|ux|review|update|health)|text-(good|warn|bad)|bg-(good|warn|bad)|font-display|font-mono|catColor" src --exclude-dir=ui`, { encoding: 'utf8' }); } catch { hits = ''; }
+    if (!hits.trim()) ok('grep: no old design tokens'); else fail(`grep: old design tokens left:\n${hits}`);
   }
 } catch (e) {
   fail(`crashed: ${e.stack || e}`);

@@ -117,7 +117,7 @@ export function NoteEditor({ target, compact, className, onBack, onDeleted, focu
       {mode === 'write' ? (
         <textarea ref={ta} value={body} onChange={e => { setBody(e.target.value); save(e.target.value); }} onKeyDown={onKey} onBlur={flush} spellCheck aria-label="Note"
           placeholder={'Write a note…\n\n# Heading   - bullet   - [ ] todo   **bold**   `code`'}
-          className="min-h-48 flex-1 resize-none rounded-md border border-input bg-card p-3 font-mono text-[13px] leading-relaxed text-foreground outline-none placeholder:text-faint focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30" />
+          className="min-h-48 flex-1 resize-none rounded-md border border-input bg-card p-3 text-[13px] leading-relaxed text-foreground outline-none placeholder:text-faint focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30" />
       ) : (
         <div className="md min-h-48 flex-1 overflow-auto rounded-md border border-border p-3 text-[14px]">
           {body.trim() ? (

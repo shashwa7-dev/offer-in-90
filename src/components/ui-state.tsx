@@ -29,5 +29,3 @@ interface UI {
 }
 export const UICtx = createContext<UI | null>(null);
 export const useUI = () => { const c = useContext(UICtx); if (!c) throw new Error('UI missing'); return c; };
-
-export const catColor = (c: string) => `var(--c-${c})`;
