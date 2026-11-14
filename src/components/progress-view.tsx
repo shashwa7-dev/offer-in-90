@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useStore } from '@/lib/store';
+import { goodStreak, isSkipped, rate } from '@/lib/task-status';
 import { P, catName, dayStats, fmtDate, hrs, overall, parseISO, study } from '@/lib/engine';
 import { forecast } from '@/lib/forecast';
 import { Band, Chip, PageHeader, Row, Seg, Surface, SummaryRow } from './shell/page';
@@ -17,22 +18,27 @@ export function ProgressView() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const solved = P.DSA.filter((p: any) => done['p-' + p.slug]).length;
   const daysDone = Math.max(0, Math.min(days.length, ti));
-  const goodDays = days.filter(d => d.i < ti && dayStats(d, done, state.status).pct >= 0.8).length;
-  let streak = 0; for (let i = Math.min(ti, days.length) - 1; i >= 0; i--) { if (dayStats(days[i], done, state.status).pct >= 0.8) streak++; else break; }
-  if (ti >= 0 && ti < days.length && dayStats(days[ti], done, state.status).pct >= 0.8) streak++;
+  const stats = days.map(d => dayStats(d, done, state.status));
+  const rates = stats.map(rate); // null = nothing counted that day (all skipped): neutral
+  const goodDays = days.filter(d => d.i < ti && (rates[d.i] ?? 0) >= 0.8).length;
+  // today only extends the streak when already good; an unfinished today never breaks it
+  const todayGood = ti >= 0 && ti < days.length && (rates[ti] ?? 0) >= 0.8;
+  const streak = goodStreak(rates.slice(0, Math.max(0, Math.min(ti, days.length)))) + (todayGood ? 1 : 0);
 
   const cats = ['dsa', 'sd', 'fe', 'mc', 'proj', 'ai', 'ux', 'fde', 'beh'];
   const byCat = cats.map(c => {
     let due = 0, dn = 0, all = 0, allDone = 0;
-    days.forEach(d => d.tasks.filter(t => t.cat === c).forEach(t => { all++; if (done[t.id]) allDone++; if (d.i < ti) { due++; if (done[t.id]) dn++; } }));
+    days.forEach(d => d.tasks.filter(t => t.cat === c && !isSkipped(t.id, done, state.status)).forEach(t => { all++; if (done[t.id]) allDone++; if (d.i < ti) { due++; if (done[t.id]) dn++; } }));
     return { c, due, done: dn, all, allDone, pct: due ? dn / due : 1 };
   }).filter(x => x.all > 0).sort((a, b) => a.pct - b.pct);
 
   const past = days.filter(d => d.i < ti);
   const blockAgg: Record<string, { n: number; d: number; title: string; s: string }> = {}, dowAgg: Record<number, { n: number; p: number }> = {};
   past.forEach(d => {
-    d.blocks.forEach(b => b.tasks.filter(study).forEach(t => { const a = (blockAgg[b.k] ||= { n: 0, d: 0, title: b.title, s: b.s }); a.n++; if (done[t.id]) a.d++; }));
-    const a = (dowAgg[d.date.getDay()] ||= { n: 0, p: 0 }); a.n++; a.p += dayStats(d, done, state.status).pct;
+    d.blocks.forEach(b => b.tasks.filter(t => study(t) && !isSkipped(t.id, done, state.status)).forEach(t => { const a = (blockAgg[b.k] ||= { n: 0, d: 0, title: b.title, s: b.s }); a.n++; if (done[t.id]) a.d++; }));
+    const r = rates[d.i];
+    if (r === null) return;
+    const a = (dowAgg[d.date.getDay()] ||= { n: 0, p: 0 }); a.n++; a.p += r;
   });
   const worstBlock = Object.values(blockAgg).filter(a => a.n >= 3).sort((a, b) => a.d / a.n - b.d / b.n)[0];
   const dows = Object.entries(dowAgg).map(([k, v]) => ({ k: +k, pct: v.p / v.n })).sort((a, b) => a.pct - b.pct);
@@ -44,12 +50,11 @@ export function ProgressView() {
     if (worstBlock && worstBlock.d / worstBlock.n < 0.8) insights.push(['behind', `You skip the ${worstBlock.s} block (${worstBlock.title}) most: ${Math.round((worstBlock.d / worstBlock.n) * 100)}% done.`]);
     if (dows.length > 1 && dows[0].pct < 0.8) insights.push(['behind', `${DAY_NAMES[dows[0].k]} are your weakest day (${Math.round(dows[0].pct * 100)}% average).`]);
     if (o.behindMin > 60) insights.push(['late', `${hrs(o.behindMin)} h behind. Sunday catch-up has 2 h; add 30 min to evenings until you are even.`]);
-    const missed = past.filter(d => dayStats(d, done, state.status).pct < 0.5).length;
+    const missed = past.filter(d => (rates[d.i] ?? 1) < 0.5).length;
     if (missed) insights.push(['late', `${missed} day${missed > 1 ? 's' : ''} under 50% (marked in stone under the chart).`]);
   }
-  const stats = days.map(d => dayStats(d, done, state.status));
   const fc = forecast(days.map((d, i) => ({ no: d.no, planMin: stats[i].planMin, doneMin: stats[i].doneMin })), ti);
-  const missedDays = new Set(days.filter(d => d.i < ti && stats[d.i].pct < 0.5).map(d => d.i));
+  const missedDays = new Set(days.filter(d => d.i < ti && (rates[d.i] ?? 1) < 0.5).map(d => d.i));
   const end = days[days.length - 1].date;
   const one = (h: number) => Math.round(h * 10) / 10;
   const flagged = Object.keys(state.flags).length;

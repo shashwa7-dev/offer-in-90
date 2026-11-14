@@ -6,6 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import { bandOf } from '@/lib/timeline';
+import { isSkipped } from '@/lib/task-status';
 import { TOTAL, type Block, type Day, dayStats, dayTitle, fmtDate, hrs, overall, parseISO, study, toMin } from '@/lib/engine';
 import { Band, Chip, PageHeader, Ring, Row, Surface, SummaryRow } from './shell/page';
 import { TaskRow } from './task-row';
@@ -29,21 +30,20 @@ export function TodayView() {
   const st = dayStats(d, state.done, state.status), o = overall(days, state.done, todayIdx, state.status);
   const cur = isToday ? d.blocks.find(b => nm >= toMin(b.s) && nm < toMin(b.e)) : undefined;
   const next = isToday ? d.blocks.find(b => toMin(b.s) > nm) : undefined;
-  const resolved = (t: { id: string }) => !!state.done[t.id] || state.status[t.id] === 'skipped';
+  const resolved = (t: { id: string }) => !!state.done[t.id] || isSkipped(t.id, state.done, state.status);
   const overdue = days.filter(x => x.i < todayIdx).flatMap(x => x.tasks.filter(t => study(t) && !resolved(t) && !t.log).map(t => ({ t, day: x })));
   const unseen = updates.filter(u => !state.seenUpdates[u.id] && u.priority !== 'fyi').length;
-  const firstOpen = isToday ? (cur?.tasks.length ? cur.k : next?.k) : d.blocks.find(b => b.tasks.some(t => !state.done[t.id]))?.k;
+  const firstOpen = isToday ? (cur?.tasks.length ? cur.k : next?.k) : d.blocks.find(b => b.tasks.some(t => !resolved(t)))?.k;
   const clamp = (i: number) => Math.max(0, Math.min(days.length - 1, i));
   // Time-based status for each block: the day is in the past, today (compare with the clock), or still ahead.
   const when = viewIdx < todayIdx ? 'past' : viewIdx > todayIdx ? 'future' : 'today';
   const blockStatus = (b: Block): Status => {
     if (when === 'today' && nm >= toMin(b.s) && nm < toMin(b.e)) return 'now';
-    if (b.tasks.length && b.tasks.every(t => state.done[t.id])) return 'done';
-    if (b.tasks.length && b.tasks.every(resolved)) return 'past'; // every task done or skipped: nothing missed
+    if (b.tasks.length && b.tasks.every(resolved)) return b.tasks.some(t => state.done[t.id]) ? 'done' : 'past'; // done or skipped: nothing missed
     const ended = when === 'past' || (when === 'today' && nm >= toMin(b.e));
     return ended ? (b.tasks.length ? 'missed' : 'past') : 'upcoming';
   };
-  const pick = cur?.tasks.find(t => !state.done[t.id]);
+  const pick = cur?.tasks.find(t => !resolved(t));
   const missedHere = d.blocks.filter(b => blockStatus(b) === 'missed').reduce((a, b) => a + b.tasks.filter(t => !resolved(t)).length, 0);
 
   const showMissed = () => {
@@ -129,20 +129,22 @@ function BlockView({ d, b, bs, nm, pickId, isOpen, toggle, log, setLog }: { d: D
       {now && <span className="ml-auto shrink-0 tabular-nums">◷ {toMin(b.e) - nm} min left</span>}
     </div>
   );
-  const n = b.tasks.filter(t => state.done[t.id]).length;
+  const counted = b.tasks.filter(t => !isSkipped(t.id, state.done, state.status));
+  const n = counted.filter(t => state.done[t.id]).length;
+  const allSkipped = !counted.length;
   return (
     <>
       <Row onClick={() => toggle(!isOpen)} tone={now ? 'now' : missed ? 'stone' : undefined} aria-expanded={isOpen} className="py-1.5"
         data-block={b.k} data-now={now || undefined} data-missed={missed || undefined}>
-        <Ring done={n} total={b.tasks.length} tone={missed ? 'stone' : undefined} />
+        <Ring done={n} total={counted.length} tone={missed ? 'stone' : undefined} />
         <span className={cn('w-10 shrink-0 tabular-nums', missed ? 'text-stone-foreground' : 'text-muted-foreground')}>{b.s}</span>
-        <span className={cn('line-clamp-2 min-w-0 flex-1 font-medium leading-[18px] sm:line-clamp-1', bs === 'done' && 'text-muted-foreground')}>{b.title}</span>
+        <span className={cn('line-clamp-2 min-w-0 flex-1 font-medium leading-[18px] sm:line-clamp-1', (bs === 'done' || allSkipped) && 'text-muted-foreground')}>{b.title}</span>
         {now && <Chip>◷ {toMin(b.e) - nm} min left</Chip>}
-        <Chip className={cn(missed && 'border-stone-border bg-stone text-stone-foreground')}>{n}/{b.tasks.length}</Chip>
+        <Chip className={cn(missed && 'border-stone-border bg-stone text-stone-foreground')}>{n}/{counted.length}</Chip>
         <ChevronRight className={cn('hidden size-3.5 shrink-0 text-faint sm:block transition-transform motion-reduce:transition-none', isOpen && 'rotate-90')} aria-hidden="true" />
       </Row>
       {isOpen && <>
-        {b.tasks.map(t => <TaskRow key={t.id} t={t} dayIdx={d.i} status={missed ? 'missed' : t.id === pickId ? 'pick' : undefined} />)}
+        {b.tasks.map(t => <TaskRow key={t.id} t={t} dayIdx={d.i} status={missed && !isSkipped(t.id, state.done, state.status) && !state.done[t.id] ? 'missed' : t.id === pickId ? 'pick' : undefined} />)}
         {b.k === 'dsa' && d.type === 'study' && (d.s ?? 0) <= 60 && (
           <p className="border-t border-border py-2 pr-4 pl-11 text-[12px] text-muted-foreground">45 min max per problem. Stuck? Read the solution, understand it, flag it, write what you missed in its note.</p>
         )}

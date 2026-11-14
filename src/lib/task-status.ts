@@ -34,3 +34,24 @@ export function studyCounts(tasks: { id: string; min: number; study: boolean }[]
   }
   return { n, total, doneMin, planMin, byStatus };
 }
+
+/** Skipped and not done: left out of counts, rings and "missed". */
+export function isSkipped(id: string, done: Record<string, number>, status: StatusMap): boolean {
+  return !done[id] && status[id] === 'skipped';
+}
+
+/** Share done for a day or block; null when nothing counts (empty or all skipped), so it is neutral rather than 0%. */
+export function rate(c: { n: number; total: number }): number | null {
+  return c.total > 0 ? c.n / c.total : null;
+}
+
+/** Consecutive good days ending at the newest one. Neutral (null) days are skipped, a weak day ends the run. */
+export function goodStreak(rates: (number | null)[], good = 0.8): number {
+  let k = 0;
+  for (let i = rates.length - 1; i >= 0; i--) {
+    const r = rates[i];
+    if (r === null) continue;
+    if (r >= good) k++; else break;
+  }
+  return k;
+}
