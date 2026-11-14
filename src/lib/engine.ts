@@ -1,6 +1,7 @@
 /* Builds the 91-day plan from the curriculum, computes hours/progress, and applies the update feed. */
 import { PLAN } from './plan-data';
 import { WEEKDAY_BLOCKS, SUNDAY_BLOCKS } from './schedule';
+import { studyCounts, type StatusMap } from './task-status';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const P: any = PLAN;
@@ -214,14 +215,13 @@ function applyUpdates(days: Day[], updates: UpdateItem[]) {
 
 // ---------- metrics ----------
 export const study = (t: Task) => t.cat !== 'health';
-export function dayStats(d: Day, done: Record<string, number>) {
-  const ts = d.tasks.filter(study); let n = 0, m = 0, M = 0;
-  ts.forEach(t => { M += t.min; if (done[t.id]) { n++; m += t.min; } });
-  return { n, total: ts.length, pct: ts.length ? n / ts.length : 0, doneMin: m, planMin: M };
+export function dayStats(d: Day, done: Record<string, number>, status: StatusMap = {}) {
+  const c = studyCounts(d.tasks.map(t => ({ id: t.id, min: t.min, study: study(t) })), done, status);
+  return { ...c, pct: c.total ? c.n / c.total : 0 };
 }
-export function overall(days: Day[], done: Record<string, number>, ti: number) {
+export function overall(days: Day[], done: Record<string, number>, ti: number, marks: StatusMap = {}) {
   let planAll = 0, doneAll = 0, duePlan = 0, dueDone = 0;
-  days.forEach(d => { const st = dayStats(d, done); planAll += st.planMin; doneAll += st.doneMin; if (d.i < ti) { duePlan += st.planMin; dueDone += st.doneMin; } });
+  days.forEach(d => { const st = dayStats(d, done, marks); planAll += st.planMin; doneAll += st.doneMin; if (d.i < ti) { duePlan += st.planMin; dueDone += st.doneMin; } });
   const behindMin = duePlan - dueDone;
   const status: ['ok' | 'behind' | 'late', string] = ti <= 0 || duePlan === 0 || behindMin <= 60 ? ['ok', 'On track'] : behindMin <= 480 ? ['behind', `${hrs(behindMin)} h behind`] : ['late', `${hrs(behindMin)} h behind`];
   return { planAll, doneAll, leftAll: planAll - doneAll, behindMin, status, daysLeft: Math.max(0, Math.min(TOTAL, days.length - Math.max(0, ti))) };

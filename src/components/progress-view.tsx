@@ -13,13 +13,13 @@ export function ProgressView() {
   const { state, days, todayIdx: ti } = useStore();
   const { openDay } = useUI();
   const [range, setRange] = useState<ChartRange>('month');
-  const done = state.done, o = overall(days, done, ti);
+  const done = state.done, o = overall(days, done, ti, state.status);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const solved = P.DSA.filter((p: any) => done['p-' + p.slug]).length;
   const daysDone = Math.max(0, Math.min(days.length, ti));
-  const goodDays = days.filter(d => d.i < ti && dayStats(d, done).pct >= 0.8).length;
-  let streak = 0; for (let i = Math.min(ti, days.length) - 1; i >= 0; i--) { if (dayStats(days[i], done).pct >= 0.8) streak++; else break; }
-  if (ti >= 0 && ti < days.length && dayStats(days[ti], done).pct >= 0.8) streak++;
+  const goodDays = days.filter(d => d.i < ti && dayStats(d, done, state.status).pct >= 0.8).length;
+  let streak = 0; for (let i = Math.min(ti, days.length) - 1; i >= 0; i--) { if (dayStats(days[i], done, state.status).pct >= 0.8) streak++; else break; }
+  if (ti >= 0 && ti < days.length && dayStats(days[ti], done, state.status).pct >= 0.8) streak++;
 
   const cats = ['dsa', 'sd', 'fe', 'mc', 'proj', 'ai', 'ux', 'fde', 'beh'];
   const byCat = cats.map(c => {
@@ -32,7 +32,7 @@ export function ProgressView() {
   const blockAgg: Record<string, { n: number; d: number; title: string; s: string }> = {}, dowAgg: Record<number, { n: number; p: number }> = {};
   past.forEach(d => {
     d.blocks.forEach(b => b.tasks.filter(study).forEach(t => { const a = (blockAgg[b.k] ||= { n: 0, d: 0, title: b.title, s: b.s }); a.n++; if (done[t.id]) a.d++; }));
-    const a = (dowAgg[d.date.getDay()] ||= { n: 0, p: 0 }); a.n++; a.p += dayStats(d, done).pct;
+    const a = (dowAgg[d.date.getDay()] ||= { n: 0, p: 0 }); a.n++; a.p += dayStats(d, done, state.status).pct;
   });
   const worstBlock = Object.values(blockAgg).filter(a => a.n >= 3).sort((a, b) => a.d / a.n - b.d / b.n)[0];
   const dows = Object.entries(dowAgg).map(([k, v]) => ({ k: +k, pct: v.p / v.n })).sort((a, b) => a.pct - b.pct);
@@ -44,10 +44,10 @@ export function ProgressView() {
     if (worstBlock && worstBlock.d / worstBlock.n < 0.8) insights.push(['behind', `You skip the ${worstBlock.s} block (${worstBlock.title}) most: ${Math.round((worstBlock.d / worstBlock.n) * 100)}% done.`]);
     if (dows.length > 1 && dows[0].pct < 0.8) insights.push(['behind', `${DAY_NAMES[dows[0].k]} are your weakest day (${Math.round(dows[0].pct * 100)}% average).`]);
     if (o.behindMin > 60) insights.push(['late', `${hrs(o.behindMin)} h behind. Sunday catch-up has 2 h; add 30 min to evenings until you are even.`]);
-    const missed = past.filter(d => dayStats(d, done).pct < 0.5).length;
+    const missed = past.filter(d => dayStats(d, done, state.status).pct < 0.5).length;
     if (missed) insights.push(['late', `${missed} day${missed > 1 ? 's' : ''} under 50% (marked in stone under the chart).`]);
   }
-  const stats = days.map(d => dayStats(d, done));
+  const stats = days.map(d => dayStats(d, done, state.status));
   const fc = forecast(days.map((d, i) => ({ no: d.no, planMin: stats[i].planMin, doneMin: stats[i].doneMin })), ti);
   const missedDays = new Set(days.filter(d => d.i < ti && stats[d.i].pct < 0.5).map(d => d.i));
   const end = days[days.length - 1].date;

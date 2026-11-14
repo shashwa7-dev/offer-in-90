@@ -3,6 +3,7 @@
 import { Fragment } from 'react';
 import { useStore } from '@/lib/store';
 import { P, aiUnitOf, study, type Day } from '@/lib/engine';
+import type { StatusMap } from '@/lib/task-status';
 import { STAGES, TRACKS, type TrackKey } from '@/lib/timeline';
 import { Band, Chip, Ring, Row } from './shell/page';
 import { PHASE_SPANS } from './roadmap-timeline';
@@ -30,7 +31,7 @@ export function weekSummary(days: Day[], w: number): string[] {
 }
 
 /** Done/total per track for one week's days, matched the same way as the Timeline stages. */
-function trackCounts(ds: Day[], done: Record<string, number>) {
+function trackCounts(ds: Day[], done: Record<string, number>, status: StatusMap) {
   const c = Object.fromEntries(TRACKS.map(t => [t.key, { d: 0, t: 0 }])) as Record<TrackKey, { d: number; t: number }>;
   for (const d of ds) {
     if (d.s == null) continue;
@@ -38,6 +39,7 @@ function trackCounts(ds: Day[], done: Record<string, number>) {
       if (t.own || t.id.endsWith('-news')) continue;
       const st = STAGES.find(x => x.match(t, d.s as number));
       if (!st) continue;
+      if (status[t.id] === 'skipped' && !done[t.id]) continue;
       c[st.track].t++;
       if (done[t.id]) c[st.track].d++;
     }
@@ -61,13 +63,13 @@ export function RoadmapWeeks() {
               {weeks.map(w => {
                 const ds = days.filter(d => d.week === w);
                 if (!ds.length) return null;
-                const tasks = ds.flatMap(d => d.tasks.filter(study));
+                const tasks = ds.flatMap(d => d.tasks.filter(study)).filter(t => state.status[t.id] !== 'skipped' || state.done[t.id]);
                 const n = tasks.filter(t => state.done[t.id]).length, total = tasks.length;
                 const share = total ? n / total : 0;
                 const now = today?.week === w;
                 const [head, ...rest] = weekSummary(days, w);
                 const first = ds.find(d => d.type !== 'kick') ?? ds[0];
-                const counts = now ? trackCounts(ds, state.done) : null;
+                const counts = now ? trackCounts(ds, state.done, state.status) : null;
                 return (
                   <Fragment key={w}>
                     <Row tone={now ? 'now' : undefined} onClick={() => openDay(first.i)} data-week={w}

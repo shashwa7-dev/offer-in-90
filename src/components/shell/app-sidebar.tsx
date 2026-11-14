@@ -4,6 +4,7 @@ import { CalendarCheck2, ChartLine, Map as MapIcon, Newspaper, NotebookPen, Plus
 import { cn } from '@/lib/utils';
 import { useStore, type State } from '@/lib/store';
 import { overall, TOTAL, type Day, type NewsFeed } from '@/lib/engine';
+import type { StatusMap } from '@/lib/task-status';
 import type { ThreadsFeed } from '@/lib/interview-feed';
 import { useUI, type View } from '@/components/ui-state';
 import {
@@ -37,12 +38,12 @@ export function newsUnread(state: Pick<State, 'seenUpdates'>, news: NewsFeed | n
 }
 
 /** "Day N of 91 · on track", "prep day", "starts in Nd" or "complete". */
-export function statusLine(days: Day[], todayIdx: number, done: Record<string, number>): string {
+export function statusLine(days: Day[], todayIdx: number, done: Record<string, number>, status: StatusMap = {}): string {
   if (todayIdx < 0) return `starts in ${-todayIdx}d`;
   if (todayIdx >= days.length) return 'complete';
   const d = days[todayIdx];
   if (d.no === 0) return 'prep day';
-  const [k, label] = overall(days, done, todayIdx).status;
+  const [k, label] = overall(days, done, todayIdx, status).status;
   return `Day ${d.no} of ${TOTAL} · ${k === 'ok' ? 'on track' : label}`;
 }
 
@@ -76,7 +77,7 @@ export function AppSidebar() {
           <span className="grid size-8 shrink-0 place-items-center rounded-md bg-primary text-[13px] font-semibold text-primary-foreground tabular-nums">90</span>
           <div className="min-w-0 leading-tight group-data-[collapsible=icon]:hidden">
             <div className="truncate text-[14px] font-semibold">Offer in 90</div>
-            <div className="truncate text-[12px] text-muted-foreground tabular-nums" data-shell="status">{statusLine(days, todayIdx, state.done)}</div>
+            <div className="truncate text-[12px] text-muted-foreground tabular-nums" data-shell="status">{statusLine(days, todayIdx, state.done, state.status)}</div>
           </div>
         </div>
       </SidebarHeader>

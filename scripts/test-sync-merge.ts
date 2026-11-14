@@ -65,4 +65,13 @@ assert.deepEqual(merge(tPhone, tLaptop).targets, ['Amazon']);
 assert.deepEqual(merge(base as typeof tBase, tBase).targets, ['Google']);
 assert.deepEqual(merge(tBase, base as typeof tBase).targets, ['Google']);
 
-console.log('sync-merge: all 10 scenarios pass');
+// 11. Task status map syncs per item; an old state without `status` keeps the other side's
+const stBase = { ...base, status: {} as Record<string, string> };
+const stPhone = stamp(stBase, { ...stBase, status: { a: 'progress' } }, 8000);
+const oldState = { ...base } as typeof stBase; // saved before statuses existed
+assert.deepEqual(merge(oldState, stPhone).status, { a: 'progress' });
+assert.deepEqual(merge(stPhone, oldState).status, { a: 'progress' });
+const cleared = stamp(stPhone, { ...stPhone, status: {} }, 9000);
+assert.deepEqual(merge(stPhone, cleared).status, {});
+
+console.log('sync-merge: all 11 scenarios pass');

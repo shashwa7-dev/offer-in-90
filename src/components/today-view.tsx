@@ -26,10 +26,11 @@ export function TodayView() {
   const d = days[viewIdx];
   if (!d) return null;
   const isToday = viewIdx === todayIdx;
-  const st = dayStats(d, state.done), o = overall(days, state.done, todayIdx);
+  const st = dayStats(d, state.done, state.status), o = overall(days, state.done, todayIdx, state.status);
   const cur = isToday ? d.blocks.find(b => nm >= toMin(b.s) && nm < toMin(b.e)) : undefined;
   const next = isToday ? d.blocks.find(b => toMin(b.s) > nm) : undefined;
-  const overdue = days.filter(x => x.i < todayIdx).flatMap(x => x.tasks.filter(t => study(t) && !state.done[t.id] && !t.log).map(t => ({ t, day: x })));
+  const resolved = (t: { id: string }) => !!state.done[t.id] || state.status[t.id] === 'skipped';
+  const overdue = days.filter(x => x.i < todayIdx).flatMap(x => x.tasks.filter(t => study(t) && !resolved(t) && !t.log).map(t => ({ t, day: x })));
   const unseen = updates.filter(u => !state.seenUpdates[u.id] && u.priority !== 'fyi').length;
   const firstOpen = isToday ? (cur?.tasks.length ? cur.k : next?.k) : d.blocks.find(b => b.tasks.some(t => !state.done[t.id]))?.k;
   const clamp = (i: number) => Math.max(0, Math.min(days.length - 1, i));
@@ -38,11 +39,12 @@ export function TodayView() {
   const blockStatus = (b: Block): Status => {
     if (when === 'today' && nm >= toMin(b.s) && nm < toMin(b.e)) return 'now';
     if (b.tasks.length && b.tasks.every(t => state.done[t.id])) return 'done';
+    if (b.tasks.length && b.tasks.every(resolved)) return 'past'; // every task done or skipped: nothing missed
     const ended = when === 'past' || (when === 'today' && nm >= toMin(b.e));
     return ended ? (b.tasks.length ? 'missed' : 'past') : 'upcoming';
   };
   const pick = cur?.tasks.find(t => !state.done[t.id]);
-  const missedHere = d.blocks.filter(b => blockStatus(b) === 'missed').reduce((a, b) => a + b.tasks.filter(t => !state.done[t.id]).length, 0);
+  const missedHere = d.blocks.filter(b => blockStatus(b) === 'missed').reduce((a, b) => a + b.tasks.filter(t => !resolved(t)).length, 0);
 
   const showMissed = () => {
     setMissedOpen(true);
