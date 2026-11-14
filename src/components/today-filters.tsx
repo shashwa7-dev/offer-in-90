@@ -122,7 +122,7 @@ export function TodayFilters({ value, onChange, counts, blocks }: { value: Today
               className={cn(pillBase, on ? 'border-input bg-card text-foreground shadow-[0_1px_0_var(--border)]' : 'border-transparent text-muted-foreground hover:bg-hover hover:text-foreground')}>
               {k !== 'all' && <StatusIcon status={k} size={14} />}
               {/* In a narrow list, inactive pills show icon and count only. */}
-              <span className={cn(!on && k !== 'all' && '@max-lg:sr-only')}>{k === 'all' ? 'All' : STATUS_LABEL[k]}</span>
+              <span className={cn(!on && k !== 'all' && '@max-md:sr-only')}>{k === 'all' ? 'All' : STATUS_LABEL[k]}</span>
               <span className="font-normal text-faint tabular-nums">{counts[k]}</span>
             </button>
           );

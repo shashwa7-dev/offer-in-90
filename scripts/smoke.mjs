@@ -282,9 +282,23 @@ try {
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
     const chip = bar.locator('[data-filter-chip="tracks"]');
     if (/Track is DSA/.test(await chip.innerText().catch(() => ''))) ok(`${W}: Track chip shown`); else fail(`${W}: Track chip missing`);
+    const nLink = await page.getByRole('button', { name: /missed earlier/ }).innerText().catch(() => '');
+    const nBand = await page.locator('[data-band="missed-earlier"]').innerText().then(t => (t.match(/(\d+)/) || [])[1]).catch(() => null);
+    if (new RegExp(`\\(${nBand} shown\\)`).test(nLink)) ok(`${W}: notice shows the filtered count (${nLink})`); else fail(`${W}: notice "${nLink}" vs band ${nBand}`);
     if (await page.locator('[data-block="dsa"]').count() && !(await page.locator('[data-block="review"], [data-block="workout"]').count())) ok(`${W}: non-DSA blocks hidden`); else fail(`${W}: block visibility wrong under Track=DSA`);
     await load(true);
     if (/Track is DSA/.test(await chip.innerText().catch(() => ''))) ok(`${W}: filter kept after reload`); else fail(`${W}: filter lost on reload`);
+    if (width === 1100) {
+      // a saved block that isn't on the viewed day: labelled, listed, and can be unticked
+      await page.evaluate(() => { const v = JSON.parse(localStorage.getItem('offer90.todayFilter')); v.filter.blocks = ['zz-gone']; localStorage.setItem('offer90.todayFilter', JSON.stringify(v)); });
+      await load(true);
+      const bchip = bar.locator('[data-filter-chip="blocks"]');
+      if (/Block is zz-gone \(not on this day\)/.test(await bchip.innerText().catch(() => ''))) ok(`${W}: stale block chip labelled`); else fail(`${W}: stale block chip reads "${await bchip.innerText().catch(() => '')}"`);
+      await bchip.getByRole('button', { name: /^Change/ }).click(); await page.waitForTimeout(200);
+      await page.getByRole('option', { name: /zz-gone \(not on this day\)/ }).click(); await page.waitForTimeout(200);
+      await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+      if (await bchip.count()) fail(`${W}: stale block could not be unticked`); else ok(`${W}: stale block unticked from its list`);
+    }
     await page.screenshot({ path: join(shots, `filters-${width}-filtered.png`), fullPage: true });
     const sw = async label => { if (width !== 390) return; const v = await page.evaluate(() => document.documentElement.scrollWidth); if (v > 390) fail(`${W} ${label}: horizontal scroll (${v})`); else ok(`${W} ${label}: scrollWidth ${v}`); };
     await sw('filtered');
@@ -296,6 +310,7 @@ try {
     const doneBand = page.locator('[data-band="status-done"]');
     if (await doneBand.isVisible().catch(() => false) && await doneBand.locator(`[data-task="${doneId}"]`).count()) ok(`${W}: Status grouping renders a Done band`); else fail(`${W}: no Done band with ${doneId}`);
     if (await page.locator('[data-now]').count()) fail(`${W}: data-now row in Status grouping`); else ok(`${W}: no now row in Status grouping`);
+    if (await page.locator('[data-band="status-progress"] [data-task]').getByText('In progress', { exact: true }).count()) fail(`${W}: In progress chip repeated in Status grouping`); else ok(`${W}: no per-row status chip in Status grouping`);
     if (width === 1100 && !(await bar.getByText('Grouped by status').isVisible().catch(() => false))) fail(`${W}: "Grouped by status" not shown`);
     await page.screenshot({ path: join(shots, `filters-${width}-status.png`), fullPage: true });
     await sw('status');
@@ -308,9 +323,16 @@ try {
     if ((await page.locator('[data-now]').count()) === 1) ok(`${W}: clearing returns the now row`); else fail(`${W}: now row count ${await page.locator('[data-now]').count()} after clearing`);
     // layout: list and right column
     const boxes = await page.evaluate(() => { const r = s => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width, bottom: b.bottom }; }; return { list: r('[data-today-list]'), rail: r('[data-rail]') }; });
+    if (boxes.list && boxes.rail && boxes.rail.y >= boxes.list.bottom - 1) ok(`${W}: right column stacked below`); else fail(`${W}: layout ${JSON.stringify(boxes)}`);
     if (width === 1100) {
-      if (boxes.list && boxes.rail && boxes.rail.x >= boxes.list.x + boxes.list.w - 1 && Math.abs(boxes.rail.y - boxes.list.y) < 2) ok(`${W}: list and right column side by side`); else fail(`${W}: layout ${JSON.stringify(boxes)}`);
-    } else if (boxes.list && (!boxes.rail || boxes.rail.y >= boxes.list.bottom - 1)) ok(`${W}: right column stacked below`); else fail(`${W}: layout ${JSON.stringify(boxes)}`);
+      const labels = await bar.locator('[data-pill]').evaluateAll(els => els.every(e => [...e.querySelectorAll('span')].some(sp => /[A-Za-z]/.test(sp.textContent) && sp.getBoundingClientRect().width > 8)));
+      if (labels) ok(`${W}: pill labels visible`); else fail(`${W}: pills are icon-only at 1100`);
+      // wide screen: list and right column side by side
+      await page.setViewportSize({ width: 1440, height: 900 }); await page.waitForTimeout(400);
+      const wide = await page.evaluate(() => { const r = s => { const b = document.querySelector(s).getBoundingClientRect(); return { x: b.x, y: b.y, w: b.width }; }; return { list: r('[data-today-list]'), rail: r('[data-rail]') }; });
+      if (wide.rail.x >= wide.list.x + wide.list.w - 1 && Math.abs(wide.rail.y - wide.list.y) < 2) ok('filters 1440: list and right column side by side'); else fail(`filters 1440: layout ${JSON.stringify(wide)}`);
+      await page.screenshot({ path: join(shots, 'filters-1440.png'), fullPage: true });
+    }
     await sw('cleared');
     checkErrors(errors, W);
     await ctx.close();

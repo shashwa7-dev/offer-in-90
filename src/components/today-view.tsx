@@ -58,6 +58,11 @@ export function TodayView() {
   const dayTasks = d.blocks.flatMap(b => b.tasks.map(t => ({ t, b })));
   const counts = statusCounts(dayTasks.filter(x => matches(x.t, x.b.k, { ...filter, status: 'all' }, state.done, state.status)).map(x => x.t), state.done, state.status);
   const blockOpts = d.blocks.filter(b => b.tasks.length).map(b => ({ k: b.k, title: `${b.s} ${b.title}` }));
+  // A saved block that isn't on this day stays listed (so it can be unticked), labelled from any day that has it.
+  for (const k of filter.blocks) if (!blockOpts.some(o => o.k === k)) {
+    const any = days.flatMap(x => x.blocks).find(b => b.k === k);
+    blockOpts.push({ k, title: `${any ? `${any.s} ${any.title}` : k} (not on this day)` });
+  }
   const shownOverdue = active ? overdue.filter(x => hit(x.t, x.bk)) : overdue;
   const shownTasks = dayTasks.filter(x => hit(x.t, x.b.k));
   const empty = active && !shownTasks.length && !shownOverdue.length;
@@ -93,7 +98,7 @@ export function TodayView() {
         </>}
       />
 
-      <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_300px] lg:items-start lg:gap-6">
+      <div className="xl:grid xl:grid-cols-[minmax(0,1fr)_300px] xl:items-start xl:gap-6">
       <div data-today-list className="min-w-0">
       <Surface>
         <SummaryRow ring={{ pct: st.planMin ? st.doneMin / st.planMin : 0, label: dayTitle(d) }} items={items} />
@@ -101,7 +106,7 @@ export function TodayView() {
           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-border px-4 py-2.5 text-[13px] text-muted-foreground" data-notice>
             {unseen > 0 && <button type="button" onClick={() => { setRoadmapTab('reference'); setOpenChanges(true); go('roadmap'); }} className="rounded-[5px] font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">{unseen} plan update{unseen > 1 ? 's' : ''}</button>}
             {unseen > 0 && overdue.length > 0 && <span aria-hidden="true">·</span>}
-            {overdue.length > 0 && <button type="button" onClick={showMissed} className="rounded-[5px] font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">{overdue.length} missed earlier</button>}
+            {overdue.length > 0 && <button type="button" onClick={showMissed} className="rounded-[5px] font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">{overdue.length} missed earlier{active && shownOverdue.length !== overdue.length ? ` (${shownOverdue.length} shown)` : ''}</button>}
             {overdue.length > 0 && <span>· {hrs(overdue.reduce((a, x) => a + x.t.min, 0))} h. Clear them in Sunday&apos;s catch-up block.</span>}
           </div>
         )}
@@ -121,7 +126,7 @@ export function TodayView() {
           )}
           {groups.map(g => !!g.rows.length && (
             <Band key={g.key} id={g.key} title={g.title} icon={g.icon} count={g.rows.length}>
-              {g.rows.map(({ t, b }) => <TaskRow key={t.id} t={t} dayIdx={d.i} chip={`${b.s} ${b.title}`} status={rowStatus(t, b)} />)}
+              {g.rows.map(({ t, b }) => <TaskRow key={t.id} t={t} dayIdx={d.i} chip={`${b.s} ${b.title}`} status={rowStatus(t, b)} noStatusChip={groupBy === 'status'} />)}
             </Band>
           ))}
           {groupBy === 'time' && BANDS.map(([key, label]) => {
