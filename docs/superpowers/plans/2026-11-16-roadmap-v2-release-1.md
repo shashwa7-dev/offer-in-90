@@ -1,0 +1,484 @@
+# Roadmap v2 · Release 1 Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** Ship Release 1 of roadmap v2, so the owner can start the plan on it. That means:
+- the full v2 curriculum with content-based IDs;
+- Steady and Grind modes;
+- the new weekday and Sunday layout;
+- DSA by pattern (tiers, flags, unseen logging, own problems);
+- custom labels;
+- plain working screens for each.
+
+**Architecture:**
+- **Curriculum data:** moves from one big `plan-data.js` into focused content files under `src/lib/content/`. Every item gets an explicit `id`.
+- **Pure modules, unit-tested with `node --experimental-strip-types`:**
+  - `tracks.ts` turns content into ordered **track sequences**, one per block. In Grind they're 78 slots each, and the Grind weekday rules are baked into the order.
+  - `layout.ts` maps those sequences onto calendar days per mode (Grind: one slot per study day; Steady: a rotation).
+  - `labels.ts`, `patterns.ts` and `modes.ts` hold the other rules.
+- **Glue:** `engine.ts` becomes thin glue that turns the layout into `Day[]`. Components get plain screens.
+
+**Tech Stack:** Next.js 15 static export, React 19, TypeScript, Tailwind 4, shadcn/ui. Tests: plain `node:assert` scripts in `scripts/test-*.ts`, run by `npm test`. Smoke: Playwright, `scripts/smoke.mjs`.
+
+**Spec:** `docs/superpowers/specs/2026-11-15-roadmap-v2-content-design.md`. Read it first. Section numbers (§N) below refer to it.
+
+## Global Constraints
+
+- **Week numbers** in the spec are Grind weeks. The Steady mapping is round(w × 17/13) (§14).
+- **Grind:** 13 weeks, 78 study days, 13 Sundays. **Steady (the default):** 17 weeks, 102 study days, 17 Sundays. Each track has exactly **78 slots** in both modes (§14).
+- **The prep day** is day 0, the Sunday before `start`. `start` is always a Monday (§10, §20).
+- **IDs** are content-based and never position-based (Constraints). Problems keep `p-<slug>`.
+- **No noise** (§19, anti-goals):
+  - one link per task;
+  - optional pools and stretch lists never appear in the daily plan;
+  - the daily quiz is a Release 2 task, not in R1.
+- **Grind weekday rules apply only in Grind.** Steady keeps each track's sequence order (§14).
+- **Nothing is cut or shortened.** An hour-long item in the 30-minute AI-build slot takes 2 consecutive slots (§8).
+- **Labels:** groups are single- or multi-choice; system labels are read-only; deleting a label removes it from every item (§12).
+- **Tests and smoke runs are silent:** the smoke test launches Chromium with `--mute-audio`, and no test may play sound.
+- **Personal use:** content may be copied from public sources; each item keeps its source URL.
+- **Tests import `.ts` files by explicit path** (e.g. `../src/lib/labels.ts`). Pure modules must have **no extensionless runtime imports** (see the comment in `task-filter.ts`).
+
+## Review Focus
+
+1. **Changing `start` after ticking tasks.** Content ticks (`fe:closures`, `p-two-sum`) must stay ticked, since IDs aren't positions. → test in Task 6.
+2. **Switching mode more than once, including twice on the same day.** The latest entry wins, and no track item appears twice or goes missing. → test in Task 6.
+3. **A device on the old v5 state syncing with an R1 device.** Missing new maps default to empty, and merge keeps the new maps from both sides. → test in Task 1.
+4. **An owner label that duplicates a system label name, or deleting a label inside a single-choice group.** Duplicates are rejected, and deletion removes the label everywhere and leaves the group intact. → test in Task 2.
+5. **An own problem whose URL is already a plan problem.** It's stored once, by slug, and counts towards green once. → test in Task 3.
+
+---
+
+### Task 1: State v6, new synced maps, normalize
+
+**Files:**
+- Modify: `src/lib/store.tsx` (`State`, `fresh`, `normalize`, version `v: 6`).
+- Modify: `src/lib/sync-merge.ts` (`MAPS`, `SCALARS`).
+- Test: `scripts/test-sync-merge.ts` (append).
+
+**Interfaces:**
+- Produces, in `State`:
+  - `modes: Record<string /*ISO date*/, ModeEntry>`;
+  - `labels: Record<string, OwnerLabel>` (owner labels and groups);
+  - `itemLabels: Record<string /*item id*/, string[] /*label ids*/>`;
+  - `own: Record<string /*slug*/, OwnProblem>`;
+  - `solves: Record<string /*problem id*/, SolveLog>`;
+  - `sundayMode: Record<string /*ISO date*/, 'rest' | 'revision'>`;
+  - `scores: Record<string /*e.g. 'baseline/dsa', 'w3/fe'*/, number /*0–100*/>`.
+- The types live in `src/lib/state-types.ts` (pure, no imports):
+  - `ModeEntry = { mode: 'steady' | 'grind'; cursors: Record<TrackId, number> }`;
+  - `OwnerLabel = { id: string; name: string; color: string; group?: string; kind: 'label' | 'group'; single?: boolean }`;
+  - `OwnProblem = { slug: string; url: string; name: string; diff: 'E' | 'M' | 'H'; pattern: PatternId; at: number }`;
+  - `SolveLog = { unseen: boolean; minutes?: number; at: number }`;
+  - `TrackId = 'dsa' | 'aib' | 'fe' | 'mc' | 'sd' | 'jt' | 'beh' | 'ai'`.
+- `MAPS` gains `'modes', 'labels', 'itemLabels', 'own', 'solves', 'sundayMode', 'scores'`.
+
+- [ ] **Step 1: Write the failing tests** in `scripts/test-sync-merge.ts`:
+  - `merge(v5doc, r1doc)` keeps r1's `labels`, `itemLabels` and `modes`, and fills empty objects for the v5 side.
+  - `stamp` records `meta['labels/<id>']` when a label is renamed.
+  - A deleted label (tombstone) wins over an older remote copy.
+- [ ] **Step 2: Run** `npm test`. Expected: FAIL. The new maps aren't merged.
+- [ ] **Step 3: Implement.**
+  - Add the types to `state-types.ts`, and the new maps to `MAPS`.
+  - In `fresh()` and `normalize()`, default each new map to `{}`. `normalize` keeps old v5 fields and sets `v: 6`.
+  - Keep `kickoff` in `SCALARS`: it's still the prep-day toggle.
+- [ ] **Step 4: Run** `npm test`. Expected: all PASS.
+- [ ] **Step 5: Commit** `feat(state): v6 maps for modes, labels, own problems, solves, sundays, scores`.
+
+### Task 2: Labels core (pure)
+
+**Files:**
+- Create: `src/lib/labels.ts`.
+- Test: `scripts/test-labels.ts`.
+
+**Interfaces:**
+- Consumes: `OwnerLabel` (Task 1). `TaskMeta = { id: string; own?: string; pattern?: PatternId; tier?: 'must' | 'optional'; flags?: ('hot' | 'hard-hot')[]; depth?: boolean; flagged?: boolean }`.
+- Produces:
+  - `SYSTEM_GROUPS`: `pattern` (single), `tier` (single), `frequency` (multi), `source` (single), `status-flag` (multi), `depth` (multi).
+  - `systemLabelsFor(t: TaskMeta): string[]`. Returns IDs like `sys:pattern:sliding-window`, `sys:tier:must`, `sys:freq:hot`, `sys:freq:hard-hot`, `sys:source:yours` / `sys:source:plan`, `sys:flagged`, `sys:depth`.
+  - `createLabel(labels, input: { name: string; color: string; group?: string }): { labels: Record<string, OwnerLabel>; id: string } | { error: 'duplicate' | 'empty' }`. Names are compared case-insensitively against owner and system labels.
+  - `createGroup(labels, { name, single: boolean })`.
+  - `renameLabel`, `recolorLabel`.
+  - `deleteLabel(state: { labels; itemLabels }, id): { labels; itemLabels }`. Deleting a group deletes its labels.
+  - `applyLabel(state, itemId, labelId)`. In a single-choice group it replaces the item's other label from that group.
+  - `removeLabel(state, itemId, labelId)`.
+  - `labelsOf(itemLabels, t: TaskMeta): string[]`: owner labels plus system labels.
+
+- [ ] **Step 1: Write the failing tests** in `scripts/test-labels.ts`:
+  - Create "Weak", then create "weak". Expect `{ error: 'duplicate' }`.
+  - Create "Pattern". Expect duplicate (it clashes with a system group name).
+  - Create single-choice group "Company" with "Razorpay" and "Swiggy". Apply Razorpay, then Swiggy, to `p-two-sum`. `itemLabels['p-two-sum']` equals `[swiggyId]`.
+  - In a multi-choice group, both labels are kept.
+  - `deleteLabel(razorpay)` removes it from every item. The group remains.
+  - `deleteLabel(group)` removes the group, its labels, and their uses.
+  - `systemLabelsFor({ id: 'u-1', own: '1' })` includes `sys:source:yours`.
+  - For `{ id: 'p-x', pattern: 'two-pointers', tier: 'must', flags: ['hot'] }` it includes `sys:pattern:two-pointers`, `sys:tier:must` and `sys:freq:hot`.
+  - A system label ID passed to `applyLabel` is ignored and returns the state unchanged.
+- [ ] **Step 2: Run** `node --experimental-strip-types scripts/test-labels.ts`. Expected: FAIL (module missing).
+- [ ] **Step 3: Implement** `src/lib/labels.ts`. Pure, no imports. Owner IDs are `lb-<base36 time><rand>`.
+- [ ] **Step 4: Run** `npm test`. Expected: PASS.
+- [ ] **Step 5: Commit** `feat(labels): owner labels, groups, system labels`.
+
+### Task 3: Patterns, problems dataset, green (pure + data)
+
+**Files:**
+- Create: `src/lib/content/dsa.js` (data).
+- Create: `src/lib/patterns.ts` (logic).
+- Test: `scripts/test-patterns.ts`.
+
+**Interfaces:**
+- **`dsa.js` exports:**
+  - `PATTERNS`: 24 entries in teaching order (§2). Each is `{ id: PatternId, name, topic, signal, template, why, complexity, traps: string[], notWhen, link, sub?: string[] }`. DP has `sub: ['fibonacci', '0-1-knapsack', 'unbounded-knapsack', 'lcs-strings', 'palindromes', 'grid']`.
+  - `PROBLEMS: { slug, name, d: 'E' | 'M' | 'H', pattern: PatternId, sub?, tier: 'must' | 'optional', role?: 'teach' | 'var' | 'unseen', flags: ('hot' | 'hard-hot')[], url, premium? }[]`.
+  - `FLAG_SOURCE = { name: 'liquidslr/leetcode-company-wise-problems', asOf: '2025-10' }`.
+  - `ADV_DSA` (moved from plan-data).
+- **`patterns.ts` exports:**
+  - `PatternId` (a union of the 24 IDs, kebab-case of the §2 names, e.g. `hash-map`, `prefix-sum`, `two-pointers`, `sliding-window`, `stack-monotonic`, `binary-search`, `cyclic-sort`, `fast-slow`, `ll-reversal`, `tree-bfs`, `tree-dfs`, `trie`, `top-k`, `two-heaps`, `k-way-merge`, `backtracking`, `graph-traversal`, `topo-sort`, `union-find`, `shortest-path-mst`, `intervals`, `greedy`, `dp`, `bits`).
+  - `addOwnProblem(own, plan: { slug }[], input: { url; name; diff; pattern }): { own } | { error: 'not-leetcode' | 'in-plan' }`. The slug is parsed from `leetcode.com/problems/<slug>`. `in-plan` means the plan already has this slug; the UI then offers to label that plan problem instead.
+  - `greenStatus(pattern, problems, own, solves, now: number): { unseenSolved: number; blankResolve: boolean; green: boolean; unseenCheckPassed: boolean }`.
+    - An unseen solve counts if `solves[id].unseen` and `minutes ≤ limit` (E 15, M 25, H 40), or if `minutes` is missing (the owner self-declared it in time).
+    - **Green** = unseenSolved ≥ 2 **and** a non-unseen re-solve log (`solves['rs:<slug>']`) at least 7 days after that problem's first solve.
+    - `unseenCheckPassed` = the problem with `role: 'unseen'` for this pattern has a qualifying unseen solve.
+
+- [ ] **Step 1: Write the failing tests** in `scripts/test-patterns.ts`. They import `../src/lib/content/dsa.js` and `../src/lib/patterns.ts`.
+  - **Pattern list:**
+    - `PATTERNS.length === 24`, with IDs in §2 order;
+    - every pattern has a non-empty `signal`, `template`, `why` and `notWhen`;
+    - every `link` is `https://`, or `null` only for `cyclic-sort`, `hash-map`, `bits` and `shortest-path-mst` (§2 table).
+  - **Must-solve set:**
+    - each pattern has 3–5 problems with `tier: 'must'`, including exactly one `role: 'teach'` and exactly one `role: 'unseen'`;
+    - total must-solve is between 90 and 100;
+    - it includes Trapping Rain Water, Minimum Window Substring, Merge k Sorted Lists, Find Median from Data Stream and Word Ladder;
+    - it includes `subarray-sum-equals-k`, `minimum-remove-to-make-valid-parentheses`, `lowest-common-ancestor-of-a-binary-tree`, `basic-calculator-ii`, `next-permutation`, `find-peak-element` and `merge-sorted-array`.
+  - **Coverage:** every NeetCode 150 slug from the old `DSA_TOPICS` is present (nothing deleted), and so are the §2 gap-fill and frequent-extra slugs.
+  - **Flags:**
+    - `hot` is on exactly the 19 problems listed in §2;
+    - `hard-hot` is on exactly the 10 listed in §2;
+    - slugs are unique.
+  - **Own problems:** `addOwnProblem` with a plan slug returns `{ error: 'in-plan' }`, and with `https://example.com` returns `not-leetcode`.
+  - **Green:**
+    - 2 qualifying unseen solves plus a re-solve 8 days later → `green: true`;
+    - the same with the re-solve at 3 days → `false`;
+    - an M problem solved unseen in 30 min doesn't count.
+- [ ] **Step 2: Run** the test. Expected: FAIL.
+- [ ] **Step 3: Write `dsa.js`.**
+  - **Card text:** derive it from the linked explainer (Hello Interview, cp-algorithms, USACO), short. The spec forbids long original write-ups.
+  - **Must-solve picks (spec §2 rules):** per pattern, one teaching problem (canonical, E/M), two variations, and one unseen check. Prefer 🔥. Use NeetCode/LeetCode URLs (`NC()` for premium slugs, as in the old file).
+- [ ] **Step 4: Implement `patterns.ts`.**
+- [ ] **Step 5: Run** `npm test`. Expected: PASS.
+- [ ] **Step 6: Commit** `feat(dsa): 24 patterns, tiered and flagged problem set, green rules`.
+
+### Task 4: Curriculum content files with explicit IDs
+
+Split into 4a–4d so each part can be reviewed alone. Each sub-task appends assertions to `scripts/test-content.ts`.
+
+**Shared item shape:** `{ id: string, text: string, url?: string, mins?: 30 | 45 | 60 | 75 | 90 | 120, depth?: boolean, slots?: 1 | 2 }`.
+- `slots: 2` only in the 30-min AI-build track, for items that take an hour (§8).
+- IDs are `<prefix>:<kebab-slug>`, unique across all content.
+
+**Files (all `src/lib/content/`):**
+- `fe.js`, `ux.js`, `career.js`, `ai.js`, `mc.js`, `sd.js`, `judgment.js`, `sundays.js`, `reference.js`.
+- `src/lib/plan-data.js` becomes a re-export: `export const PLAN = { ...all }`. Keep the `BOARD_MAP`, `COMPANY_MAP`, `RULES`, `HLD_FRAMEWORK`, `FDE_STAGES` and `OA_LINKS` names so `roadmap-reference.tsx` keeps working.
+
+**4a. FE, UX, career (`fe.js`, `ux.js`, `career.js`)**
+- [ ] **Failing tests:**
+  - `FE.length === 49`, including `fe:nextjs-caching-rsc`;
+  - the React items (`fe:react-*`) each have `summary` (≤ 400 chars);
+  - `UX.length === 36` (35 plus `ux:level-calibration`, placed in week 3 per §8; the displaced item moves to the end);
+  - `BEH` holds the 35 old items plus `beh:deep-dive-1..3` and `beh:negotiation-1..2`, with `beh:positioning` text containing "product engineer who ships AI features";
+  - `FDE` has the 40 old items minus the 2 Python items (moved to `ai.js` as `aib:python-for-js`, `aib:pandas`, each `slots: 2`);
+  - the 4 Stage-6 cloud items move to `ai.js` as `aib:aws`, `aib:terraform`, `aib:containers`, `aib:devops`, each `slots: 2`;
+  - `COMPANY_MAP` gains Apple and Stripe rows (text from §8).
+- [ ] **Implement, then run** `npm test`. Expected: PASS. Commit `content: fe, ux, career with ids`.
+
+**4b. AI (`ai.js`)**
+- [ ] **Failing tests:**
+  - `AI_EVENING` keeps every paper and course item from `AI_UNITS` at their current days. Count = old count minus the build items moved to `AIB`.
+  - `AIB` (the AI-build track) contains the 6 new hands-on items from §7 with exact titles: LLM API fundamentals (1), Retrieval that works (2), Agents in production (2), LLM gateway (1). It also holds every `Build ·` unit step moved from `AI_UNITS` (each `slots: 2`), the 2 Python items and the 4 cloud items.
+  - The total slot sum of `AIB` is ≤ 78.
+  - The depth readings from §13 table rows 1–3 (DDIA 4 chapters, applied-llms ×2, Eugene Yan ×1) are in `AI_EVENING` with `depth: true` and their verified URLs (§13 sources).
+- [ ] **Implement, test, commit** `content: ai evening + ai build track`.
+
+**4c. Machine coding, system design (`mc.js`, `sd.js`)**
+- [ ] **Failing tests:**
+  - `MC` has 34 builds, with the 8 pairs from §5 expressed as `pair: [idA, idB]` entries;
+  - `MC_SCREENSHOT` has 3 items;
+  - `TAKE_HOMES` has 2 briefs of 3 parts each;
+  - `PROJECT` has 18 entries (the 2 merges from §5);
+  - `LLD` has 13 items;
+  - `SD` order (§6): `sd:internet` first, then the FE SD items, then the HLD concepts, then the 23 HLD problems in the §6 core-first order, then the 4 AI designs;
+  - `sd:numbers-card` is present;
+  - `SD_MOCKS` is unchanged (24).
+- [ ] **Implement, test, commit** `content: machine coding, flagship, lld, system design`.
+
+**4d. Judgment thread, Sundays, reference (`judgment.js`, `sundays.js`, `reference.js`)**
+- [ ] **Failing tests:**
+  - **Judgment lists:**
+    - `HOW_IT_WORKS.length === 10`, each with a company engineering-blog `https://` URL (§4 list);
+    - `MEMOS.length === 13` (the §4 prompts, verbatim);
+    - `PRACTICAL.length === 12`, each with `lang: 'ts' | 'py'` alternating;
+    - `DECOMP.length === 12`: 11 existing plus 1 from a published FDE guide, with its source URL;
+    - `OSS_REPOS` = PostHog, Cal.com, Excalidraw;
+    - `CODE_REVIEWS.length === 4`.
+  - **Sundays:**
+    - `SUNDAY_READS` has the 15 from §17 with their URLs, plus 2 Steady extras (an AI paper and an industry problem, each verified with WebFetch; record the check date);
+    - `SUNDAY_CORE` has the weekly test placeholder (R1: "Weekly self-check: …", hand-scored into `scores`), the reflection with a listen-back, and next-week preview tasks.
+  - **Readiness and review:**
+    - `READINESS` has 5 checks keyed by Grind week (4, 8, 10, 12, 13), with text exactly as §11;
+    - `WEEK8_REVIEW` text is as §11.
+  - **Reference:**
+    - `EXPLORE_LATER` has the 8 areas from §16, and every URL is `https://`;
+    - `FOCUS_RULES` gains the 3 rules from §19;
+    - `EXTENSION` (Month 4) is removed.
+  - **Hotstar row:** the Hotstar read URL is confirmed by WebFetch before commit. If the original post can't be confirmed, use a confirmed Hotstar engineering post and note it in the commit.
+- [ ] **Implement, test, commit** `content: judgment thread, sundays, readiness, explore later`.
+
+### Task 5: Track sequences (pure)
+
+**Files:**
+- Create: `src/lib/tracks.ts`.
+- Test: `scripts/test-tracks.ts`.
+
+**Interfaces:**
+- Consumes: the Task 3 and Task 4 content (passed in as arguments, so the module stays pure).
+- Produces:
+  - `type Slot = { items: { id: string; text: string; url?: string; cat: Cat; pattern?; tier?; flags?; role?; depth?; hiddenUntilStart?: boolean; takesRevision?: boolean; part?: [number, number] }[] }`;
+  - `buildTracks(content): Record<TrackId, Slot[]>`, where every track has exactly 78 slots;
+  - `GRIND_DOW: number[]`, the weekday (1–6) of each Grind study slot index 0–77.
+
+**Grind rules baked into the order (spec §1–§8):**
+- **`dsa`:**
+  - slots 0–4 are the foundations (Big-O, recursion, build-your-own DS);
+  - then the 24 patterns in order;
+  - the first slot of each pattern also carries the pattern-card task;
+  - the unseen check has `hiddenUntilStart: true`;
+  - patterns end by slot ≤ 53 (week 9);
+  - then `ADV_DSA` (8 slots);
+  - then Phase 3 timed sets (Meta speed / Google doc / OA simulation / AI-enabled drill, rotating), drawn from must-solve + 🔥.
+- **`aib`:** the AIB list in order, expanding `slots: 2` into 2 slots (`part: [1,2]`, `[2,2]`). The Python items are in slots 0–3. Empty slots at the end say "Revisit: re-run your week's AI build with one improvement".
+- **`mc`:**
+  - Mon/Wed/Fri: MC builds, pairs and screenshot builds (weeks 4–8);
+  - Tue/Thu: flagship from week 2;
+  - Sat: LLD;
+  - weeks 7 and 10, Mon–Wed: take-home parts 1–3;
+  - from week 9: `MC_TIMED` second passes, 2 per Mon/Wed/Fri slot.
+- **`jt`:**
+  - Mon how-it-works, Tue memo, Wed practical, Thu decomposition (from week 2), Fri OSS fix (from week 3), with every 3rd Friday a code review;
+  - Sat in odd weeks 1–9: AI drill;
+  - Sat in even weeks and in weeks 10–13: a mock (`takesRevision: true`). Peer mocks are in weeks 4, 6, 8, 10 and 12, rotating coding → FE SD → behavioral → decomposition. Speed pairs come from week 5. Phase 3 mocks are full mock loops.
+- **`sd`, `fe`, `beh`, `ai`:** their lists in order, then the existing revision tails (`FE` revision pairs, `SD_MOCKS` rotation, `APPLY` replaced by FDE prompts, `AI_REVIEW`).
+  - **`beh`:** BEH items, with `ux` items as a second task in the same slot for weeks 1–5 (as today). The deep dives fall on Saturdays in weeks 2–4, and the displaced items shift by one. Negotiation is in week 12.
+
+- [ ] **Step 1: Write the failing tests** in `scripts/test-tracks.ts`:
+  - every track has 78 slots, and no ID appears twice within or across tracks;
+  - `GRIND_DOW[0] === 1` (Mon), `GRIND_DOW[5] === 6` (Sat), `GRIND_DOW[6] === 1`;
+  - `jt` slot for week 2 Monday (index 6) is a how-it-works item, Tuesday (7) a memo;
+  - the first Friday OSS fix is at week 3 (index 16), and slot index 28 (week 5 Fri, the 3rd OSS Friday) is a code review;
+  - `mc` week 7 Mon/Tue/Wed (indexes 36, 37, 38) are take-home parts 1/2/3;
+  - every `role: 'unseen'` item has `hiddenUntilStart: true`;
+  - the last pattern item is at slot ≤ 53;
+  - `aib` slots 0–3 are the Python items (parts 1–2 each);
+  - every week 10–13 Saturday `jt` slot has `takesRevision: true`.
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement `buildTracks`.**
+- [ ] **Step 4: Run** `npm test`. Expected: PASS.
+- [ ] **Step 5: Commit** `feat(tracks): 78-slot track sequences with grind weekday rules`.
+
+### Task 6: Modes and calendar layout (pure)
+
+**Files:**
+- Create: `src/lib/modes.ts`.
+- Create: `src/lib/layout.ts`.
+- Test: `scripts/test-layout.ts`.
+
+**Interfaces:**
+- **`modes.ts`:**
+  - `MODE_INFO = { grind: { weeks: 13, studyDays: 78 }, steady: { weeks: 17, studyDays: 102 } }`;
+  - `modeOn(modes, isoDate): ModeEntry & { since: string }`. Default `{ mode: 'steady', cursors: all 0 }`. The latest entry ≤ date wins, and the last write that day wins.
+  - `switchMode(modes, today, mode, cursorsNow: Record<TrackId, number>)`. It writes `modes[today]`. Calling it twice on the same day overwrites.
+  - `steadyWeek(grindWeek) = Math.round(grindWeek * 17 / 13)`.
+- **`layout.ts`:**
+  - `steadyRuns(trackIndex: number, studyDay: number): boolean`. Rotation for the 8 tracks `dsa, aib, fe, mc, sd, jt, beh, ai`:
+    - over 102 study days, each track runs on exactly 78;
+    - every day runs at least 5 of the 8;
+    - no track skips 2 days in a row.
+    - Suggested approach: Bresenham on phase-shifted indices. The tests decide.
+  - `layoutDays(input: { start: string; kickoff: boolean; modes; tracks; doneIds: Set<string> }): LayoutDay[]`, where `LayoutDay = { date: string; no: number; week: number; kind: 'prep' | 'study' | 'sun'; sundayNo?: number; slots: Partial<Record<TrackId, Slot>> }`.
+    - The prep day is `start − 1`.
+    - Weeks run Mon–Sun.
+    - The total length is that mode's weeks × 7, recomputed from each mode entry onward. From a switch date, each track resumes at `entry.cursors[track]`.
+  - `cursorsAt(days, date, done): Record<TrackId, number>`. For each track, the index of the first slot (at or after the previous cursor) with any item not done. Used by the Setup switch.
+
+- [ ] **Step 1: Write the failing tests** in `scripts/test-layout.ts`:
+  - **Rotation:**
+    - in Steady, `steadyRuns` gives each track exactly 78 runs in 102 days;
+    - min tracks per day ≥ 5;
+    - no 2-day skip.
+  - **Length and calendar:**
+    - Grind with `start` 2026-11-16: 91 days plus the prep day, and the prep day's date is 2026-11-15;
+    - day 7 (no) is Sunday 2026-11-22, with `sundayNo: 1`;
+    - every track's 78 slots are laid out once, in order.
+  - **Steady:** 119 days plus the prep day; each track's slots appear in order with none missing.
+  - **Changing start** (Review Focus 1): build with start A, then start B (a week later). The set of content IDs is identical. A tick keyed `fe:closures` appears in both.
+  - **Mode switches** (Review Focus 2):
+    - switch Steady→Grind on day 20 with cursors from `cursorsAt`. Days before it are unchanged, and every track item appears exactly once across the whole plan;
+    - switch Grind→Steady→Grind on the same date: the latest wins, with no duplicates and nothing missing;
+    - `steadyWeek(8) === 10`, `steadyWeek(4) === 5`, `steadyWeek(13) === 17`.
+- [ ] **Step 2: Run.** Expected: FAIL.
+- [ ] **Step 3: Implement `modes.ts` and `layout.ts`.**
+- [ ] **Step 4: Run** `npm test`. Expected: PASS.
+- [ ] **Step 5: Commit** `feat(layout): steady/grind calendars, rotation, mode switching`.
+
+### Task 7: Timetables and calendar file
+
+**Files:**
+- Modify: `src/lib/schedule.js`.
+
+**Interfaces:**
+- Produces:
+  - `WEEKDAY_BLOCKS`: the Grind times from §1. Split `05:15–06:45 dsa` + `06:45–07:15 aib`, and `14:45–15:15 rev` + `15:15–16:00 jt`. All other times stay.
+  - `BUFFER_BLOCK = { k: 'buffer', title: 'Buffer: catch up, rest or explore', kind: 'life' }`. In Steady it replaces a rotating block on a day that block doesn't run, at the same times.
+  - `SUNDAY_BLOCKS`:
+    - `05:00 wake`;
+    - `05:15–06:15 workout`;
+    - `09:00–10:30 core` (weekly self-check + reflection + listen-back + preview + readiness/review when due);
+    - `10:30–11:30 read` (Sunday read);
+    - `11:30–13:30 sunday` (active rest suggestions or revision blocks, by `sundayMode`);
+    - `13:30–20:30 rest`;
+    - `20:30 review`;
+    - `21:30 wind`.
+  - `buildICS(startISO, totalDays)`. Callers pass 91 or 119.
+- [ ] **Step 1:** Change the blocks and ICS signature. The existing `.ics` builder test, if absent, is covered by the smoke test in Task 13.
+- [ ] **Step 2: Run** `npm test && npm run build`. Expected: PASS. (The engine still compiles because Task 8 lands next. If it doesn't, merge 7 and 8 into one commit.)
+- [ ] **Step 3: Commit** `feat(schedule): v2 weekday split, buffer block, new sundays`.
+
+### Task 8: Engine glue: layout → Day[]
+
+**Files:**
+- Modify: `src/lib/engine.ts`. Rewrite `buildPlan`, `studyBlocks`, `sundayBlocks` and `kickBlocks`. Keep `applyUpdates`, `applyCustom`, metrics and types.
+- Modify: `src/lib/timeline.ts` (stage `match` predicates to use IDs/cats, not study-index ranges).
+- Modify: `src/lib/search.ts` (`no <= 91` → total days).
+- Modify: `src/components/today-view.tsx` and `src/components/shell/app-sidebar.tsx` (`TOTAL` → `totalDays`).
+
+**Interfaces:**
+- Produces:
+  - `buildPlan(state: Pick<State, 'start' | 'kickoff' | 'modes' | 'done' | 'sundayMode'>, updates, custom): Day[]`;
+  - `totalDays(days: Day[]): number`;
+  - `Task` gains `pattern?`, `tier?`, `flags?`, `role?`, `depth?`, `hiddenUntilStart?`, `labels?: never` (labels are looked up via `labelsOf`, not stored on tasks).
+- **Block contents:**
+  - **Revision block:** at most 3 re-solve tasks (`rs:<slug>`, the teaching problems at +3/+7/+21 days) plus one drill task `d:<date>:drill`. When the `jt` slot is `takesRevision`, the revision block merges into it (75 min).
+  - **Daily review:** `d:<date>:log`.
+  - **Sunday:**
+    - core tasks `d:<date>:check|reflect|preview`;
+    - `readiness:<grindWeek>` and `review:week8` on their mapped Sunday;
+    - `sun:<read-id>` (read n on Sunday n);
+    - for `sundayMode` `'revision'`: flagged re-solves + `d:<date>:catchup`;
+    - for `'rest'`: one suggestion task `d:<date>:explore` (optional, health cat, so it never counts as "behind").
+  - **Prep day:** setup tasks plus baseline tasks `baseline:dsa|fe|sd`. Each is ticked with a 0–100 score entry, stored in `scores['baseline/<section>']`.
+- [ ] **Step 1:** Rewrite `buildPlan` over `layoutDays` + `buildTracks`. Delete `TOTAL`, and replace every import with `totalDays(days)`.
+- [ ] **Step 2: Run** `npm test && npm run build`. Expected: PASS, with no type errors.
+- [ ] **Step 3: Run the dev server and the smoke test.** `npm run dev`, then `node scripts/smoke.mjs .superpowers/shots-r1`. Expected: every page renders and there are no console errors. Update the fixture in `smoke.mjs` to v6 and a Monday start.
+- [ ] **Step 4: Commit** `feat(engine): build days from tracks and layout; remove TOTAL`.
+
+### Task 9: Setup: mode, start date, prep day
+
+**Files:**
+- Modify: `src/components/setup-view.tsx`.
+
+**Behaviour:**
+- **Mode control:** a segmented control, Steady (default) | Grind, with one line each:
+  - "17 weeks · about 8.5 h a day";
+  - "13 weeks · about 10.75 h a day".
+- **Switching** calls `switchMode(state.modes, today, mode, cursorsAt(days, today, done))`, then toasts "Switched to Grind from today. Done work stays done."
+- **Start date picker:** only Mondays can be picked. "Start over from today" snaps to the next Monday.
+- **The prep-day toggle stays.**
+- **Calendar download** uses `buildICS(start, totalDays(days))`.
+- [ ] **Step 1: Implement.**
+- [ ] **Step 2: Check manually** in the dev server: switch modes twice, and Today and the Roadmap timeline still render.
+- [ ] **Step 3: Commit** `feat(setup): steady/grind mode, monday start`.
+
+### Task 10: Labels UI and label filter
+
+**Files:**
+- Create: `src/components/labels-manager.tsx` (a Setup section: list groups and labels, create, rename, recolour from 8 fixed swatches, delete with confirm).
+- Create: `src/components/label-picker.tsx` (a popover with a checkbox list grouped by group; single-choice groups act as radio).
+- Modify:
+  - `task-row.tsx`: replace the `Yours` chip with up to 2 label chips (system Source/Pattern first) and a `+N`.
+  - `task-peek.tsx`: add a Labels row with the picker.
+  - `new-task-dialog.tsx`: a labels field.
+  - `today-filters.tsx` and `src/lib/task-filter.ts`: a new `labels: string[]` dimension, matching ANY. The `owner` dimension becomes the Source system group.
+- Test: `scripts/test-task-filter.ts` (append).
+
+**Interfaces:**
+- Consumes: `labelsOf`, `applyLabel`, `removeLabel`, `createLabel` (Task 2).
+- `TaskFilter` gains `labels: string[]`. `parseFilter` drops unknown IDs. `matches(t, blockKey, f, done, status, itemLabels)` takes one new optional parameter.
+- [ ] **Step 1: Failing tests:**
+  - a filter `labels: ['lb-1']` matches a task whose `itemLabels` include it, and not one without;
+  - `sys:source:yours` matches own tasks;
+  - `parseFilter({ filter: { labels: [1, 'x'] } })` gives `labels: ['x']`.
+- [ ] **Step 2: Run.** Expected: FAIL. **Step 3: Implement** the filter, then the components.
+- [ ] **Step 4: Run** `npm test && npm run build`. Expected: PASS.
+- [ ] **Step 5: Commit** `feat(labels): manager, picker, chips, label filter`.
+
+### Task 11: DSA page, unseen logging, own problems
+
+**Files:**
+- Create: `src/components/dsa-view.tsx`. Add `'dsa'` to `View` (`ui-state.tsx`), `VIEWS` (`page.tsx`) and `NAV` (`app-sidebar.tsx`, label "DSA", icon `Binary`), and the bottom bar "More" sheet.
+- Modify: `task-peek.tsx` (for problem tasks: a "Solved without seeing it before" checkbox, a "Minutes" number field, the round script as static text).
+- Modify: `task-row.tsx` (when `hiddenUntilStart` and not started, show "Unseen problem · press Start" with no title or link; Start sets status `progress` and reveals them).
+
+**DSA page:**
+- **Left:** patterns grouped by topic, each with a readiness dot: ○ none, ◐ unseen check passed, ● green.
+- **Right:** the selected pattern's card (the 7 fields, its link, and "My notes", which is a `tnotes` entry keyed `pattern:<id>`).
+- **Problem table:** status, name, difficulty, 🔥/⭐, tier (Must / Optional), Plan day ("Day N", or "Pool"), labels.
+- **"+ Add a problem":** a LeetCode URL, then the pattern (pre-filled), then the difficulty, via `addOwnProblem`. On `in-plan`, offer "Label the plan problem instead".
+- **Group by:** Pattern (default) | Topic.
+- **Optional problems** show only here, never in Today.
+
+- [ ] **Step 1: Implement.** Problem `solves` logs are written on tick: `{ unseen, minutes, at }`. Re-solve ticks write `solves['rs:<slug>']`.
+- [ ] **Step 2: Check manually:**
+  - add a problem with a plan URL, and the in-plan prompt shows;
+  - tick an unseen check with 20 min, and the dot turns ◐.
+- [ ] **Step 3: Run** `npm test && npm run build`. Expected: PASS.
+- [ ] **Step 4: Commit** `feat(dsa): patterns page, unseen logging, own problems`.
+
+### Task 12: Sundays, readiness, baseline, references
+
+**Files:**
+- Modify: `today-view.tsx` (on Sundays: a header toggle "Active rest | Revision", writing `sundayMode[date]`).
+- Modify: `task-peek.tsx` (score field 0–100 on `baseline:*` and the Sunday self-check, writing `scores`).
+- Modify: `roadmap-reference.tsx`:
+  - replace "Month 4" with "Explore later" (§16);
+  - add Apple and Stripe to the company map;
+  - add a "Sunday reads" list, and a "Depth areas" table (§13) showing the 4 "deep enough when…" tests.
+- Modify: `progress-view.tsx` (a small "Scores" table: baseline vs each week's self-check, per section).
+- [ ] **Step 1: Implement.**
+- [ ] **Step 2: Check manually:**
+  - flip a Sunday to Revision, and its middle block shows revision tasks;
+  - enter baseline scores, and they appear in Progress.
+- [ ] **Step 3: Run** `npm test && npm run build`. Expected: PASS.
+- [ ] **Step 4: Commit** `feat(sundays): rest/revision toggle, scores, explore later`.
+
+### Task 13: Search, smoke, README, release check
+
+**Files:**
+- Modify:
+  - `src/lib/search.ts`: index patterns (`kind: 'pattern'`, opens the DSA page) and owner labels (`kind: 'label'`, applies the label filter in Today).
+  - `scripts/smoke.mjs`: add the DSA page to the nav loop. Assert that a Grind fixture shows "Day 1 of 91" and a Steady one "of 119". Keep `--mute-audio`.
+  - `README.md`: the content files list and the modes.
+- Test: `scripts/test-search.ts` (append: the query "sliding" returns the pattern hit first).
+- [ ] **Step 1: Failing test, implement, then run** `npm test`. Expected: PASS.
+- [ ] **Step 2: Full check:** `npm test && npm run lint && npm run build`, then `npm run dev` and `node scripts/smoke.mjs .superpowers/shots-r1`. Expected: all pass, no console errors, no audio.
+- [ ] **Step 3: Commit** `chore: search patterns and labels, smoke for v2, readme`.
+- [ ] **Step 4:** Open a PR from `roadmap-v2` to `main` titled "Roadmap v2 · Release 1". The body summarises the release and links the spec and this plan. Merging deploys to Pages.
+
+---
+
+## After Release 1 (separate plans, written when R1 has shipped)
+
+- **R2 (owner's week 1):** the quiz engine (`mcq` / `recall` / `pattern-id`), the daily quiz task in the daily review, the weekly test replacing the hand-scored self-check, per-section history, the first question batch (§10), and the "wrong / outdated" flag.
+- **R3 (owner's week 2):**
+  - **BYOK:** the 4 provider adapters, key handling, and the CSP meta tag (§15).
+  - **Ask AI:** the 3 personas (Appendix), saving to notes, and an "AI answer" bookmark kind.
+  - **Hot reads:** `collect-reads.mjs`, the prompt section, the budget order, the `lastFullRunAt` weekly lock, and `reads.json` + its validator (§17).
+- **R4+:** the rest of the question bank, shipped ahead of each topic's first day.
