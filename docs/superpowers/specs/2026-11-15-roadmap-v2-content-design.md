@@ -602,6 +602,36 @@ The builder checks each link before adding it, the same way as §14.
 - **Steady** uses all 15, plus 2 more the builder picks from the same categories (one AI paper, one industry problem, for example healthcare or logistics), checked the same way.
 - The weekly update engine flags any of these links that break.
 
+**"Hot this week": a read the weekly engine finds by searching**
+- The existing weekly GitHub Action (`refresh-engine.yml`, cron `30 23 * * 6`, Sunday 05:00 IST, `full` mode) gets one more job in `.github/prompts/refresh-engine.md`.
+- **What it picks:** search the web for 1–2 reads that are hot this week or month, for the Sunday read slot.
+  - **One AI paper or AI research post.** Look at signals such as Hugging Face daily papers, arXiv listings, Hacker News, Simon Willison's blog and Latent Space, plus the model labs' own research pages.
+  - **Optionally, one case study or incident.** That's a new engineering-blog post from a real company, or a major public postmortem.
+- **Rules:**
+  - Published within the last 30 days.
+  - A primary source (the paper, the lab or company post, the official postmortem). Never a summary site.
+  - Readable in 30–60 min.
+  - Relevant to someone who builds products, AI features or systems.
+  - At least 2 independent trend signals, cited as URLs (for example an HN thread with real discussion, or an HF papers entry).
+  - Not a duplicate of the curated list, an earlier hot read, or a plan link.
+  - No hype, funding news or minor releases.
+  - Zero picks is a fine result.
+- **Output:** a new feed, `public/reads.json`:
+
+  ```
+  { generatedAt, items: [ { id: "YYYY-MM-DD-slug", weekOf, category: "ai-paper|case-study|incident|industry", title, url, why (1–2 plain sentences), readMinutes, publishedAt, trendSignals: [urls], sources: [urls] } ] }
+  ```
+
+  - New items are prepended.
+  - At most 2 new items per run.
+  - The feed keeps the last 26 weeks.
+  - A new `scripts/validate-reads.mjs`, in the same style as `validate-updates.mjs`, runs in the workflow and in `deploy.yml`. The prompt's "only edit these files" rule gains `public/reads.json`.
+- **In the app:**
+  - That Sunday shows the curated read, plus one optional "🔥 Hot this week" item: the newest `reads.json` item for that week.
+  - Both are optional and never count as "behind".
+  - Done hot reads (and hot reads you skip) stay listed in an "Earlier hot reads" group in Explore later (§17).
+  - If a hot paper also changes what the plan should teach, the engine can still add a normal `updates.json` item for it, as it does today. The two feeds stay separate.
+
 **Rules:**
 - Mocks, speed pairs and peer mocks are on Saturdays now (§4).
 - "Optional: apply to 3–5 roles" shows as an optional Sunday item from week 8.
