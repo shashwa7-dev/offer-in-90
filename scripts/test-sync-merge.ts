@@ -8,13 +8,13 @@ const edit = (s: typeof base, fn: (s: typeof base) => typeof base) => stamp(s, f
 
 // 1. Ticks on two devices both survive
 let phone = edit(base, s => ({ ...s, done: { a: 1, b: 1, c: 1 } }));
-let laptop = edit(base, s => ({ ...s, notes: { 3: 'good day' } }));
+const laptop = edit(base, s => ({ ...s, notes: { 3: 'good day' } }));
 let m = merge(laptop, phone);
 assert.deepEqual(Object.keys(m.done).sort(), ['a', 'b', 'c']);
 assert.equal(m.notes[3], 'good day');
 
 // 2. Untick on one device beats an older tick elsewhere (no resurrection)
-let both = merge(phone, laptop);
+const both = merge(phone, laptop);
 phone = edit(both, s => { const d = { ...s.done }; delete d.b; return { ...s, done: d }; });
 m = merge(both, phone); // laptop still has b
 assert.ok(!('b' in m.done), 'untick must win');
@@ -22,8 +22,8 @@ m = merge(m, both); // merging the stale copy again must not bring it back
 assert.ok(!('b' in m.done), 'tombstone must survive later merges');
 
 // 3. Same note edited on both: newest wins
-let a = edit(both, s => ({ ...s, tnotes: { 'p-two-sum': { title: 'Two Sum', body: 'old', upd: 1 } } }));
-let b = edit(a, s => ({ ...s, tnotes: { 'p-two-sum': { title: 'Two Sum', body: 'new', upd: 2 } } }));
+const a = edit(both, s => ({ ...s, tnotes: { 'p-two-sum': { title: 'Two Sum', body: 'old', upd: 1 } } }));
+const b = edit(a, s => ({ ...s, tnotes: { 'p-two-sum': { title: 'Two Sum', body: 'new', upd: 2 } } }));
 assert.equal(merge(a, b).tnotes['p-two-sum'].body, 'new');
 assert.equal(merge(b, a).tnotes['p-two-sum'].body, 'new');
 
@@ -49,7 +49,7 @@ assert.equal(merge(newPhone, { ...base, start: '2026-11-09' }).start, '2026-11-0
 const bmBase = { ...base, bookmarks: {} as Record<string, unknown> };
 const bmPhone = stamp(bmBase, { ...bmBase, bookmarks: { 'news:a': { title: 'A' } } }, 5000);
 const bmLaptop = stamp(bmBase, { ...bmBase, bookmarks: { 'news:b': { title: 'B' } } }, 5001);
-let bm = merge(bmLaptop, bmPhone);
+const bm = merge(bmLaptop, bmPhone);
 assert.deepEqual(Object.keys(bm.bookmarks).sort(), ['news:a', 'news:b']);
 const unsaved = stamp(bm, { ...bm, bookmarks: { 'news:b': { title: 'B' } } }, 6000);
 assert.ok(!('news:a' in merge(bm, unsaved).bookmarks));
