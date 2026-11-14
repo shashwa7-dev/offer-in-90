@@ -1,6 +1,8 @@
 'use client';
 /* News › Reading: the daily tech links, one band per day (latest open, earlier days folded), filtered by category. */
 import { useState } from 'react';
+import { MessageSquare } from 'lucide-react';
+import { domainOf } from '@/lib/interview-feed';
 import { useStore } from '@/lib/store';
 import { fmtDate, parseISO, type NewsItem } from '@/lib/engine';
 import { Band, OutLink, Seg } from './shell/page';
@@ -25,7 +27,10 @@ export function NewsReading() {
         meta={<>{CAT[n.category]}{n.points ? ` · ${n.points} pts` : ''}{n.comments ? ` · ${n.comments} comments` : ''} · {ago(n.publishedAt)}</>}
         saved={<>
           {n.discussUrl && n.discussUrl !== n.url && (
-            <a href={n.discussUrl} target="_blank" rel="noopener noreferrer" className="hidden rounded-[5px] px-1.5 py-1 text-[12px] whitespace-nowrap text-faint hover:bg-card hover:text-foreground sm:inline">comments ↗<span className="sr-only"> (opens in a new tab)</span></a>
+            <a href={n.discussUrl} target="_blank" rel="noopener noreferrer" data-discuss title={`${n.comments} comments on ${domainOf(n.discussUrl)}`}
+              className="inline-flex size-7 items-center justify-center rounded-[6px] text-[12px] whitespace-nowrap text-faint hover:bg-card hover:text-foreground sm:w-auto sm:px-1.5">
+              <MessageSquare aria-hidden="true" className="size-3.5 sm:hidden" /><span className="sr-only sm:not-sr-only">comments ↗</span><span className="sr-only"> (opens in a new tab)</span>
+            </a>
           )}
           <BookmarkButton item={{ kind: 'news', title: n.title, url: n.url, source: n.source, detail: `${CAT[n.category]}${n.points ? ` · ${n.points} pts` : ''}` }} />
         </>} />

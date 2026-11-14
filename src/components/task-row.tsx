@@ -7,7 +7,7 @@ import { useStore } from '@/lib/store';
 import { domainOf } from '@/lib/interview-feed';
 import type { Task } from '@/lib/engine';
 import { Chip } from './shell/page';
-import { useUI } from './ui-state';
+import { newsTabFor, useUI } from './ui-state';
 import { TaskInput, deleteOwn, parseTask } from './own-task';
 
 export const noteKey = (t: Task) => (t.slug ? `p-${t.slug}` : t.id);
@@ -66,7 +66,7 @@ export function TaskRow({ t, dayIdx, extra, status }: { t: Task; dayIdx: number;
               <FileText className="size-3.5" />{hasNote ? 'Note' : ''}
             </button>
             {t.newsId && (
-              <button type="button" onClick={() => go('news')} className={tool}><Newspaper className="size-3.5" />Open News</button>
+              <button type="button" onClick={() => go('news', { newsTab: newsTabFor(t.newsId) })} className={tool}><Newspaper className="size-3.5" />Open News</button>
             )}
             {t.url && (
               <a href={t.url} target="_blank" rel="noopener noreferrer" className={cn(tool, 'max-w-44')}>

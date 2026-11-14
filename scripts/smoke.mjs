@@ -430,6 +430,39 @@ try {
     checkErrors(errors, W);
     await ctx.close();
   }
+  // ---------- "Open News" on the daily reads task lands on Reading and leaves the interviews visit alone ----------
+  {
+    const at = new Date(2026, 10, 12, 20, 10); // Thu 12 Nov 2026, 20:10: the AI block (news + papers) is current
+    const st = new Date(at); st.setDate(st.getDate() - 9);
+    const fx = { ...fixture, start: isoDay(st), done: {}, notes: {}, seenUpdates: { 'interviews-visit': 12345 }, updatedAt: +at };
+    const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
+    await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
+    const page = await ctx.newPage();
+    await page.clock.install({ time: at });
+    const errors = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+    page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+    await page.goto(URL, { waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+    await page.waitForTimeout(500);
+    const W = 'open news';
+    const task = page.locator('[data-task]').filter({ hasText: "Skim today's News" }).first();
+    const btn = task.getByRole('button', { name: 'Open News' });
+    if (await btn.count()) {
+      await btn.click();
+      await page.waitForTimeout(500);
+      const reading = await page.getByRole('radio', { name: /^Reading/ }).first().getAttribute('data-state').catch(() => null);
+      if (reading === 'on') ok(`${W}: daily reads task lands on Reading`); else fail(`${W}: Reading not active (${reading})`);
+      const visit = await page.evaluate(() => JSON.parse(localStorage.getItem('offer90.v1') || '{}').seenUpdates?.['interviews-visit']);
+      if (visit === 12345) ok(`${W}: interviews-visit unchanged`); else fail(`${W}: interviews-visit changed to ${visit}`);
+      await page.getByRole('radio', { name: /^Interviews/ }).first().click();
+      await page.waitForTimeout(300);
+      const visit2 = await page.evaluate(() => JSON.parse(localStorage.getItem('offer90.v1') || '{}').seenUpdates?.['interviews-visit']);
+      if (visit2 > 12345) ok(`${W}: switching to Interviews records the visit`); else fail(`${W}: Interviews visit not recorded (${visit2})`);
+    } else fail(`${W}: no "Open News" on the daily reads task`);
+    checkErrors(errors, W);
+    await ctx.close();
+  }
   // ---------- News: Interviews feed, Reading, Saved ----------
   for (const [width, height] of [[1100, 800], [390, 844]]) {
     const ctx = await browser.newContext({ viewport: { width, height } });

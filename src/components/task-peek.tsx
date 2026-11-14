@@ -15,7 +15,7 @@ import { NoteEditor } from './note-editor';
 import { noteKey } from './task-row';
 import { deleteOwn } from './own-task';
 import { BlockPick, DayPick, dayLabel } from './task-pickers';
-import { useUI } from './ui-state';
+import { newsTabFor, useUI } from './ui-state';
 
 export type PeekTarget = { taskId: string; dayIdx: number };
 const DIFF = { E: 'Easy', M: 'Medium', H: 'Hard' } as const;
@@ -105,7 +105,7 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
           <DropdownMenuTrigger className={iconBtn} aria-label="More actions"><MoreHorizontal /></DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="min-w-40 rounded-[12px]">
             <DropdownMenuItem onSelect={() => { onClose(); openDay(d.i); }}><CalendarDays />Open this day</DropdownMenuItem>
-            {t.newsId && <DropdownMenuItem onSelect={() => { onClose(); go('news'); }}><Newspaper />Open News</DropdownMenuItem>}
+            {t.newsId && <DropdownMenuItem onSelect={() => { onClose(); go('news', { newsTab: newsTabFor(t.newsId) }); }}><Newspaper />Open News</DropdownMenuItem>}
             {t.own && <DropdownMenuItem onSelect={remove}><Trash2 />Delete</DropdownMenuItem>}
           </DropdownMenuContent>
         </DropdownMenu>

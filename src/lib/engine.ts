@@ -69,7 +69,7 @@ function kickBlocks(): Block[] {
     dsa: [T('k-bigo', 'Big-O refresher: time and space cost of common operations', 'dsa', { url: 'https://www.bigocheatsheet.com/' }), T('k-env', 'Set up a TypeScript scratch project with Vitest for daily solutions', 'dsa', { url: 'https://vitest.dev/guide/' })],
     workout: [T('k-wo', 'Workout: full body (first gym day)', 'health')],
     beh: [T('k-pos', 'Write your target: role titles (frontend / full-stack / forward-deployed), 10 dream companies, and why', 'beh', { url: 'https://www.linkedin.com/jobs/' })],
-    ai: [T('k-news', NEWS_TASK, 'ai', { newsId: 'today' }), T('k-ai', 'AI landscape: which models lead today and what they cost', 'ai', { url: 'https://artificialanalysis.ai/' })],
+    ai: [T('k-news', NEWS_TASK, 'ai', { newsId: 'reads' }), T('k-ai', 'AI landscape: which models lead today and what they cost', 'ai', { url: 'https://artificialanalysis.ai/' })],
     review: [T('k-log', 'Write a one-line log below, look at tomorrow (day 2)', 'review', { log: true })],
   };
   return KICKOFF_BLOCKS.map(b => ({ ...b, tasks: by[b.k] || [] })) as Block[];
@@ -131,7 +131,7 @@ function studyBlocks(d: Day): Block[] {
     by.beh = [T(`fde-${f}`, ft, 'fde', fu ? { url: fu } : {}), T(`${k}-apply`, apt, 'beh', { url: apu })];
   }
   const ai = AI_DAYS[s - 1] || AI_DAYS_REVIEW[(s - AI_DAYS.length - 1) % AI_DAYS_REVIEW.length];
-  by.ai = [T(`${k}-news`, NEWS_TASK, 'ai', { newsId: 'today' }), T(`ai-${s}`, ai.text, 'ai', ai.url ? { url: ai.url } : {})];
+  by.ai = [T(`${k}-news`, NEWS_TASK, 'ai', { newsId: 'reads' }), T(`ai-${s}`, ai.text, 'ai', ai.url ? { url: ai.url } : {})];
   by.review = [T(`${k}-log`, 'Tick off today, write a one-line log below, glance at tomorrow', 'review', { log: true })];
   return (WEEKDAY_BLOCKS as unknown as Omit<Block, 'tasks'>[]).map(b => ({ ...b, tasks: by[b.k] || [] }));
 }
@@ -147,7 +147,7 @@ function sundayBlocks(d: Day): Block[] {
       T(`${k}-m1`, recent.name, 'dsa', { url: recent.url, diff: recent.d, slug: recent.slug }), T(`${k}-m2`, old.name, 'dsa', { url: old.url, diff: old.d, slug: old.slug })];
   } else by.mock = [T(`${k}-loop`, 'Full mock loop with a peer: DSA + frontend coding + system design, 45 min each', 'dsa', { url: 'https://www.tryexponent.com/practice' })];
   by.catchup = [T(`${k}-c1`, 'Clear the catch-up list (missed tasks from this week)', 'review'), T(`${k}-c2`, 'Re-solve every flagged problem; unflag the ones you nailed', 'dsa')];
-  by.weekly = [T(`${k}-pulse`, "Read this week's Interview pulse (News tab). Write 1 thing that changes your prep in Notes (15 min)", 'beh', { newsId: 'today' }),
+  by.weekly = [T(`${k}-pulse`, "Read this week's Interview pulse (News tab). Write 1 thing that changes your prep in Notes (15 min)", 'beh', { newsId: 'pulse' }),
     T(`${k}-mkt`, 'Market check: read 5 new job posts for your target roles; add new skills to Job tracker', 'beh', { url: 'https://www.linkedin.com/jobs/' }),
     T(`${k}-r1`, 'Weekly reflection: what worked, what to fix (write below). Read this week\'s Updates.', 'review', { log: true })];
   by.rest = [T(`${k}-rest`, 'Take the afternoon off. Rest is part of the plan.', 'health')];

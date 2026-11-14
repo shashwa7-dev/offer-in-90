@@ -8,12 +8,12 @@ import { PageHeader, Seg, Surface } from './shell/page';
 import { NewsInterviews } from './news-interviews';
 import { NewsReading } from './news-reading';
 import { SavedList } from './bookmarks';
-
-type Tab = 'interviews' | 'reading' | 'saved';
+import { useUI, type NewsTab as Tab } from './ui-state';
 
 export function NewsView() {
   const { state, update, news, threads } = useStore();
-  const [tab, setTab] = useState<Tab>('interviews');
+  const { newsTab } = useUI();
+  const [tab, setTab] = useState<Tab>(newsTab);
   // The visit time before this visit, so the Interviews count stays put while the page is open.
   const [since] = useState<number | null>(() => state.seenUpdates['interviews-visit'] ?? null);
   const wrote = useRef(false);

@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast as sonnerToast } from 'sonner';
 import { StoreProvider, useStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
-import { UICtx, type NoteTarget, type RoadmapTab, type View } from '@/components/ui-state';
+import { UICtx, type NewsTab, type NoteTarget, type RoadmapTab, type View } from '@/components/ui-state';
 import { TodayView } from '@/components/today-view';
 import { ProgressView } from '@/components/progress-view';
 import { RoadmapView } from '@/components/roadmap-view';
@@ -35,11 +35,12 @@ function App() {
   const [nt, setNt] = useState<NewTaskPreset | null>(null);
   const [roadmapTab, setRoadmapTab] = useState<RoadmapTab>('timeline');
   const [openChanges, setOpenChanges] = useState(false);
+  const [newsTab, setNewsTab] = useState<NewsTab>('interviews');
 
   useEffect(() => { if (ready) setViewIdx(Math.max(0, Math.min(days.length - 1, todayIdx))); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
   useEffect(() => { const h = location.hash.slice(1) as View; if (VIEWS.includes(h)) setView(h); }, []);
-  const go = useCallback((v: View) => { setView(v); history.replaceState(null, '', v === 'today' ? location.pathname : `#${v}`); window.scrollTo(0, 0); }, []);
+  const go = useCallback((v: View, opts?: { newsTab?: NewsTab }) => { if (v === 'news') setNewsTab(opts?.newsTab ?? 'interviews'); setView(v); history.replaceState(null, '', v === 'today' ? location.pathname : `#${v}`); window.scrollTo(0, 0); }, []);
   const toast = useCallback((m: string) => { sonnerToast(m); }, []);
   const openDay = useCallback((i: number) => { setViewIdx(i); go('today'); }, [go]);
   const newTask = useCallback((preset?: NewTaskPreset) => { setPeek(null); setNt({ ...preset }); }, []);
@@ -57,7 +58,7 @@ function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [newTask]);
 
-  const ui = useMemo(() => ({ view, go, viewIdx, setViewIdx, openDay, openNote: setNote, newTask, openTask, toast, roadmapTab, setRoadmapTab, openChanges, setOpenChanges }), [view, go, viewIdx, openDay, newTask, openTask, toast, roadmapTab, openChanges]);
+  const ui = useMemo(() => ({ view, go, viewIdx, setViewIdx, openDay, openNote: setNote, newTask, openTask, toast, roadmapTab, setRoadmapTab, openChanges, setOpenChanges, newsTab }), [view, go, viewIdx, openDay, newTask, openTask, toast, roadmapTab, openChanges, newsTab]);
 
   if (!ready) return <div className="p-8 text-muted-foreground">Loading your plan…</div>;
   return (
