@@ -6,7 +6,9 @@ import { fmtDate, type Day } from '@/lib/engine';
 
 export type ChartRange = 'month' | 'plan';
 
-const W = 920, H = 240, L = 50, R = 76, TOP = 16, B = 30;
+const W = 920, H = 240, L = 62, R = 100, TOP = 20, B = 32;
+// Labels grow to 16 units on phones (the SVG is drawn at its 560px min width there), so end labels keep 18 units apart.
+const SEP = 18;
 const shortDate = (d: Date) => d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 const round = (h: number) => (h >= 10 ? Math.round(h) : Math.round(h * 10) / 10);
 
@@ -65,7 +67,7 @@ export function ProgressChart({ data, days, todayIdx, range, missed, onOpenDay }
 
   // end labels: never closer than 12px; the lower one moves down
   let yPlan = y(cumPlan[b]), yProj = showForecast ? y(projectedH!) : 0;
-  if (showForecast && Math.abs(yPlan - yProj) < 12) { if (yProj >= yPlan) yProj = yPlan + 12; else yPlan = yProj + 12; }
+  if (showForecast && Math.abs(yPlan - yProj) < SEP) { if (yProj >= yPlan) yProj = yPlan + SEP; else yPlan = yProj + SEP; }
   const today = todayIdx >= a && todayIdx <= b ? todayIdx : -1;
   const labelAt = (i: number) => (range === 'plan' ? days[i].no % 7 === 1 : days[i].date.getDay() === 1);
 
@@ -83,11 +85,11 @@ export function ProgressChart({ data, days, todayIdx, range, missed, onOpenDay }
         {ticks.map(t => (
           <g key={t}>
             <line x1={L} x2={W - R} y1={y(t)} y2={y(t)} stroke="var(--border)" />
-            <text x={L - 8} y={y(t) + 4} textAnchor="end" className="fill-faint text-[11px] tabular-nums">{t}h</text>
+            <text x={L - 8} y={y(t) + 5} textAnchor="end" className="fill-faint text-[11px] max-sm:text-[16px] tabular-nums">{t}h</text>
           </g>
         ))}
         {planIs.filter(labelAt).map(i => (
-          <text key={i} x={x(i)} y={H - 8} textAnchor="middle" className="fill-faint text-[11px]">
+          <text key={i} x={x(i)} y={H - 8} textAnchor="middle" className="fill-faint text-[11px] max-sm:text-[16px]">
             {range === 'plan' ? `W${days[i].week}` : shortDate(days[i].date)}
           </text>
         ))}
@@ -98,14 +100,14 @@ export function ProgressChart({ data, days, todayIdx, range, missed, onOpenDay }
         {today >= 0 && (
           <g>
             <line x1={x(today)} x2={x(today)} y1={TOP - 6} y2={H - B} stroke="var(--foreground)" strokeWidth={1} opacity={0.35} />
-            <text x={x(today) + 4} y={TOP + 2} className="fill-muted-foreground text-[11px]">Today</text>
+            <text x={x(today) + 4} y={TOP} className="fill-muted-foreground text-[11px] max-sm:text-[16px]">Today</text>
           </g>
         )}
         {planIs.filter(i => missed.has(i)).map(i => (
           <rect key={i} x={x(i) - Math.max(1.5, slot / 2 - 1)} y={H - B + 4} width={Math.max(3, slot - 2)} height={3} rx={1} fill="var(--stone-foreground)" opacity={0.6} />
         ))}
-        <text x={W - R + 6} y={yPlan + 4} className="fill-muted-foreground text-[11px] tabular-nums">Plan {Math.round(range === 'plan' ? planH : cumPlan[b])} h</text>
-        {showForecast && <text x={W - R + 6} y={yProj + 4} className="fill-foreground text-[11px] font-medium tabular-nums">{Math.round(projectedH!)} h</text>}
+        <text x={W - R + 6} y={yPlan + 5} className="fill-muted-foreground text-[11px] max-sm:text-[16px] tabular-nums">Plan {Math.round(range === 'plan' ? planH : cumPlan[b])} h</text>
+        {showForecast && <text x={W - R + 6} y={yProj + 5} className="fill-foreground text-[11px] max-sm:text-[16px] font-medium tabular-nums">{Math.round(projectedH!)} h</text>}
         </g>
       </svg>
     </div>
