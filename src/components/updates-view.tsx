@@ -4,7 +4,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '@/lib/store';
 import { flattenThreads } from '@/lib/interview-feed';
-import { PageHeader, Seg, Surface } from './shell/page';
+import { PageFrame, PageHeader, Seg, Surface } from './shell/page';
 import { NewsInterviews } from './news-interviews';
 import { NewsReading } from './news-reading';
 import { SavedList } from './bookmarks';
@@ -35,13 +35,12 @@ export function NewsView() {
   ];
 
   return (
-    <div className="pb-16">
-      <PageHeader crumbs={['News']} actions={<Seg value={tab} onChange={setTab} options={opts} />} />
+    <PageFrame header={<PageHeader crumbs={['News']} actions={<Seg value={tab} onChange={setTab} options={opts} />} />}>
       <Surface>
         {tab === 'interviews' && <NewsInterviews />}
         {tab === 'reading' && <NewsReading />}
         {tab === 'saved' && <SavedList />}
       </Surface>
-    </div>
+    </PageFrame>
   );
 }

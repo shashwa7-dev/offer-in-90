@@ -16,10 +16,25 @@ export function Surface({ children, className }: { children: ReactNode; classNam
 
 type Crumb = string | { label: string; onClick?: () => void; /** Hidden on phones (with the separator after it). */ phoneHidden?: boolean };
 
+/** Every page's frame: the header in a bar pinned to the top of the window (on the canvas, hairline below,
+    44px on phones / 48px from md), then the content after one fixed 12px gap. The bar bleeds into the
+    container's side gutters so its hairline spans the full content column. */
+export function PageFrame({ header, children }: { header: ReactNode; children: ReactNode }) {
+  return (
+    <>
+      <div data-page-header
+        className="sticky top-0 z-20 -mr-[max(16px,env(safe-area-inset-right))] -ml-[max(16px,env(safe-area-inset-left))] bg-background shadow-[inset_0_-1px_0_var(--border)] pt-[env(safe-area-inset-top)] pr-[max(16px,env(safe-area-inset-right))] pl-[max(16px,env(safe-area-inset-left))] md:-mx-6 md:px-6">
+        {header}
+      </div>
+      <div data-page-body className="flex flex-col gap-3 pt-3">{children}</div>
+    </>
+  );
+}
+
 /** Page title line: sidebar toggle (desktop), breadcrumb, optional count, actions on the right. */
 export function PageHeader({ crumbs, count, actions, keepLast }: { crumbs: Crumb[]; count?: string; actions?: ReactNode; /** Keep the last crumb whole; earlier crumbs truncate first. */ keepLast?: boolean }) {
   return (
-    <header className="flex min-h-12 items-center gap-2 py-2">
+    <header className="flex h-11 min-w-0 items-center gap-2 md:h-12">
       <SidebarTrigger className="-ml-1.5 hidden text-muted-foreground md:inline-flex" />
       <Breadcrumb className="min-w-0">
         <BreadcrumbList className="flex-nowrap text-[14px] sm:gap-1.5">

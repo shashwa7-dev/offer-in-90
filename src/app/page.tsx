@@ -2,7 +2,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast as sonnerToast } from 'sonner';
 import { StoreProvider, useStore } from '@/lib/store';
-import { cn } from '@/lib/utils';
 import { UICtx, type NewsTab, type NoteTarget, type RoadmapTab, type View } from '@/components/ui-state';
 import { TodayView } from '@/components/today-view';
 import { ProgressView } from '@/components/progress-view';
@@ -87,7 +86,8 @@ function App() {
       <SidebarProvider>
         <AppSidebar />
         <SidebarInset className="min-w-0 bg-background pb-[calc(56px+env(safe-area-inset-bottom))] md:pb-0">
-          <div className={cn('mx-auto w-full pt-[env(safe-area-inset-top)] pl-[max(16px,env(safe-area-inset-left))] pr-[max(16px,env(safe-area-inset-right))] md:px-6', view !== 'today' && 'max-w-6xl')}>
+          {/* One content container for every route: same width, gutters and bottom padding. */}
+          <div data-page-container className="mx-auto w-full max-w-[1280px] pb-6 pl-[max(16px,env(safe-area-inset-left))] pr-[max(16px,env(safe-area-inset-right))] md:px-6">
             {view === 'today' && <TodayView />}
             {view === 'progress' && <ProgressView />}
             {view === 'roadmap' && <RoadmapView />}

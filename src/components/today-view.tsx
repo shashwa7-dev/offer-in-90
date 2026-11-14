@@ -9,7 +9,7 @@ import { TRACKS, bandOf } from '@/lib/timeline';
 import { STATUS_LABEL, isSkipped, statusOf } from '@/lib/task-status';
 import { isActive, matches, statusCounts, trackOfCat, type GroupBy } from '@/lib/task-filter';
 import { TOTAL, type Block, type Day, type Task, dayStats, dayTitle, fmtDate, hrs, overall, parseISO, study, toMin } from '@/lib/engine';
-import { Band, Chip, PageHeader, Ring, Row, Surface, SummaryRow } from './shell/page';
+import { Band, Chip, PageFrame, PageHeader, Ring, Row, Surface, SummaryRow } from './shell/page';
 import { TaskRow } from './task-row';
 import { QuickAdd } from './own-task';
 import { useUI } from './ui-state';
@@ -85,8 +85,7 @@ export function TodayView() {
   ];
 
   return (
-    <div className="pb-16">
-      <PageHeader
+    <PageFrame header={<PageHeader
         crumbs={[{ label: `Week ${d.week}`, phoneHidden: true }, d.no === 0 ? 'Day 0 · prep' : `Day ${d.no} of ${TOTAL}`, fmtDate(d.date)]}
         keepLast
         actions={<>
@@ -98,7 +97,7 @@ export function TodayView() {
           <DisplayMenu groupBy={groupBy} onChange={setGroupBy} />
           <Button size="sm" onClick={() => newTask()} aria-label="New task" title="New task (C)" className="max-sm:w-8 max-sm:px-0"><Plus /><span className="hidden sm:inline">New task</span></Button>
         </>}
-      />
+      />}>
 
       {/* One sheet: the list, then the rail (a column with a vertical hairline at xl, a section below it otherwise). */}
       <Surface className="xl:grid xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -156,7 +155,7 @@ export function TodayView() {
       {/* Right column: the viewed day and its week as a cycle; stacks below the list on smaller screens. */}
       <aside data-rail className="min-w-0 border-t border-border xl:border-t-0 xl:border-l"><TodayRail day={d} /></aside>
       </Surface>
-    </div>
+    </PageFrame>
   );
 }
 

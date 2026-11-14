@@ -790,7 +790,7 @@ try {
       const sw = await page.evaluate(() => document.documentElement.scrollWidth);
       if (sw > 390) fail(`${W}: horizontal scroll (${sw})`); else ok(`${W}: scrollWidth ${sw}`);
       await page.screenshot({ path: join(shots, `notes-390-doc.png`) });
-      const crumb = editor.getByRole('button', { name: 'Notes', exact: true });
+      const crumb = page.locator('[data-page-header]').getByRole('button', { name: 'Notes', exact: true });
       if (await crumb.count()) { await crumb.click(); await page.waitForTimeout(300); }
       if (await list.isVisible().catch(() => false)) ok(`${W}: "Notes" crumb returns to the list`); else fail(`${W}: "Notes" crumb did not return to the list`);
     }
@@ -1255,6 +1255,81 @@ try {
     }
     checkErrors(errors, W);
     await ctx.close();
+  }
+  // ---------- Page frame: sticky header, one content width, one header→content gap; logo ----------
+  {
+    const widths = {};
+    const gaps = [];
+    for (const [width, height] of [[1100, 800], [1440, 900], [390, 844]]) {
+      const ctx = await browser.newContext({ viewport: { width, height } });
+      await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fixture));
+      const page = await ctx.newPage();
+      const errors = [];
+      page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+      page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+      widths[width] = {};
+      for (const v of ['today', 'progress', 'roadmap', 'notes', 'news', 'setup']) {
+        await page.goto(v === 'today' ? URL : `${URL}/#${v}`, { waitUntil: 'networkidle' });
+        await page.reload({ waitUntil: 'networkidle' });
+        await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+        await page.waitForTimeout(400);
+        const W = `frame ${width} ${v}`;
+        const m = await page.evaluate(() => {
+          const h = document.querySelector('[data-slot="sidebar-inset"] [data-page-header]');
+          const c = document.querySelector('[data-slot="sidebar-inset"] [data-page-container]');
+          const s = document.querySelector('[data-slot="sidebar-inset"] [data-page-body] > [data-surface], [data-slot="sidebar-inset"] [data-page-body] > * [data-surface]');
+          if (!h) return null;
+          const hr = h.getBoundingClientRect();
+          return { hb: hr.bottom, hh: hr.height, cw: c ? c.getBoundingClientRect().width : null, st: s ? s.getBoundingClientRect().top : null, sticky: getComputedStyle(h).position, bg: getComputedStyle(h).backgroundColor, body: getComputedStyle(document.body).backgroundColor, html: getComputedStyle(document.documentElement).overscrollBehaviorY };
+        });
+        if (!m) { fail(`${W}: no [data-page-header]`); continue; }
+        if (m.cw == null) fail(`${W}: no [data-page-container]`); else widths[width][v] = Math.round(m.cw);
+        if (m.st == null) fail(`${W}: no surface in [data-page-body]`); else gaps.push([W, m.st - m.hb]);
+        const wantH = width >= 768 ? 48 : 44;
+        if (Math.abs(m.hh - wantH) <= 1) ok(`${W}: header ${Math.round(m.hh)}px`); else fail(`${W}: header ${m.hh}px, want ${wantH}`);
+        if (m.sticky === 'sticky' && m.bg === m.body) ok(`${W}: header sticky on the canvas`); else fail(`${W}: header position ${m.sticky}, bg ${m.bg} vs canvas ${m.body}`);
+        if (m.html === 'none') ok(`${W}: html overscroll-behavior-y none`); else fail(`${W}: html overscroll-behavior-y ${m.html}`);
+        // scrolled to the bottom, the header still sits at the top and is on top of the content
+        await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+        await page.waitForTimeout(250);
+        const s = await page.evaluate(() => {
+          const h = document.querySelector('[data-slot="sidebar-inset"] [data-page-header]');
+          const r = h.getBoundingClientRect();
+          const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+          return { top: r.top, on: !!hit && h.contains(hit), y: scrollY };
+        });
+        if (Math.abs(s.top) <= 1 && s.on) ok(`${W}: header pinned at the bottom of the page (scrollY ${Math.round(s.y)})`); else fail(`${W}: header top ${s.top}, on top ${s.on} (scrollY ${s.y})`);
+        if (v === 'notes' && width >= 768) {
+          const fit = await page.evaluate(() => { const e = document.querySelector('[data-slot="sidebar-inset"] [data-page-body] [data-surface]'); return e ? e.getBoundingClientRect().bottom - innerHeight : null; });
+          if (fit != null && fit <= 1) ok(`${W}: two panes fit the viewport`); else fail(`${W}: notes panes overflow the viewport by ${fit}`);
+        }
+        await page.screenshot({ path: join(shots, `frame-${width}-${v}-bottom.png`) });
+        await page.evaluate(() => window.scrollTo(0, 0));
+      }
+      if (width === 1100) {
+        const logo = page.locator('[data-slot="sidebar"] img[data-logo]').first();
+        const nw = await logo.evaluate(e => e.complete ? e.naturalWidth : 0).catch(() => 0);
+        if (nw > 0) ok(`frame ${width}: sidebar logo loads (${nw}px)`); else fail(`frame ${width}: sidebar logo missing or not loaded`);
+        const alt = await logo.getAttribute('alt').catch(() => null);
+        if (alt === 'Offer in 90') ok(`frame ${width}: logo alt`); else fail(`frame ${width}: logo alt "${alt}"`);
+        const icon = await page.request.get(`${URL}/icon.png`).then(r => r.status()).catch(() => 0);
+        if (icon === 200) ok('/icon.png returns 200'); else fail(`/icon.png returns ${icon}`);
+        await page.locator('[data-slot="sidebar"] [data-sidebar="trigger"], [data-sidebar="trigger"]').first().click().catch(() => {});
+        await page.waitForTimeout(400);
+        const cnw = await logo.evaluate(e => (e.getBoundingClientRect().width > 0 ? e.naturalWidth : 0)).catch(() => 0);
+        if (cnw > 0) ok(`frame ${width}: logo shows in the collapsed rail`); else fail(`frame ${width}: no logo in the collapsed rail`);
+        await page.screenshot({ path: join(shots, 'frame-1100-collapsed.png') });
+      }
+      checkErrors(errors, `frame ${width}`);
+      await ctx.close();
+    }
+    for (const w of [1100, 1440]) {
+      const vals = Object.values(widths[w]);
+      if (vals.length === 6 && new Set(vals).size === 1) ok(`frame ${w}: content width ${vals[0]}px on all six pages`); else fail(`frame ${w}: content widths ${JSON.stringify(widths[w])}`);
+    }
+    const g0 = gaps[0]?.[1];
+    const off = gaps.filter(([, g]) => Math.abs(g - g0) > 1);
+    if (gaps.length === 18 && !off.length && Math.abs(g0 - 12) <= 1) ok(`frame: header→content gap ${Math.round(g0)}px everywhere`); else fail(`frame: gaps differ ${JSON.stringify(gaps.map(([k, g]) => [k, Math.round(g)]))}`);
   }
   // ---------- Every page: future start date, dark mode (desktop and phone) ----------
   for (const [label, opts, fx] of [

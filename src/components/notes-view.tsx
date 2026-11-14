@@ -6,8 +6,8 @@ import { Plus, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { Band, PageHeader, Row, Surface } from './shell/page';
-import { NoteEditor, ago } from './note-editor';
+import { Band, PageFrame, PageHeader, Row, Surface } from './shell/page';
+import { NoteEditor, ago, titleOf } from './note-editor';
 import { useUI, type NoteTarget } from './ui-state';
 
 /** One-line preview: markdown marks and links stripped, and a first heading that only repeats the title dropped. */
@@ -123,10 +123,12 @@ export function NotesView() {
   );
 
   return (
-    <div className="pb-4 md:pb-6">
-      {showList && <PageHeader crumbs={['Notes']} count={`${allPages.length + Object.values(state.tnotes).filter(n => n.body.trim()).length}`} />}
-      {!showList && <div className="h-2" />}
-      <Surface className={cn('md:grid md:h-[calc(100svh-4.5rem)] md:min-h-[480px] md:grid-cols-[280px_minmax(0,1fr)]', !showList && 'min-h-[calc(100svh-7rem)]')}>
+    <PageFrame header={showList || !active
+      ? <PageHeader crumbs={['Notes']} count={`${allPages.length + Object.values(state.tnotes).filter(n => n.body.trim()).length}`} />
+      : <PageHeader crumbs={[{ label: 'Notes', onClick: back }, titleOf(state, active)]} keepLast />}>
+      {/* Two panes fill the window below the header: 100svh − 48px header − 12px gap − 24px bottom padding.
+          Phones (document open): also less the 44px header and the 56px bottom bar plus safe areas. */}
+      <Surface className={cn('md:grid md:h-[calc(100svh-84px)] md:min-h-[480px] md:grid-cols-[280px_minmax(0,1fr)]', !showList && 'min-h-[calc(100svh-136px-env(safe-area-inset-top)-env(safe-area-inset-bottom))]')}>
         {showList && list}
         {showDoc && active && (
           <NoteEditor key={keyOf(active)} target={active} className="h-full"
@@ -136,6 +138,6 @@ export function NotesView() {
         )}
         {!phone && !active && <p className="p-6 text-[13px] text-muted-foreground">Create a page to start writing.</p>}
       </Surface>
-    </div>
+    </PageFrame>
   );
 }

@@ -15,7 +15,7 @@ import { buildICS, WEEKDAY_BLOCKS, SUNDAY_BLOCKS } from '@/lib/schedule';
 import { fmtDate, iso, parseISO } from '@/lib/engine';
 import { companyCounts, flattenThreads } from '@/lib/interview-feed';
 import { useUI } from './ui-state';
-import { Band, Chip, PageHeader, Surface } from './shell/page';
+import { Band, Chip, PageFrame, PageHeader, Surface } from './shell/page';
 
 function download(name: string, text: string, type: string) {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; document.body.appendChild(a); a.click(); a.remove();
@@ -74,8 +74,7 @@ export function SetupView() {
   const syncLine = sync.state === 'syncing' ? 'Syncing…' : sync.state === 'error' ? 'Not synced' : `Synced${sync.at ? ` at ${new Date(sync.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}`;
 
   return (
-    <div className="pb-16">
-      <PageHeader crumbs={['Setup']} />
+    <PageFrame header={<PageHeader crumbs={['Setup']} />}>
       <Surface>
         <Band id="plan" title="Your plan">
           <Setting label="Start date" help="The first day of your plan. Sundays become review days. Your ticks and notes stay.">
@@ -227,6 +226,6 @@ export function SetupView() {
           <Timetable title="Sunday" blocks={SUNDAY_BLOCKS} />
         </SheetContent>
       </Sheet>
-    </div>
+    </PageFrame>
   );
 }

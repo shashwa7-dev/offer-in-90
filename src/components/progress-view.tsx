@@ -4,7 +4,7 @@ import { useStore } from '@/lib/store';
 import { goodStreak, isSkipped, rate } from '@/lib/task-status';
 import { P, catName, dayStats, fmtDate, hrs, overall, parseISO, study } from '@/lib/engine';
 import { forecast } from '@/lib/forecast';
-import { Band, Chip, PageHeader, Row, Seg, Surface, SummaryRow } from './shell/page';
+import { Band, Chip, PageFrame, PageHeader, Row, Seg, Surface, SummaryRow } from './shell/page';
 import { ProgressChart, type ChartRange } from './progress-chart';
 import { useUI } from './ui-state';
 
@@ -68,8 +68,7 @@ export function ProgressView() {
   const pctTxt = fc.pct === null ? '' : `${Math.round(fc.pct * 100)}%`;
 
   return (
-    <div className="pb-16">
-      <PageHeader crumbs={['Progress', `${fmtDate(parseISO(state.start))} → ${fmtDate(end)}`]} keepLast />
+    <PageFrame header={<PageHeader crumbs={['Progress', `${fmtDate(parseISO(state.start))} → ${fmtDate(end)}`]} keepLast />}>
       <Surface>
         <SummaryRow ring={{ pct: o.planAll ? o.doneAll / o.planAll : 0, label: 'of plan hours' }} items={items} />
         <div className="border-t border-border">
@@ -119,7 +118,7 @@ export function ProgressView() {
           </Band>
         </div>
       </Surface>
-    </div>
+    </PageFrame>
   );
 }
 

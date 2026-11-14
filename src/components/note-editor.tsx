@@ -17,7 +17,7 @@ import type { NoteTarget } from './ui-state';
 export const ago = (ts: number) => { const m = Math.round((Date.now() - ts) / 6e4); return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
 
 const bodyOf = (s: State, t: NoteTarget) => (t.kind === 'task' ? s.tnotes[t.key]?.body : s.pages[t.id]?.body) || '';
-const titleOf = (s: State, t: NoteTarget) => (t.kind === 'task' ? t.title : s.pages[t.id]?.title || 'Untitled');
+export const titleOf = (s: State, t: NoteTarget) => (t.kind === 'task' ? t.title : s.pages[t.id]?.title || 'Untitled');
 
 /** Writes a note body into state. Task notes with an empty body are removed.
  *  Never re-creates a note whose owner is gone: an own task (`u-<id>`) that was deleted, or a deleted page. */
@@ -147,13 +147,8 @@ export function NoteEditor({ target, compact, className, onBack, onDeleted, focu
   return (
     <div className={cn('flex min-h-0 flex-col', className)} data-note-editor>
       <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border pr-2 pl-4">
-        <p className="flex min-w-0 flex-1 items-center gap-1.5 text-[13px] text-muted-foreground" data-note-crumb>
-          {onBack
-            ? <button type="button" onClick={onBack} className="shrink-0 rounded-[5px] outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40">Notes</button>
-            : <span className="shrink-0">Notes</span>}
-          <span aria-hidden="true">›</span>
-          <span className="truncate text-foreground">{title}</span>
-        </p>
+        {/* The page header already reads "Notes" (and on phones "Notes › title" with the way back), so this row only names the note on desktop. */}
+        <p className="min-w-0 flex-1 truncate text-[13px] font-medium text-foreground" data-note-crumb>{onBack ? '' : title}</p>
         {statusEl}
         {target.kind === 'page' && (
           <DropdownMenu>
