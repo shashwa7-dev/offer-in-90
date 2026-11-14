@@ -207,8 +207,8 @@ try {
       const planEdit = await page.locator('[data-task]:not([data-own]) [aria-label^="Edit "], [data-task]:not([data-own]) [aria-label^="Remove "]').count();
       if (planEdit === 0) ok(`${W}: plan tasks have no edit/remove`); else fail(`${W}: plan tasks show ${planEdit} edit/remove buttons`);
       // tick a task in the current block
-      const box = page.locator('[data-now] ~ [data-task] [role="checkbox"]').first();
-      const id = (await box.getAttribute('id') || '').replace(/^t-/, '');
+      const box = page.locator('[data-now] ~ [data-task] [data-status-icon]').first();
+      const id = await page.locator('[data-now] ~ [data-task]').first().getAttribute('data-task');
       await box.click(); await page.waitForTimeout(200);
       if ((await saved()).done?.[id]) ok(`${W}: ticking saves (${id})`); else fail(`${W}: tick not saved (${id})`);
       // open the missed DSA block and flag a problem
@@ -308,7 +308,7 @@ try {
     if (await peek.isVisible().catch(() => false)) fail(`${W}: Esc did not close the peek`); else ok(`${W}: Esc closes the peek`);
 
     // the own task: tick it, open it, edit the title, delete, undo
-    await ownRow.first().locator('[role="checkbox"]').click();
+    await ownRow.first().locator('[data-status-icon]').click();
     await page.waitForTimeout(200);
     await ownRow.first().locator('[data-title]').click();
     await page.waitForTimeout(500);
@@ -331,7 +331,89 @@ try {
     await page.waitForTimeout(400);
     s = await saved();
     if (await renamed.count() && s.custom?.[ownId] && s.done?.[`u-${ownId}`] && s.tnotes?.[`u-${ownId}`]?.body === 'Smoke dialog note') ok(`${W}: Undo restores row, tick and note`); else fail(`${W}: Undo did not restore everything`);
-    if (await renamed.first().locator('[role="checkbox"][data-state="checked"]').count()) ok(`${W}: restored row still ticked`); else fail(`${W}: restored row not ticked`);
+    if (await renamed.first().locator('[data-status-icon][aria-pressed="true"]').count()) ok(`${W}: restored row still ticked`); else fail(`${W}: restored row not ticked`);
+    checkErrors(errors, W);
+    await ctx.close();
+  }
+  // ---------- Task statuses: icon, menu, right-click, keys, peek (same fixed clock) ----------
+  for (const [width, height] of [[1100, 900], [390, 844]]) {
+    const at = new Date(2026, 10, 12, 14, 10);
+    const st = new Date(at); st.setDate(st.getDate() - 9);
+    const fx = { ...fixture, start: isoDay(st), done: {}, status: {}, notes: {}, updatedAt: +at };
+    const ctx = await browser.newContext({ viewport: { width, height }, hasTouch: width === 390 });
+    await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
+    const page = await ctx.newPage();
+    await page.clock.install({ time: at });
+    const errors = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+    page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+    await page.goto(URL, { waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+    await page.waitForTimeout(500);
+    const W = `status ${width}`;
+    const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem('offer90.v1') || '{}'));
+    const missedCount = () => page.evaluate(() => { const k = [...document.querySelectorAll('div')].find(e => e.textContent === 'Missed' && e.nextElementSibling); return parseInt(k?.nextElementSibling?.textContent || 'NaN', 10); });
+    const rows = page.locator('[data-now] ~ [data-task]:not([data-own])');
+    const idOf = async r => r.getAttribute('data-task');
+    const nRows = await rows.count();
+    if (nRows >= 2) ok(`${W}: now block has ${nRows} task rows`); else fail(`${W}: now block has only ${nRows} task rows`);
+    // 1. click the icon: done
+    const r0 = rows.nth(0), id0 = await idOf(r0);
+    await r0.locator('[data-status-icon]').click(); await page.waitForTimeout(200);
+    if ((await saved()).done?.[id0]) ok(`${W}: icon click marks done (${id0})`); else fail(`${W}: icon click did not mark done (${id0})`);
+    if (await r0.locator('[data-status-icon][aria-pressed="true"]').count() && /: Done$/.test(await r0.locator('[data-status-icon]').getAttribute('aria-label') || '')) ok(`${W}: icon reads Done`); else fail(`${W}: icon not pressed / label not Done`);
+    // 2. menu: In progress
+    const r1 = rows.nth(1), id1 = await idOf(r1);
+    await r1.hover();
+    await r1.locator('[data-status-menu]').click(); await page.waitForTimeout(250);
+    const opt = page.getByRole('menuitemradio', { name: /In progress/ });
+    if (await opt.isVisible().catch(() => false)) ok(`${W}: status menu opens`); else fail(`${W}: status menu did not open`);
+    if (await page.getByRole('menuitemradio', { name: /Not started/, checked: true }).count()) ok(`${W}: menu checks the current status`); else fail(`${W}: current status not checked`);
+    await opt.click().catch(() => {}); await page.waitForTimeout(250);
+    if ((await saved()).status?.[id1] === 'progress') ok(`${W}: menu sets In progress`); else fail(`${W}: In progress not saved (${JSON.stringify((await saved()).status)})`);
+    if (/In progress/.test(await r1.innerText())) ok(`${W}: In progress chip shown`); else fail(`${W}: In progress chip missing`);
+    // 3. right-click opens the same menu; S on a focused row too
+    const r2 = rows.nth(0);
+    await r2.locator('[data-title]').click({ button: 'right' }); await page.waitForTimeout(250);
+    if (await page.getByRole('menu').isVisible().catch(() => false)) ok(`${W}: right-click opens the status menu`); else fail(`${W}: right-click did not open the menu`);
+    { const sv = await saved(); if (sv.done?.[id0] && !sv.status?.[id0]) ok(`${W}: right-click release picks nothing`); else fail(`${W}: right-click changed the status`); }
+    await page.keyboard.press('Escape'); await page.getByRole('menu').waitFor({ state: 'detached' }).catch(() => {}); await page.waitForTimeout(150);
+    await r2.focus(); await page.keyboard.press('s'); await page.waitForTimeout(250);
+    if (await page.getByRole('menu').isVisible().catch(() => false)) ok(`${W}: S opens the menu on a focused row`); else fail(`${W}: S did not open the menu`);
+    await page.keyboard.press('Escape'); await page.getByRole('menu').waitFor({ state: 'detached' }).catch(() => {}); await page.waitForTimeout(150);
+    // keys are ignored while typing
+    await page.getByRole('button', { name: 'Add task' }).first().click();
+    await page.getByPlaceholder('Task name, paste a link to attach it').fill('');
+    await page.keyboard.type('4'); await page.waitForTimeout(150);
+    if (Object.values((await saved()).status || {}).filter(v => v === 'skipped').length === 0) ok(`${W}: keys ignored while typing`); else fail(`${W}: a key typed in an input changed a status`);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(150);
+    // 4. key 4 on a focused missed row: skipped, missed count drops
+    const before = await missedCount();
+    await page.locator('[data-missed]').filter({ hasText: '05:15' }).click(); await page.waitForTimeout(250);
+    const dsa = page.locator('[data-block="dsa"] + [data-task]');
+    const idS = await dsa.getAttribute('data-task');
+    await dsa.focus(); await page.keyboard.press('4'); await page.waitForTimeout(250);
+    if ((await saved()).status?.[idS] === 'skipped') ok(`${W}: key 4 sets Skipped (${idS})`); else fail(`${W}: key 4 did not skip (${idS})`);
+    const after = await missedCount();
+    if (after === before - 1) ok(`${W}: missed count ${before} -> ${after}`); else fail(`${W}: missed count ${before} -> ${after}`);
+    if (/Skipped/.test(await dsa.innerText())) ok(`${W}: Skipped chip shown`); else fail(`${W}: Skipped chip missing`);
+    const deco = await dsa.locator('[data-title]').evaluate(e => getComputedStyle(e).textDecorationLine);
+    if (deco === 'none') ok(`${W}: skipped text not struck through`); else fail(`${W}: skipped text decoration ${deco}`);
+    await page.screenshot({ path: join(shots, `status-${width}.png`), fullPage: true });
+    if (width === 390) { const sw = await page.evaluate(() => document.documentElement.scrollWidth); if (sw > 390) fail(`${W}: horizontal scroll (${sw})`); else ok(`${W}: scrollWidth ${sw}`); }
+    // 5. peek: same control and keys
+    await dsa.locator('[data-title]').click(); await page.waitForTimeout(500);
+    const peek = page.locator('[data-peek]');
+    const pIcon = peek.locator('[data-status-icon]');
+    if (await pIcon.count() && /: Skipped$/.test(await pIcon.getAttribute('aria-label') || '')) ok(`${W}: peek shows the status control (Skipped)`); else fail(`${W}: peek status control missing or wrong`);
+    await page.keyboard.press('2'); await page.waitForTimeout(250);
+    if ((await saved()).status?.[idS] === 'progress') ok(`${W}: key 2 in the peek sets In progress`); else fail(`${W}: key 2 in the peek did nothing`);
+    await pIcon.click(); await page.waitForTimeout(250);
+    if ((await saved()).done?.[idS] && !(await saved()).status?.[idS]) ok(`${W}: peek icon marks done`); else fail(`${W}: peek icon did not mark done`);
+    await peek.locator('[data-status-menu]').click(); await page.waitForTimeout(250);
+    await page.getByRole('menuitemradio', { name: /Skipped/ }).click().catch(() => {}); await page.waitForTimeout(250);
+    if ((await saved()).status?.[idS] === 'skipped' && !(await saved()).done?.[idS]) ok(`${W}: peek menu sets Skipped`); else fail(`${W}: peek menu did not set Skipped`);
+    await page.screenshot({ path: join(shots, `status-peek-${width}.png`) });
     checkErrors(errors, W);
     await ctx.close();
   }

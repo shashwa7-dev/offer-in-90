@@ -1,5 +1,5 @@
 'use client';
-/* Plane-style side peek for one task: tick, title, properties, note. Only the user's own tasks can be edited or deleted. */
+/* Plane-style side peek for one task: status, title, properties, note. Only the user's own tasks can be edited or deleted. */
 import { useEffect, useRef, useState } from 'react';
 import { AlertTriangle, CalendarDays, Clock, Flag, Gauge, Link2, Maximize2, Minimize2, MoreHorizontal, Newspaper, Trash2, User, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -8,11 +8,11 @@ import { defaultBlock } from '@/lib/own-tasks';
 import { domainOf } from '@/lib/interview-feed';
 import { fmtDate, iso, type Day, type Task } from '@/lib/engine';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
-import { Checkbox } from '@/components/ui/checkbox';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Chip } from './shell/page';
 import { NoteEditor } from './note-editor';
 import { noteKey } from './task-row';
+import { StatusControl, statusKey, useTaskStatus } from './status-control';
 import { deleteOwn } from './own-task';
 import { BlockPick, DayPick, dayLabel } from './task-pickers';
 import { newsTabFor, useUI } from './ui-state';
@@ -56,7 +56,18 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
   const { state, days, update } = useStore();
   const { go, openDay } = useUI();
   const own = t.own ? state.custom[t.own] : undefined;
-  const done = !!state.done[t.id];
+  const [st, setStatus] = useTaskStatus(t.id);
+  const [menu, setMenu] = useState(false);
+  const done = st === 'done', dim = done || st === 'skipped';
+  // S / 1-4 work anywhere in the peek except while typing (the status menu handles its own keys).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || document.querySelector('[role="menu"], [role="alertdialog"]')) return;
+      statusKey(e, setStatus, () => setMenu(true));
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [setStatus]);
   const flagged = !!(t.slug && state.flags[t.slug]);
   const title = t.text.replace(/^Re-solve without looking: /, '');
   const [name, setName] = useState(t.text);
@@ -64,7 +75,6 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
   useEffect(() => { setName(t.text); }, [t.text]);
   useEffect(() => { setLink(t.url || ''); }, [t.url]);
 
-  const toggle = (v: boolean) => update(s => { const x = { ...s.done }; if (v) x[t.id] = Date.now(); else delete x[t.id]; return { ...s, done: x }; });
   const flag = () => update(s => { const f = { ...s.flags }; if (f[t.slug!]) delete f[t.slug!]; else f[t.slug!] = 1; return { ...s, flags: f }; });
   const edit = (fn: (c: NonNullable<typeof own>) => NonNullable<typeof own>) => update(s => { const c = s.custom[t.own!]; return c ? { ...s, custom: { ...s.custom, [t.own!]: fn(c) } } : s; });
   const saveName = () => { const v = name.replace(/\s+/g, ' ').trim(); if (!v) { setName(t.text); return; } if (v !== t.text) edit(c => ({ ...c, text: v })); };
@@ -115,14 +125,14 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
       <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
         <div className={cn('mx-auto flex flex-col gap-4', wide && 'max-w-3xl')}>
           <div className="flex items-start gap-3">
-            <Checkbox checked={done} onCheckedChange={v => toggle(!!v)} className="mt-[5px]" aria-label={done ? `Untick ${title}` : `Tick ${title}`} />
+            <StatusControl taskId={t.id} label={title} open={menu} onOpenChange={setMenu} showMenu="always" className="mt-1.5" />
             {t.own ? (
               <SheetTitle asChild>
                 <input value={name} onChange={e => setName(e.target.value)} onBlur={saveName} onKeyDown={e => { enterBlur(e); if (e.key === 'Escape') { setName(t.text); } }}
-                  aria-label="Task title" className={cn('-mx-1 min-w-0 flex-1 rounded-[5px] border border-transparent bg-transparent px-1 text-[18px] leading-7 font-semibold text-foreground outline-none hover:border-input focus-visible:border-ring', done && 'text-muted-foreground')} />
+                  aria-label="Task title" className={cn('-mx-1 min-w-0 flex-1 rounded-[5px] border border-transparent bg-transparent px-1 text-[18px] leading-7 font-semibold text-foreground outline-none hover:border-input focus-visible:border-ring', dim && 'text-muted-foreground')} />
               </SheetTitle>
             ) : (
-              <SheetTitle className={cn('min-w-0 flex-1 text-[18px] leading-7 font-semibold break-words', done && 'text-muted-foreground')}>{t.text}</SheetTitle>
+              <SheetTitle className={cn('min-w-0 flex-1 text-[18px] leading-7 font-semibold break-words', dim && 'text-muted-foreground')}>{t.text}</SheetTitle>
             )}
           </div>
           <SheetDescription className="sr-only">Task details and note</SheetDescription>

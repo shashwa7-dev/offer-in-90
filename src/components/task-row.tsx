@@ -1,12 +1,12 @@
 'use client';
 import { useState } from 'react';
 import { AlertTriangle, FileText, Flag, Newspaper, Pencil, Trash2 } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import { domainOf } from '@/lib/interview-feed';
 import type { Task } from '@/lib/engine';
 import { Chip } from './shell/page';
+import { StatusControl, statusKey, useTaskStatus } from './status-control';
 import { newsTabFor, useUI } from './ui-state';
 import { TaskInput, deleteOwn, parseTask } from './own-task';
 
@@ -22,11 +22,17 @@ export function TaskRow({ t, dayIdx, extra, status }: { t: Task; dayIdx: number;
   const { state, update } = useStore();
   const { openTask, go } = useUI();
   const [editing, setEditing] = useState(false);
-  const done = !!state.done[t.id];
+  const [st, setStatus] = useTaskStatus(t.id);
+  const [menu, setMenu] = useState(false);
+  const done = st === 'done', skipped = st === 'skipped';
   const flagged = !!(t.slug && state.flags[t.slug]);
   const hasNote = !!state.tnotes[noteKey(t)]?.body?.trim();
-  const missed = !done && status === 'missed', pick = !done && status === 'pick';
-  const toggle = (v: boolean) => update(s => { const d = { ...s.done }; if (v) d[t.id] = Date.now(); else delete d[t.id]; return { ...s, done: d }; });
+  const missed = !done && !skipped && status === 'missed', pick = !done && !skipped && status === 'pick';
+  // S / 1-4 act on the focused row only (not on its portalled menu, not while a dialog or sheet is open).
+  const onKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (editing || !e.currentTarget.contains(e.target as Node) || document.querySelector('[role="dialog"], [role="alertdialog"]')) return;
+    statusKey(e, setStatus, () => setMenu(true));
+  };
   // Only the user's own tasks (t.own) can be edited or removed.
   const save = (raw: string) => { const { text, url } = parseTask(raw); update(s => { const c = s.custom[t.own!]; if (!c) return s; const n = { ...c, text }; if (url) n.url = url; else delete n.url; return { ...s, custom: { ...s.custom, [t.own!]: n } }; }); setEditing(false); };
   const remove = () => deleteOwn(update, state, t.own!);
@@ -34,20 +40,23 @@ export function TaskRow({ t, dayIdx, extra, status }: { t: Task; dayIdx: number;
   const title = t.text.replace(/^Re-solve without looking: /, '');
 
   return (
-    <div data-task={t.id} data-own={t.own ? '' : undefined}
-      className={cn('group flex gap-3 border-t border-border py-2 pr-4 pl-11 text-[13px] text-foreground',
+    <div data-task={t.id} data-own={t.own ? '' : undefined} tabIndex={editing ? undefined : 0} onKeyDown={onKey}
+      onContextMenu={e => { if (editing || (e.target as HTMLElement).closest('a, input, textarea')) return; e.preventDefault(); setMenu(true); }}
+      className={cn('group flex gap-3 border-t border-border py-2 pr-4 pl-11 text-[13px] text-foreground outline-none focus-visible:bg-hover focus-visible:shadow-[inset_2px_0_0_var(--ring)]',
         missed && 'bg-stone text-stone-foreground',
         pick && 'bg-hover')}>
       {editing ? (
         <TaskInput className="flex-1" initial={t.url ? `${t.text} ${t.url}` : t.text} placeholder="Task name, paste a link to attach it" onSave={save} onCancel={() => setEditing(false)} />
       ) : <>
-        <Checkbox id={`t-${t.id}`} checked={done} onCheckedChange={v => toggle(!!v)} className="mt-0.5" aria-label={t.text} />
+        <StatusControl taskId={t.id} label={t.text} open={menu} onOpenChange={setMenu} className="mt-px h-4 self-start" />
         <div className="min-w-0 flex-1 sm:flex sm:items-start sm:gap-3">
           <div className="min-w-0 flex-1 leading-[18px]">
             <button type="button" data-title onClick={() => openTask(t.id, dayIdx)}
-              className={cn('break-words rounded-[5px] text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50', done && 'text-muted-foreground line-through decoration-faint')}>
+              className={cn('break-words rounded-[5px] text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50', done && 'text-muted-foreground line-through decoration-faint', skipped && 'text-muted-foreground')}>
               {t.text}
             </button>
+            {st === 'progress' && <Chip className="ml-2 align-[1px] border-input text-foreground">In progress</Chip>}
+            {skipped && <Chip className="ml-2 align-[1px]">Skipped</Chip>}
             {t.own && <Chip className="ml-2 align-[1px]">Yours</Chip>}
             {t.cat === 'update' && <Chip className="ml-2 align-[1px] border-input text-foreground">New</Chip>}
             {extra && <span className={cn('text-faint', missed && 'text-stone-foreground')}> · {extra}</span>}
