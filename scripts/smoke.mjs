@@ -1209,10 +1209,16 @@ try {
     await page.waitForTimeout(300);
     // ⌘K works while typing in a field
     if (width === 1100) {
-      await page.locator('[data-today-list] textarea, [data-today-list] input').first().focus().catch(() => {});
+      await page.locator('[data-slot="sidebar"] [data-nav="today"]').click();
+      await page.waitForTimeout(300);
+      await page.getByRole('button', { name: 'Add task' }).first().click();
+      await page.waitForTimeout(200);
+      await page.keyboard.type('half typed');
+      const inField = await page.evaluate(() => ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName || ''));
+      if (inField) ok(`${W}: focus is in the quick-add field`); else fail(`${W}: focus is not in a text field (${await page.evaluate(() => document.activeElement?.tagName)})`);
       await page.keyboard.press('ControlOrMeta+k');
       await page.waitForTimeout(300);
-      if (await isOpen()) ok(`${W}: ⌘K opens while typing in a field`); else fail(`${W}: ⌘K did not open while typing`);
+      if (inField && await isOpen()) ok(`${W}: ⌘K opens while typing in a field`); else fail(`${W}: ⌘K did not open while typing`);
     } else {
       await page.locator('[data-shell="bottom-bar"] [data-nav="more"]').click();
       await page.waitForTimeout(400);

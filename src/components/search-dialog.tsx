@@ -24,15 +24,16 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
   const { go, openDay, openTask, newTask, setNotesSelect } = useUI();
   const [q, setQ] = useState('');
 
-  const ix = useMemo(() => buildIndex({
+  // Built only while the palette is open, so typing in Notes (pages/tnotes changes) never re-indexes ~1.8k tasks.
+  const ix = useMemo(() => open ? buildIndex({
     days: days.map(d => ({ i: d.i, no: d.no, date: d.date, tasks: d.tasks.map(t => ({ id: t.id, text: t.text, cat: t.cat, own: t.own, track: trackName(t.cat) })) })),
     pages: state.pages,
     tnotes: state.tnotes,
     posts: flattenThreads(threads),
     reads: news ? Object.keys(news.days).sort().reverse().flatMap(k => news.days[k]) : [],
-  }), [days, state.pages, state.tnotes, threads, news]);
+  }) : null, [open, days, state.pages, state.tnotes, threads, news]);
 
-  const groups = useMemo(() => search(ix, q), [ix, q]);
+  const groups = useMemo(() => (ix ? search(ix, q) : []), [ix, q]);
 
   const close = (then?: () => void) => { onOpenChange(false); setQ(''); if (then) setTimeout(then, 0); };
   const markRead = (k: string) => { if (!state.seenUpdates[k]) update(s => ({ ...s, seenUpdates: { ...s.seenUpdates, [k]: Date.now() } })); };

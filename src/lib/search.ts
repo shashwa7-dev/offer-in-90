@@ -41,7 +41,7 @@ export function buildIndex(input: SearchInput): SearchIndex {
   for (const d of input.days) {
     dayIdxOfNo[d.no] = d.i;
     for (const t of d.tasks) {
-      const meta = `Day ${d.no}${t.track ? ` · ${t.track}` : ''}`;
+      const meta = `Day ${d.no}${d.no === 0 ? ' · prep' : ''}${t.track ? ` · ${t.track}` : ''}`;
       tasks.push(put({ kind: 'task', id: t.id, dayIdx: d.i, title: t.text, meta }, '', n++));
     }
   }

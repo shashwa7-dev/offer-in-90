@@ -32,8 +32,12 @@ assert.deepEqual(search(ix, '   '), []);
 // task hit shape: Day N · Track, duplicates kept, earliest day first
 const ts = group('two sum', 'Tasks');
 assert.deepEqual(ts.map(h => h.kind === 'task' && [h.id, h.dayIdx, h.meta]), [['p-two-sum', 3, 'Day 3 · DSA'], ['p-two-sum@10', 10, 'Day 10 · DSA']]);
-// no track → just "Day N"
-assert.equal(group('workout', 'Tasks')[0]?.meta, 'Day 0');
+// prep day reads "Day 0 · prep" (as in the Today header); no track → no track suffix
+assert.equal(group('workout', 'Tasks')[0]?.meta, 'Day 0 · prep');
+const prepDsa = buildIndex({ days: [{ i: 0, no: 0, tasks: [{ id: 'k-ds', text: 'Arrays warmup', cat: 'dsa', track: 'DSA' }] }], pages: {}, tnotes: {}, posts: [], reads: [] });
+assert.equal(search(prepDsa, 'arrays')[0].hits[0].meta, 'Day 0 · prep · DSA');
+// a track with no prep day
+assert.equal(group('recruiter', 'Tasks')[0]?.meta, 'Day 10 · Career');
 
 // multi-word AND (case-insensitive): every word must match
 assert.deepEqual(titles(group('EVENT loop', 'Tasks')), ['Event loop basics']);
