@@ -1,6 +1,7 @@
 /* Builds the 91-day plan from the curriculum, computes hours/progress, and applies the update feed. */
 import { PLAN } from './plan-data';
 import { WEEKDAY_BLOCKS, SUNDAY_BLOCKS } from './schedule';
+import { studyCounts, type StatusMap } from './task-status';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const P: any = PLAN;
@@ -12,9 +13,13 @@ export type Cat = 'dsa' | 'fe' | 'mc' | 'proj' | 'sd' | 'ux' | 'beh' | 'fde' | '
 export interface Task {
   id: string; text: string; cat: Cat; url?: string; diff?: 'E' | 'M' | 'H'; slug?: string; topic?: string;
   log?: boolean; min: number; bk: string; outdated?: UpdateItem; fromUpdate?: UpdateItem; newsId?: string;
+  /** Id of the user's own task (State.custom). Only these can be edited or removed. */
+  own?: string;
 }
+/** A task the user added. Pinned to a calendar date and block, so it stays put if the start date changes. */
+export interface CustomTask { date: string; block: string; text: string; url?: string; at: number }
 export interface Block { s: string; e: string; k: string; title: string; kind: 'study' | 'life' | 'health'; remind?: boolean; tasks: Task[] }
-export interface Day { i: number; date: Date; week: number; phase: 1 | 2 | 3; type: 'kick' | 'study' | 'sun'; s?: number; n?: number; studyBefore?: number; lld?: number; mc?: number; blocks: Block[]; tasks: Task[] }
+export interface Day { i: number; /** Day number shown to the user: 0 for the optional prep day, then 1…91. */ no: number; date: Date; week: number; phase: 1 | 2 | 3; type: 'kick' | 'study' | 'sun'; s?: number; n?: number; studyBefore?: number; lld?: number; mc?: number; blocks: Block[]; tasks: Task[] }
 
 export interface UpdateItem {
   id: string; date: string; kind: 'new' | 'outdated' | 'changed'; priority: 'must' | 'should' | 'fyi';
@@ -40,9 +45,10 @@ export const catName: Record<string, string> = { dsa: 'DSA', fe: 'Frontend & CS'
 
 const KICKOFF_BLOCKS = [
   { s: '15:30', e: '16:30', k: 'setup', title: 'Kickoff: set everything up', kind: 'study' },
-  { s: '16:30', e: '18:00', k: 'dsa', title: 'DSA warm-up', kind: 'study' },
-  { s: '18:00', e: '19:00', k: 'beh', title: 'Career: decide where you are going', kind: 'study' },
-  { s: '19:00', e: '20:00', k: 'dinner', title: 'Dinner + family time', kind: 'life' },
+  { s: '16:30', e: '17:30', k: 'dsa', title: 'DSA warm-up', kind: 'study' },
+  { s: '17:30', e: '18:00', k: 'beh', title: 'Career: decide where you are going', kind: 'study' },
+  { s: '18:00', e: '19:00', k: 'workout', title: 'Gym', kind: 'health' },
+  { s: '19:00', e: '20:00', k: 'dinner', title: 'Shower, dinner + family time', kind: 'life' },
   { s: '20:00', e: '21:00', k: 'ai', title: 'AI: news + papers & courses', kind: 'study' },
   { s: '21:00', e: '21:30', k: 'review', title: 'Daily review', kind: 'study' },
   { s: '21:30', e: '22:00', k: 'wind', title: 'Wind down · sleep at 22:00', kind: 'life' },
@@ -62,8 +68,9 @@ function kickBlocks(): Block[] {
   const by: Record<string, Task[]> = {
     setup: [T('k-ics', 'Import calendar reminders (Setup tab) + set a 04:55 phone alarm', 'review'), T('k-acc', 'Create a GitHub repo "interview-prep" for solutions and builds; log in to LeetCode', 'review', { url: 'https://leetcode.com/' }), T('k-tour', 'Skim the Roadmap tab so you know the full 13 weeks', 'review')],
     dsa: [T('k-bigo', 'Big-O refresher: time and space cost of common operations', 'dsa', { url: 'https://www.bigocheatsheet.com/' }), T('k-env', 'Set up a TypeScript scratch project with Vitest for daily solutions', 'dsa', { url: 'https://vitest.dev/guide/' })],
+    workout: [T('k-wo', 'Workout: full body (first gym day)', 'health')],
     beh: [T('k-pos', 'Write your target: role titles (frontend / full-stack / forward-deployed), 10 dream companies, and why', 'beh', { url: 'https://www.linkedin.com/jobs/' })],
-    ai: [T('k-news', NEWS_TASK, 'ai', { newsId: 'today' }), T('k-ai', 'AI landscape: which models lead today and what they cost', 'ai', { url: 'https://artificialanalysis.ai/' })],
+    ai: [T('k-news', NEWS_TASK, 'ai', { newsId: 'reads' }), T('k-ai', 'AI landscape: which models lead today and what they cost', 'ai', { url: 'https://artificialanalysis.ai/' })],
     review: [T('k-log', 'Write a one-line log below, look at tomorrow (day 2)', 'review', { log: true })],
   };
   return KICKOFF_BLOCKS.map(b => ({ ...b, tasks: by[b.k] || [] })) as Block[];
@@ -125,7 +132,7 @@ function studyBlocks(d: Day): Block[] {
     by.beh = [T(`fde-${f}`, ft, 'fde', fu ? { url: fu } : {}), T(`${k}-apply`, apt, 'beh', { url: apu })];
   }
   const ai = AI_DAYS[s - 1] || AI_DAYS_REVIEW[(s - AI_DAYS.length - 1) % AI_DAYS_REVIEW.length];
-  by.ai = [T(`${k}-news`, NEWS_TASK, 'ai', { newsId: 'today' }), T(`ai-${s}`, ai.text, 'ai', ai.url ? { url: ai.url } : {})];
+  by.ai = [T(`${k}-news`, NEWS_TASK, 'ai', { newsId: 'reads' }), T(`ai-${s}`, ai.text, 'ai', ai.url ? { url: ai.url } : {})];
   by.review = [T(`${k}-log`, 'Tick off today, write a one-line log below, glance at tomorrow', 'review', { log: true })];
   return (WEEKDAY_BLOCKS as unknown as Omit<Block, 'tasks'>[]).map(b => ({ ...b, tasks: by[b.k] || [] }));
 }
@@ -141,7 +148,7 @@ function sundayBlocks(d: Day): Block[] {
       T(`${k}-m1`, recent.name, 'dsa', { url: recent.url, diff: recent.d, slug: recent.slug }), T(`${k}-m2`, old.name, 'dsa', { url: old.url, diff: old.d, slug: old.slug })];
   } else by.mock = [T(`${k}-loop`, 'Full mock loop with a peer: DSA + frontend coding + system design, 45 min each', 'dsa', { url: 'https://www.tryexponent.com/practice' })];
   by.catchup = [T(`${k}-c1`, 'Clear the catch-up list (missed tasks from this week)', 'review'), T(`${k}-c2`, 'Re-solve every flagged problem; unflag the ones you nailed', 'dsa')];
-  by.weekly = [T(`${k}-pulse`, "Read this week's Interview pulse (News tab). Write 1 thing that changes your prep in Notes (15 min)", 'beh', { newsId: 'today' }),
+  by.weekly = [T(`${k}-pulse`, "Read this week's Interview pulse (News tab). Write 1 thing that changes your prep in Notes (15 min)", 'beh', { newsId: 'pulse' }),
     T(`${k}-mkt`, 'Market check: read 5 new job posts for your target roles; add new skills to Job tracker', 'beh', { url: 'https://www.linkedin.com/jobs/' }),
     T(`${k}-r1`, 'Weekly reflection: what worked, what to fix (write below). Read this week\'s Updates.', 'review', { log: true })];
   by.rest = [T(`${k}-rest`, 'Take the afternoon off. Rest is part of the plan.', 'health')];
@@ -150,21 +157,23 @@ function sundayBlocks(d: Day): Block[] {
 }
 
 /** Build all 91 days. Updates from the engine mark outdated tasks and add must-reads as tasks. */
-export function buildPlan(start: string, kickoff: boolean, updates: UpdateItem[] = []): Day[] {
+export function buildPlan(start: string, kickoff: boolean, updates: UpdateItem[] = [], custom: Record<string, CustomTask> = {}): Day[] {
   const days: Day[] = [];
   const s0 = parseISO(start);
   let s = 0, sun = 0, mcN = 0, lldN = 0;
-  for (let i = 0; i < TOTAL; i++) {
+  // With the prep day on, it is day 0 (the start date) and the 91 plan days follow it.
+  for (let i = 0; i < TOTAL + (kickoff ? 1 : 0); i++) {
     const date = new Date(s0); date.setDate(s0.getDate() + i);
-    const week = Math.floor(i / 7) + 1, phase = (week <= 4 ? 1 : week <= 9 ? 2 : 3) as 1 | 2 | 3;
+    const no = kickoff ? i : i + 1, week = Math.floor(Math.max(0, no - 1) / 7) + 1, phase = (week <= 4 ? 1 : week <= 9 ? 2 : 3) as 1 | 2 | 3;
     let d: Day;
-    if (i === 0 && kickoff) d = { i, date, week, phase, type: 'kick', blocks: [], tasks: [] };
-    else if (date.getDay() === 0) d = { i, date, week, phase, type: 'sun', n: ++sun, studyBefore: s, blocks: [], tasks: [] };
-    else { d = { i, date, week, phase, type: 'study', s: ++s, blocks: [], tasks: [] }; if (date.getDay() === 6 && lldN < P.LLD.length) d.lld = ++lldN; else d.mc = ++mcN; }
+    if (i === 0 && kickoff) d = { i, no, date, week, phase, type: 'kick', blocks: [], tasks: [] };
+    else if (date.getDay() === 0) d = { i, no, date, week, phase, type: 'sun', n: ++sun, studyBefore: s, blocks: [], tasks: [] };
+    else { d = { i, no, date, week, phase, type: 'study', s: ++s, blocks: [], tasks: [] }; if (date.getDay() === 6 && lldN < P.LLD.length) d.lld = ++lldN; else d.mc = ++mcN; }
     d.blocks = d.type === 'kick' ? kickBlocks() : d.type === 'sun' ? sundayBlocks(d) : studyBlocks(d);
     days.push(d);
   }
   applyUpdates(days, updates);
+  applyCustom(days, custom);
   days.forEach(d => {
     d.blocks.forEach(b => {
       const ts = b.tasks.filter(t => t.cat !== 'health'), mins = toMin(b.e) - toMin(b.s);
@@ -173,6 +182,17 @@ export function buildPlan(start: string, kickoff: boolean, updates: UpdateItem[]
     d.tasks = d.blocks.flatMap(b => b.tasks);
   });
   return days;
+}
+
+/** Add the user's own tasks to the end of their block. Built-in tasks are never changed. */
+function applyCustom(days: Day[], custom: Record<string, CustomTask>) {
+  const byDate = new Map(days.map(d => [iso(d.date), d]));
+  Object.entries(custom).sort((a, b) => a[1].at - b[1].at).forEach(([id, c]) => {
+    const b = byDate.get(c.date)?.blocks.find(x => x.k === c.block);
+    if (!b) return;
+    const cat = b.tasks.find(t => t.cat !== 'review' && t.cat !== 'update' && !t.own)?.cat || (b.kind === 'health' ? 'health' : 'review');
+    b.tasks.push(T(`u-${id}`, c.text, cat, { own: id, ...(c.url ? { url: c.url } : {}) }));
+  });
 }
 
 function applyUpdates(days: Day[], updates: UpdateItem[]) {
@@ -195,20 +215,19 @@ function applyUpdates(days: Day[], updates: UpdateItem[]) {
 
 // ---------- metrics ----------
 export const study = (t: Task) => t.cat !== 'health';
-export function dayStats(d: Day, done: Record<string, number>) {
-  const ts = d.tasks.filter(study); let n = 0, m = 0, M = 0;
-  ts.forEach(t => { M += t.min; if (done[t.id]) { n++; m += t.min; } });
-  return { n, total: ts.length, pct: ts.length ? n / ts.length : 0, doneMin: m, planMin: M };
+export function dayStats(d: Day, done: Record<string, number>, status: StatusMap = {}) {
+  const c = studyCounts(d.tasks.map(t => ({ id: t.id, min: t.min, study: study(t) })), done, status);
+  return { ...c, pct: c.total ? c.n / c.total : 0 };
 }
-export function overall(days: Day[], done: Record<string, number>, ti: number) {
+export function overall(days: Day[], done: Record<string, number>, ti: number, marks: StatusMap = {}) {
   let planAll = 0, doneAll = 0, duePlan = 0, dueDone = 0;
-  days.forEach(d => { const st = dayStats(d, done); planAll += st.planMin; doneAll += st.doneMin; if (d.i < ti) { duePlan += st.planMin; dueDone += st.doneMin; } });
+  days.forEach(d => { const st = dayStats(d, done, marks); planAll += st.planMin; doneAll += st.doneMin; if (d.i < ti) { duePlan += st.planMin; dueDone += st.doneMin; } });
   const behindMin = duePlan - dueDone;
   const status: ['ok' | 'behind' | 'late', string] = ti <= 0 || duePlan === 0 || behindMin <= 60 ? ['ok', 'On track'] : behindMin <= 480 ? ['behind', `${hrs(behindMin)} h behind`] : ['late', `${hrs(behindMin)} h behind`];
-  return { planAll, doneAll, leftAll: planAll - doneAll, behindMin, status, daysLeft: Math.max(0, TOTAL - Math.max(0, ti)) };
+  return { planAll, doneAll, leftAll: planAll - doneAll, behindMin, status, daysLeft: Math.max(0, Math.min(TOTAL, days.length - Math.max(0, ti))) };
 }
 export function dayTitle(d: Day) {
-  if (d.type === 'kick') return 'Kickoff half-day: set up and get moving';
+  if (d.type === 'kick') return 'Prep day: set up and get moving';
   if (d.type === 'sun') return 'Mock, catch up, recharge';
   const t = d.tasks.find(x => x.topic);
   return t ? `${t.topic} + ${P.FE[Math.min(d.s!, 48) - 1][0].split(/[:,(]/)[0].trim()}` : 'Interview mode: timed practice';

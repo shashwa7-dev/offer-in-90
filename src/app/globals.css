@@ -7,11 +7,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-body);
-  --font-mono: var(--font-code);
-  --font-display: var(--font-head);
-  --color-good: var(--good); --color-warn: var(--warn); --color-bad: var(--bad);
-  --color-c-dsa: var(--c-dsa); --color-c-fe: var(--c-fe); --color-c-mc: var(--c-mc); --color-c-sd: var(--c-sd); --color-c-beh: var(--c-beh); --color-c-ai: var(--c-ai); --color-c-fde: var(--c-fde); --color-c-proj: var(--c-proj); --color-c-ux: var(--c-ux); --color-c-review: var(--c-review); --color-c-update: var(--c-update); --color-c-health: var(--c-health);
+  --font-sans: var(--font-sans-inter), ui-sans-serif, system-ui, sans-serif;
+  --color-band: var(--band); --color-hover: var(--hover); --color-faint: var(--faint);
+  --color-stone: var(--stone); --color-stone-foreground: var(--stone-foreground); --color-stone-border: var(--stone-border);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -48,34 +46,35 @@
 }
 
 :root {
-  /* Calm green-tinted neutrals with one deep green accent; category colors for tracks. */
-  --radius: 0.75rem;
-  --background: #f4f6f5; --foreground: #15201c;
-  --card: #ffffff; --card-foreground: #15201c;
-  --popover: #ffffff; --popover-foreground: #15201c;
-  --primary: #0b6e55; --primary-foreground: #ffffff;
-  --secondary: #e8edeb; --secondary-foreground: #15201c;
-  --muted: #e8edeb; --muted-foreground: #5f6e68;
-  --accent: #dcefe7; --accent-foreground: #0b4d3c;
-  --destructive: #b42318; --border: #dbe2df; --input: #dbe2df; --ring: #0b6e55;
-  --good: #1d7a3a; --warn: #a65b00; --bad: #b42318; --ink: #15201c;
-  --c-dsa: #2f5fd0; --c-fe: #0b7f86; --c-mc: #b06a00; --c-sd: #7a45c4; --c-beh: #c23d6b; --c-ai: #0f766e; --c-fde: #6b7a1a; --c-proj: #c2410c; --c-ux: #a21caf; --c-review: #6b7b74; --c-update: #b42318; --c-health: #3d8b2f;
-  --chart-1: #0b6e55; --chart-2: #2f5fd0; --chart-3: #7a45c4; --chart-4: #b06a00; --chart-5: #c23d6b;
-  --sidebar: #ffffff; --sidebar-foreground: #15201c; --sidebar-primary: #0b6e55; --sidebar-primary-foreground: #fff; --sidebar-accent: #e8edeb; --sidebar-accent-foreground: #15201c; --sidebar-border: #dbe2df; --sidebar-ring: #0b6e55;
+  /* Ink and greys only; stone is the single tint (missed/risky). */
+  --radius: 0.625rem;
+  --background: #f2f2f3; --foreground: #1d1d20;
+  --card: #ffffff; --card-foreground: #1d1d20;
+  --popover: #ffffff; --popover-foreground: #1d1d20;
+  --band: #f8f8f9; --hover: #f4f4f5;
+  --primary: #1d1d20; --primary-foreground: #ffffff;
+  --secondary: #f4f4f5; --secondary-foreground: #1d1d20;
+  --muted: #f4f4f5; --muted-foreground: #5c6063; --faint: #8b8f93;
+  --accent: #f4f4f5; --accent-foreground: #1d1d20;
+  --destructive: #1d1d20; --border: #ebebed; --input: #dcdde0; --ring: #8b8f93;
+  --stone: #f3f1ef; --stone-foreground: #6f655c; --stone-border: #e2ddd8;
+  --chart-1: #1d1d20; --chart-2: #3d3f41; --chart-3: #5c6063; --chart-4: #8b8f93; --chart-5: #dcdde0;
+  --sidebar: #ffffff; --sidebar-foreground: #1d1d20; --sidebar-primary: #1d1d20; --sidebar-primary-foreground: #ffffff; --sidebar-accent: #f4f4f5; --sidebar-accent-foreground: #1d1d20; --sidebar-border: #ebebed; --sidebar-ring: #8b8f93;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0f1513; --foreground: #e4ece8;
-    --card: #161e1b; --card-foreground: #e4ece8;
-    --popover: #161e1b; --popover-foreground: #e4ece8;
-    --primary: #3cc49b; --primary-foreground: #06231a;
-    --secondary: #1f2926; --secondary-foreground: #e4ece8;
-    --muted: #1f2926; --muted-foreground: #95a59e;
-    --accent: #15382d; --accent-foreground: #b9f0dc;
-    --destructive: #f2756a; --border: #2a3632; --input: #2a3632; --ring: #3cc49b;
-    --good: #4cc46e; --warn: #f0a640; --bad: #f2756a; --ink: #e4ece8;
-    --c-dsa: #7d9ff0; --c-fe: #4cc3c9; --c-mc: #e7a245; --c-sd: #b58cf0; --c-beh: #ef7ea3; --c-ai: #5fd3c2; --c-fde: #bccb6c; --c-proj: #fb8c5a; --c-ux: #e879f9; --c-review: #95a59e; --c-update: #f2756a; --c-health: #82c96f;
-    --sidebar: #161e1b; --sidebar-foreground: #e4ece8; --sidebar-primary: #3cc49b; --sidebar-primary-foreground: #06231a; --sidebar-accent: #1f2926; --sidebar-accent-foreground: #e4ece8; --sidebar-border: #2a3632; --sidebar-ring: #3cc49b;
+    --background: #111113; --foreground: #ececee;
+    --card: #18181b; --card-foreground: #ececee;
+    --popover: #18181b; --popover-foreground: #ececee;
+    --band: #1d1d20; --hover: #212125;
+    --primary: #ececee; --primary-foreground: #111113;
+    --secondary: #212125; --secondary-foreground: #ececee;
+    --muted: #212125; --muted-foreground: #9a9aa0; --faint: #74747a;
+    --accent: #212125; --accent-foreground: #ececee;
+    --destructive: #ececee; --border: #2a2a2e; --input: #3a3a3f; --ring: #74747a;
+    --stone: #26231f; --stone-foreground: #aaa29b; --stone-border: #3d3834;
+    --chart-1: #ececee; --chart-2: #c4c4c8; --chart-3: #9a9aa0; --chart-4: #74747a; --chart-5: #3a3a3f;
+    --sidebar: #18181b; --sidebar-foreground: #ececee; --sidebar-primary: #ececee; --sidebar-primary-foreground: #111113; --sidebar-accent: #212125; --sidebar-accent-foreground: #ececee; --sidebar-border: #2a2a2e; --sidebar-ring: #74747a;
     color-scheme: dark;
   }
 }
@@ -87,15 +86,21 @@
   body {
     @apply bg-background text-foreground;
   }
+  /* No rubber-band / overscroll drag: the sticky page header stays put. */
+  html, body, [data-slot="sidebar-inset"] { overscroll-behavior-y: none; }
+  /* Scroll-to targets and focus scrolling land below the sticky header: header + 12px gap (44+12 phones, 48+12 from md). */
+  html { scroll-padding-top: calc(56px + env(safe-area-inset-top)); }
+  @media (min-width: 48rem) { html { scroll-padding-top: 60px; } }
 }
-.tnum { font-variant-numeric: tabular-nums; }
-.md h1 { font-family: var(--font-head); font-size: 1.5rem; font-weight: 700; margin: .6rem 0 .4rem; }
-.md h2 { font-family: var(--font-head); font-size: 1.2rem; font-weight: 700; margin: .9rem 0 .4rem; }
-.md h3 { font-weight: 700; margin: .8rem 0 .3rem; }
+.tnum { font-variant-numeric: tabular-nums; font-feature-settings: "tnum"; }
+.md h1 { font-size: 1.5rem; font-weight: 600; margin: .6rem 0 .4rem; }
+.md h2 { font-size: 1.2rem; font-weight: 600; margin: .9rem 0 .4rem; }
+.md h3 { font-weight: 600; margin: .8rem 0 .3rem; }
 .md p { margin: 0 0 .6rem; } .md ul, .md ol { margin: 0 0 .6rem; padding-left: 1.3rem; } .md ul { list-style: disc; } .md ol { list-style: decimal; }
 .md li.task-list-item { list-style: none; margin-left: -1.2rem; } .md li input { margin-right: .5rem; accent-color: var(--primary); }
-.md pre { background: var(--muted); border-radius: .5rem; padding: .75rem; overflow-x: auto; font: .82rem/1.5 var(--font-code); margin-bottom: .6rem; }
-.md code { font: .82rem var(--font-code); background: var(--muted); padding: .05rem .3rem; border-radius: .25rem; } .md pre code { background: none; padding: 0; }
+.md pre { background: var(--muted); border-radius: .5rem; padding: .75rem; overflow-x: auto; font: .82rem/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; margin-bottom: .6rem; }
+.md code { font: .82rem ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--muted); padding: .05rem .3rem; border-radius: .25rem; } .md pre code { background: none; padding: 0; }
 .md blockquote { border-left: 3px solid var(--border); padding-left: .75rem; color: var(--muted-foreground); }
 .md table { border-collapse: collapse; width: 100%; font-size: .85rem; margin-bottom: .6rem; } .md th, .md td { border-bottom: 1px solid var(--border); padding: .3rem .5rem; text-align: left; }
 .md a { color: var(--primary); text-decoration: underline; } .md hr { border-top: 1px solid var(--border); margin: .8rem 0; }
+

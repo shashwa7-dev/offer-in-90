@@ -8,13 +8,13 @@ const edit = (s: typeof base, fn: (s: typeof base) => typeof base) => stamp(s, f
 
 // 1. Ticks on two devices both survive
 let phone = edit(base, s => ({ ...s, done: { a: 1, b: 1, c: 1 } }));
-let laptop = edit(base, s => ({ ...s, notes: { 3: 'good day' } }));
+const laptop = edit(base, s => ({ ...s, notes: { 3: 'good day' } }));
 let m = merge(laptop, phone);
 assert.deepEqual(Object.keys(m.done).sort(), ['a', 'b', 'c']);
 assert.equal(m.notes[3], 'good day');
 
 // 2. Untick on one device beats an older tick elsewhere (no resurrection)
-let both = merge(phone, laptop);
+const both = merge(phone, laptop);
 phone = edit(both, s => { const d = { ...s.done }; delete d.b; return { ...s, done: d }; });
 m = merge(both, phone); // laptop still has b
 assert.ok(!('b' in m.done), 'untick must win');
@@ -22,8 +22,8 @@ m = merge(m, both); // merging the stale copy again must not bring it back
 assert.ok(!('b' in m.done), 'tombstone must survive later merges');
 
 // 3. Same note edited on both: newest wins
-let a = edit(both, s => ({ ...s, tnotes: { 'p-two-sum': { title: 'Two Sum', body: 'old', upd: 1 } } }));
-let b = edit(a, s => ({ ...s, tnotes: { 'p-two-sum': { title: 'Two Sum', body: 'new', upd: 2 } } }));
+const a = edit(both, s => ({ ...s, tnotes: { 'p-two-sum': { title: 'Two Sum', body: 'old', upd: 1 } } }));
+const b = edit(a, s => ({ ...s, tnotes: { 'p-two-sum': { title: 'Two Sum', body: 'new', upd: 2 } } }));
 assert.equal(merge(a, b).tnotes['p-two-sum'].body, 'new');
 assert.equal(merge(b, a).tnotes['p-two-sum'].body, 'new');
 
@@ -49,11 +49,29 @@ assert.equal(merge(newPhone, { ...base, start: '2026-11-09' }).start, '2026-11-0
 const bmBase = { ...base, bookmarks: {} as Record<string, unknown> };
 const bmPhone = stamp(bmBase, { ...bmBase, bookmarks: { 'news:a': { title: 'A' } } }, 5000);
 const bmLaptop = stamp(bmBase, { ...bmBase, bookmarks: { 'news:b': { title: 'B' } } }, 5001);
-let bm = merge(bmLaptop, bmPhone);
+const bm = merge(bmLaptop, bmPhone);
 assert.deepEqual(Object.keys(bm.bookmarks).sort(), ['news:a', 'news:b']);
 const unsaved = stamp(bm, { ...bm, bookmarks: { 'news:b': { title: 'B' } } }, 6000);
 assert.ok(!('news:a' in merge(bm, unsaved).bookmarks));
 
 // 9. Merge is stable: merging equal copies changes nothing
 assert.ok(sameData(merge(m, m), m));
-console.log('sync-merge: all 9 scenarios pass');
+// 10. Target companies: last writer wins; a side without targets never erases a defined one
+const tBase = { ...base, targets: ['Google'] as string[] };
+const tLaptop = stamp(tBase, { ...tBase, targets: ['Google'] }, 7000);
+const tPhone = stamp(tBase, { ...tBase, targets: ['Amazon'] }, 7001);
+assert.deepEqual(merge(tLaptop, tPhone).targets, ['Amazon']);
+assert.deepEqual(merge(tPhone, tLaptop).targets, ['Amazon']);
+assert.deepEqual(merge(base as typeof tBase, tBase).targets, ['Google']);
+assert.deepEqual(merge(tBase, base as typeof tBase).targets, ['Google']);
+
+// 11. Task status map syncs per item; an old state without `status` keeps the other side's
+const stBase = { ...base, status: {} as Record<string, string> };
+const stPhone = stamp(stBase, { ...stBase, status: { a: 'progress' } }, 8000);
+const oldState = { ...base } as typeof stBase; // saved before statuses existed
+assert.deepEqual(merge(oldState, stPhone).status, { a: 'progress' });
+assert.deepEqual(merge(stPhone, oldState).status, { a: 'progress' });
+const cleared = stamp(stPhone, { ...stPhone, status: {} }, 9000);
+assert.deepEqual(merge(stPhone, cleared).status, {});
+
+console.log('sync-merge: all 11 scenarios pass');

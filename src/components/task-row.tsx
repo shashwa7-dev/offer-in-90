@@ -1,52 +1,95 @@
 'use client';
-import { FileText, ExternalLink, Flag, AlertTriangle, Newspaper } from 'lucide-react';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Badge } from '@/components/ui/badge';
+import { useState } from 'react';
+import { AlertTriangle, FileText, Flag, Newspaper, Pencil, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
+import { domainOf } from '@/lib/interview-feed';
 import type { Task } from '@/lib/engine';
-import { useUI } from './ui-state';
+import { Chip } from './shell/page';
+import { StatusControl, statusKey, useTaskStatus } from './status-control';
+import { newsTabFor, useUI } from './ui-state';
+import { TaskInput, deleteOwn, parseTask } from './own-task';
 
 export const noteKey = (t: Task) => (t.slug ? `p-${t.slug}` : t.id);
-const DIFF = { E: ['Easy', 'text-good'], M: ['Medium', 'text-warn'], H: ['Hard', 'text-bad'] } as const;
+const DIFF = { E: 'Easy', M: 'Medium', H: 'Hard' } as const;
 
-export function TaskRow({ t, extra }: { t: Task; extra?: string }) {
+/** missed: its time has passed and it is not done. pick: the task to do right now. */
+export type TaskStatus = 'missed' | 'pick';
+
+const tool = 'inline-flex h-6 items-center gap-1 rounded-[5px] px-1.5 text-[12px] text-muted-foreground outline-none hover:bg-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50';
+
+export function TaskRow({ t, dayIdx, extra, status, chip, noStatusChip }: { t: Task; dayIdx: number; extra?: string; status?: TaskStatus; /** Hide the In progress / Skipped chip (Status grouping already says it). */ noStatusChip?: boolean; /** Small tag after the title, e.g. the block in Status/Track grouping. */ chip?: string }) {
   const { state, update } = useStore();
-  const { openNote, go } = useUI();
-  const done = !!state.done[t.id];
+  const { openTask, go } = useUI();
+  const [editing, setEditing] = useState(false);
+  const [st, setStatus] = useTaskStatus(t.id);
+  const [menu, setMenu] = useState(false);
+  const done = st === 'done', skipped = st === 'skipped';
   const flagged = !!(t.slug && state.flags[t.slug]);
   const hasNote = !!state.tnotes[noteKey(t)]?.body?.trim();
-  const toggle = (v: boolean) => update(s => { const d = { ...s.done }; if (v) d[t.id] = Date.now(); else delete d[t.id]; return { ...s, done: d }; });
+  const missed = !done && !skipped && status === 'missed', pick = !done && !skipped && status === 'pick';
+  // S / 1-4 act on the focused row only (not on its portalled menu, not while a dialog or sheet is open).
+  const onKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (editing || !e.currentTarget.contains(e.target as Node) || document.querySelector('[role="dialog"], [role="alertdialog"]')) return;
+    statusKey(e, setStatus, () => setMenu(true));
+  };
+  // Only the user's own tasks (t.own) can be edited or removed.
+  const save = (raw: string) => { const { text, url } = parseTask(raw); update(s => { const c = s.custom[t.own!]; if (!c) return s; const n = { ...c, text }; if (url) n.url = url; else delete n.url; return { ...s, custom: { ...s.custom, [t.own!]: n } }; }); setEditing(false); };
+  const remove = () => deleteOwn(update, state, t.own!);
   const flag = () => update(s => { const f = { ...s.flags }; if (f[t.slug!]) delete f[t.slug!]; else f[t.slug!] = 1; return { ...s, flags: f }; });
+  const title = t.text.replace(/^Re-solve without looking: /, '');
 
   return (
-    <li className="grid grid-cols-[20px_minmax(0,1fr)] gap-3 border-t py-2.5 first:border-t-0 sm:grid-cols-[20px_minmax(0,1fr)_auto]">
-      <Checkbox id={`t-${t.id}`} checked={done} onCheckedChange={v => toggle(!!v)} className="mt-0.5" aria-label={t.text} />
-      <label htmlFor={`t-${t.id}`} className={cn('min-w-0 cursor-pointer break-words text-[15px] leading-snug', done && 'text-muted-foreground line-through decoration-border')}>
-        {t.cat === 'update' && <Badge variant="outline" className="mr-2 border-c-update text-c-update">New</Badge>}
-        {t.text}
-        {extra && <span className="text-muted-foreground text-sm"> · {extra}</span>}
-        {t.outdated && (
-          <span className="mt-1 flex items-start gap-1.5 text-sm text-warn"><AlertTriangle className="mt-0.5 size-3.5 shrink-0" />{t.outdated.kind === 'outdated' ? 'Outdated' : 'Changed'}: {t.outdated.why}{t.outdated.replacementUrl ? ' Link updated.' : ''}</span>
-        )}
-      </label>
-      <span className="col-start-2 flex flex-wrap items-center gap-1 sm:col-start-auto">
-        {t.diff && <span className={cn('rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] font-semibold', DIFF[t.diff][1])} title={DIFF[t.diff][0]}>{t.diff}</span>}
-        {t.slug && (
-          <button onClick={flag} aria-pressed={flagged} title="Flag to re-solve on Sunday" className={cn('inline-flex items-center gap-1 rounded-md px-1.5 py-1 font-mono text-xs text-muted-foreground hover:bg-muted', flagged && 'text-bad')}>
-            <Flag className="size-3.5" />{flagged ? 'flagged' : ''}
-          </button>
-        )}
-        <button onClick={() => openNote({ kind: 'task', key: noteKey(t), title: t.text.replace(/^Re-solve without looking: /, ''), url: t.url })} title={hasNote ? 'Open note' : 'Add a note'} className={cn('inline-flex items-center gap-1 rounded-md px-1.5 py-1 font-mono text-xs text-muted-foreground hover:bg-muted', hasNote && 'text-primary')}>
-          <FileText className="size-3.5" />{hasNote ? 'note' : ''}
-        </button>
-        {t.newsId && (
-          <button onClick={() => go('news')} className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 font-mono text-xs text-primary hover:bg-accent"><Newspaper className="size-3.5" />open News</button>
-        )}
-        {t.url && (
-          <a href={t.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 rounded-md px-1.5 py-1 font-mono text-xs text-primary hover:bg-accent">open<ExternalLink className="size-3" /></a>
-        )}
-      </span>
-    </li>
+    <div data-task={t.id} data-own={t.own ? '' : undefined} tabIndex={editing ? undefined : 0} onKeyDown={onKey}
+      onContextMenu={e => { if (editing || (e.target as HTMLElement).closest('a, input, textarea')) return; e.preventDefault(); setMenu(true); }}
+      className={cn('group flex gap-3 border-t border-border py-2 pr-4 pl-11 text-[13px] text-foreground outline-none focus-visible:bg-hover focus-visible:shadow-[inset_2px_0_0_var(--ring)]',
+        missed && 'bg-stone text-stone-foreground',
+        pick && 'bg-hover')}>
+      {editing ? (
+        <TaskInput className="flex-1" initial={t.url ? `${t.text} ${t.url}` : t.text} placeholder="Task name, paste a link to attach it" onSave={save} onCancel={() => setEditing(false)} />
+      ) : <>
+        <StatusControl taskId={t.id} label={t.text} open={menu} onOpenChange={setMenu} className="mt-px h-4 self-start" />
+        <div className="min-w-0 flex-1 sm:flex sm:items-start sm:gap-3">
+          <div className="min-w-0 flex-1 leading-[18px]">
+            <button type="button" data-title onClick={() => openTask(t.id, dayIdx)}
+              className={cn('break-words rounded-[5px] text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50', done && 'text-muted-foreground line-through decoration-faint', skipped && 'text-muted-foreground')}>
+              {t.text}
+            </button>
+            {st === 'progress' && !noStatusChip && <Chip className="ml-2 align-[1px] border-input text-foreground">In progress</Chip>}
+            {skipped && !noStatusChip && <Chip className="ml-2 align-[1px]">Skipped</Chip>}
+            {t.own && <Chip className="ml-2 align-[1px]">Yours</Chip>}
+            {chip && <Chip className="ml-2 max-w-[calc(100%-0.5rem)] align-[1px]" data-block-chip title={chip}><span className="truncate">{chip}</span></Chip>}
+            {t.cat === 'update' && <Chip className="ml-2 align-[1px] border-input text-foreground">New</Chip>}
+            {extra && <span className={cn('text-faint', missed && 'text-stone-foreground')}> · {extra}</span>}
+            {t.outdated && (
+              <span className="mt-1 flex items-start gap-1.5 text-[12px] text-stone-foreground"><AlertTriangle className="mt-px size-3.5 shrink-0" />{t.outdated.kind === 'outdated' ? 'Outdated' : 'Changed'}: {t.outdated.why}{t.outdated.replacementUrl ? ' Link updated.' : ''}</span>
+            )}
+          </div>
+          <div className="-ml-1.5 mt-1 flex flex-wrap items-center gap-0.5 sm:mt-0 sm:ml-0 sm:-mr-1.5 sm:justify-end">
+            {t.diff && <Chip className="mr-1">{DIFF[t.diff]}</Chip>}
+            {t.slug && (
+              <button type="button" onClick={flag} aria-pressed={flagged} aria-label={`${flagged ? 'Unflag' : 'Flag'} ${title}`} title="Flag to re-solve on Sunday" className={cn(tool, flagged && 'text-foreground')}>
+                <Flag className={cn('size-3.5', flagged && 'fill-current')} />{flagged ? 'Flagged' : ''}
+              </button>
+            )}
+            <button type="button" onClick={() => openTask(t.id, dayIdx)} title={hasNote ? 'Open note' : 'Add a note'} aria-label={hasNote ? `Open note for ${title}` : `Add a note to ${title}`} className={cn(tool, hasNote && 'text-foreground')}>
+              <FileText className="size-3.5" />{hasNote ? 'Note' : ''}
+            </button>
+            {t.newsId && (
+              <button type="button" onClick={() => go('news', { newsTab: newsTabFor(t.newsId) })} className={tool}><Newspaper className="size-3.5" />Open News</button>
+            )}
+            {t.url && (
+              <a href={t.url} target="_blank" rel="noopener noreferrer" className={cn(tool, 'max-w-44')}>
+                <span className="truncate">{domainOf(t.url)}</span><span aria-hidden="true">↗</span><span className="sr-only">(opens in a new tab)</span>
+              </a>
+            )}
+            {t.own && <>
+              <button type="button" onClick={() => setEditing(true)} title="Edit your task" aria-label={`Edit ${t.text}`} className={cn(tool, 'sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100')}><Pencil className="size-3.5" /></button>
+              <button type="button" onClick={remove} title="Remove your task" aria-label={`Remove ${t.text}`} className={cn(tool, 'sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100')}><Trash2 className="size-3.5" /></button>
+            </>}
+          </div>
+        </div>
+      </>}
+    </div>
   );
 }
