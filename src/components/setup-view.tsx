@@ -186,7 +186,7 @@ export function SetupView() {
               <AlertDialogContent className={popup}>
                 <AlertDialogHeader>
                   <AlertDialogTitle className="text-[16px]">Start over from today?</AlertDialogTitle>
-                  <AlertDialogDescription>Makes today the first day (Day 0 if the prep day is on, otherwise Day 1) and clears every tick, flag and daily log, here and in the Gist. Your notes pages and bookmarks stay.</AlertDialogDescription>
+                  <AlertDialogDescription>Makes today the first day (Day 0 if the prep day is on, otherwise Day 1) and clears every tick, flag and daily log, here and in the Gist. Your notes pages, bookmarks and your own tasks stay.</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>

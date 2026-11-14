@@ -57,7 +57,7 @@
   --muted: #f4f4f5; --muted-foreground: #5c6063; --faint: #8b8f93;
   --accent: #f4f4f5; --accent-foreground: #1d1d20;
   --destructive: #1d1d20; --border: #ebebed; --input: #dcdde0; --ring: #8b8f93;
-  --stone: #f3f1ef; --stone-foreground: #8a8077; --stone-border: #e2ddd8;
+  --stone: #f3f1ef; --stone-foreground: #6f655c; --stone-border: #e2ddd8;
   --chart-1: #1d1d20; --chart-2: #3d3f41; --chart-3: #5c6063; --chart-4: #8b8f93; --chart-5: #dcdde0;
   --sidebar: #ffffff; --sidebar-foreground: #1d1d20; --sidebar-primary: #1d1d20; --sidebar-primary-foreground: #ffffff; --sidebar-accent: #f4f4f5; --sidebar-accent-foreground: #1d1d20; --sidebar-border: #ebebed; --sidebar-ring: #8b8f93;
 }

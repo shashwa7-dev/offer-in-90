@@ -136,7 +136,7 @@ try {
     const missed = page.locator('[data-missed]').filter({ hasText: '05:15' });
     if (await missed.count()) ok(`${W}: 05:15 block is missed`); else fail(`${W}: no [data-missed] row at 05:15`);
     const mc = await page.locator('[data-missed]').first().evaluate(e => getComputedStyle(e).color).catch(() => 'none');
-    if (mc === 'rgb(138, 128, 119)') ok(`${W}: missed row is stone`); else fail(`${W}: missed row colour ${mc}`);
+    if (mc === 'rgb(111, 101, 92)') ok(`${W}: missed row is stone`); else fail(`${W}: missed row colour ${mc}`);
     await page.screenshot({ path: join(shots, `today-${width}.png`), fullPage: true });
     if (width === 1100) {
       // quick add in the open current block → a "Yours" row; then edit and remove it
