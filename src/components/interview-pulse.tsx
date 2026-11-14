@@ -7,10 +7,11 @@ import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import { fmtDate, parseISO, type PulseCompany } from '@/lib/engine';
 import { BookmarkButton } from './bookmarks';
+import type { ThreadPost, ThreadsFeed } from '@/lib/interview-feed';
 
-export interface Thread { title: string; url: string; source: string; createdAt: string; upvotes: number; comments: number; views: number; roles: string[] }
-export interface CompanyThreads { group: string; threads: number; engagement: number; roles: string[]; top: Thread[] }
-export interface ThreadsFeed { collectedAt: string; window: { from: string; to: string; days: number }; sources: Record<string, number>; companies: Record<string, CompanyThreads> }
+export type { ThreadsFeed } from '@/lib/interview-feed';
+export type Thread = ThreadPost;
+export type CompanyThreads = ThreadsFeed['companies'][string];
 
 const GROUPS = ['All', 'Big tech', 'AI & FDE', 'India product'] as const;
 const ROLE_LABEL: Record<string, string> = { frontend: 'Frontend', fde: 'FDE', fullstack: 'Full-stack', swe: 'SWE' };

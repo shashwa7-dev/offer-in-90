@@ -4,7 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import { buildPlan, dayIndexOf, iso, type CustomTask, type Day, type NewsFeed, type PulseWeek, type UpdateItem, type UpdatesFeed } from './engine';
 import { seedPages, type Page } from './seed-pages';
 import * as gist from './gist';
-import type { ThreadsFeed } from '@/components/interview-pulse';
+import type { ThreadsFeed } from '@/lib/interview-feed';
 import { merge, sameData, stamp } from './sync-merge';
 
 export interface TaskNote { title: string; body: string; upd: number; url?: string }
