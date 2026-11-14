@@ -73,8 +73,8 @@ export function TodayView() {
           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-border px-4 py-2.5 text-[13px] text-muted-foreground" data-notice>
             {unseen > 0 && <button type="button" onClick={() => go('roadmap')} className="rounded-[5px] font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">{unseen} plan update{unseen > 1 ? 's' : ''}</button>}
             {unseen > 0 && overdue.length > 0 && <span aria-hidden="true">·</span>}
-            {overdue.length > 0 && <button type="button" onClick={showMissed} className="rounded-[5px] font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">{overdue.length} missed task{overdue.length > 1 ? 's' : ''}</button>}
-            {overdue.length > 0 && <span>from earlier days, {hrs(overdue.reduce((a, x) => a + x.t.min, 0))} h. Clear them in Sunday&apos;s catch-up block.</span>}
+            {overdue.length > 0 && <button type="button" onClick={showMissed} className="rounded-[5px] font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">{overdue.length} missed earlier</button>}
+            {overdue.length > 0 && <span>· {hrs(overdue.reduce((a, x) => a + x.t.min, 0))} h. Clear them in Sunday&apos;s catch-up block.</span>}
           </div>
         )}
         {todayIdx < 0 && viewIdx === 0 && (

@@ -3,7 +3,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useStore } from '@/lib/store';
+import { toast } from 'sonner';
+import { useStore, type State } from '@/lib/store';
+import { restoreOwn, snapshotOwn, withoutOwn } from '@/lib/own-tasks';
 import { iso, type Day } from '@/lib/engine';
 
 /** "Read the React docs https://react.dev" → text + link. A link on its own becomes the text too. */
@@ -35,6 +37,13 @@ export function TaskInput({ initial = '', placeholder, onSave, onCancel, onDone,
       <span className="hidden shrink-0 text-[12px] text-faint sm:block">Enter to save · Esc to cancel</span>
     </div>
   );
+}
+
+/** Delete an own task (with its tick and note) and offer Undo. */
+export function deleteOwn(update: (fn: (s: State) => State) => void, state: State, id: string) {
+  const snap = snapshotOwn(state, id);
+  update(s => withoutOwn(s, id));
+  toast('Task deleted', { action: { label: 'Undo', onClick: () => update(s => restoreOwn(s, snap)) } });
 }
 
 export function QuickAdd({ day, block }: { day: Day; block: string }) {

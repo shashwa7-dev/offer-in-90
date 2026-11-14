@@ -11,6 +11,8 @@ import { NotesView } from '@/components/notes-view';
 import { NewsView } from '@/components/updates-view';
 import { SetupView } from '@/components/setup-view';
 import { NoteSheet } from '@/components/note-sheet';
+import { TaskPeek, type PeekTarget } from '@/components/task-peek';
+import { NewTaskDialog, type NewTaskPreset } from '@/components/new-task-dialog';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { Toaster } from '@/components/ui/sonner';
 import { AppSidebar } from '@/components/shell/app-sidebar';
@@ -29,6 +31,8 @@ function App() {
   const [view, setView] = useState<View>('today');
   const [viewIdx, setViewIdx] = useState(0);
   const [note, setNote] = useState<NoteTarget | null>(null);
+  const [peek, setPeek] = useState<PeekTarget | null>(null);
+  const [nt, setNt] = useState<NewTaskPreset | null>(null);
 
   useEffect(() => { if (ready) setViewIdx(Math.max(0, Math.min(days.length - 1, todayIdx))); // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready]);
@@ -36,13 +40,15 @@ function App() {
   const go = useCallback((v: View) => { setView(v); history.replaceState(null, '', v === 'today' ? location.pathname : `#${v}`); window.scrollTo(0, 0); }, []);
   const toast = useCallback((m: string) => { sonnerToast(m); }, []);
   const openDay = useCallback((i: number) => { setViewIdx(i); go('today'); }, [go]);
-  // New task dialog and task peek arrive in Task 8; until then these do nothing.
-  const newTask = useCallback((preset?: { date?: string; block?: string }) => { void preset; }, []);
-  const openTask = useCallback((taskId: string, dayIdx: number) => { void taskId; void dayIdx; }, []);
+  const newTask = useCallback((preset?: NewTaskPreset) => { setPeek(null); setNt({ ...preset }); }, []);
+  const openTask = useCallback((taskId: string, dayIdx: number) => setPeek({ taskId, dayIdx }), []);
+  const closePeek = useCallback(() => setPeek(null), []);
+  const closeNew = useCallback(() => setNt(null), []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'c' || e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || e.repeat || typing(e.target)) return;
+      if (document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]')) return; // a dialog, sheet or menu is open
       e.preventDefault(); newTask();
     };
     window.addEventListener('keydown', onKey);
@@ -69,6 +75,8 @@ function App() {
         <BottomBar />
       </SidebarProvider>
       <NoteSheet target={note} onClose={() => setNote(null)} />
+      <TaskPeek target={peek} onClose={closePeek} />
+      <NewTaskDialog preset={nt} onClose={closeNew} />
       <Toaster position="bottom-center" mobileOffset={{ bottom: 'calc(68px + env(safe-area-inset-bottom))' }} />
     </UICtx.Provider>
   );

@@ -8,7 +8,7 @@ import { domainOf } from '@/lib/interview-feed';
 import type { Task } from '@/lib/engine';
 import { Chip } from './shell/page';
 import { useUI } from './ui-state';
-import { TaskInput, parseTask } from './own-task';
+import { TaskInput, deleteOwn, parseTask } from './own-task';
 
 export const noteKey = (t: Task) => (t.slug ? `p-${t.slug}` : t.id);
 const DIFF = { E: 'Easy', M: 'Medium', H: 'Hard' } as const;
@@ -20,7 +20,7 @@ const tool = 'inline-flex h-6 items-center gap-1 rounded-[5px] px-1.5 text-[12px
 
 export function TaskRow({ t, dayIdx, extra, status }: { t: Task; dayIdx: number; extra?: string; status?: TaskStatus }) {
   const { state, update } = useStore();
-  const { openNote, openTask, go, toast } = useUI();
+  const { openTask, go } = useUI();
   const [editing, setEditing] = useState(false);
   const done = !!state.done[t.id];
   const flagged = !!(t.slug && state.flags[t.slug]);
@@ -29,10 +29,7 @@ export function TaskRow({ t, dayIdx, extra, status }: { t: Task; dayIdx: number;
   const toggle = (v: boolean) => update(s => { const d = { ...s.done }; if (v) d[t.id] = Date.now(); else delete d[t.id]; return { ...s, done: d }; });
   // Only the user's own tasks (t.own) can be edited or removed.
   const save = (raw: string) => { const { text, url } = parseTask(raw); update(s => { const c = s.custom[t.own!]; if (!c) return s; const n = { ...c, text }; if (url) n.url = url; else delete n.url; return { ...s, custom: { ...s.custom, [t.own!]: n } }; }); setEditing(false); };
-  const remove = () => {
-    update(s => { const c = { ...s.custom }, d = { ...s.done }, tn = { ...s.tnotes }; delete c[t.own!]; delete d[t.id]; delete tn[t.id]; return { ...s, custom: c, done: d, tnotes: tn }; });
-    toast('Task removed');
-  };
+  const remove = () => deleteOwn(update, state, t.own!);
   const flag = () => update(s => { const f = { ...s.flags }; if (f[t.slug!]) delete f[t.slug!]; else f[t.slug!] = 1; return { ...s, flags: f }; });
   const title = t.text.replace(/^Re-solve without looking: /, '');
 
@@ -47,7 +44,7 @@ export function TaskRow({ t, dayIdx, extra, status }: { t: Task; dayIdx: number;
         <Checkbox id={`t-${t.id}`} checked={done} onCheckedChange={v => toggle(!!v)} className="mt-0.5" aria-label={t.text} />
         <div className="min-w-0 flex-1 sm:flex sm:items-start sm:gap-3">
           <div className="min-w-0 flex-1 leading-[18px]">
-            <button type="button" onClick={() => openTask(t.id, dayIdx)}
+            <button type="button" data-title onClick={() => openTask(t.id, dayIdx)}
               className={cn('break-words rounded-[5px] text-left outline-none focus-visible:ring-2 focus-visible:ring-ring/50', done && 'text-muted-foreground line-through decoration-faint')}>
               {t.text}
             </button>
@@ -65,7 +62,7 @@ export function TaskRow({ t, dayIdx, extra, status }: { t: Task; dayIdx: number;
                 <Flag className={cn('size-3.5', flagged && 'fill-current')} />{flagged ? 'Flagged' : ''}
               </button>
             )}
-            <button type="button" onClick={() => openNote({ kind: 'task', key: noteKey(t), title, url: t.url })} title={hasNote ? 'Open note' : 'Add a note'} aria-label={hasNote ? `Open note for ${title}` : `Add a note to ${title}`} className={cn(tool, hasNote && 'text-foreground')}>
+            <button type="button" onClick={() => openTask(t.id, dayIdx)} title={hasNote ? 'Open note' : 'Add a note'} aria-label={hasNote ? `Open note for ${title}` : `Add a note to ${title}`} className={cn(tool, hasNote && 'text-foreground')}>
               <FileText className="size-3.5" />{hasNote ? 'Note' : ''}
             </button>
             {t.newsId && (
