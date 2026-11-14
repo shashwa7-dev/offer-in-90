@@ -528,10 +528,12 @@ The JS runtime fundamentals stay at working depth (§9).
   - The engine keeps its own repo secret. Today that's `CLAUDE_CODE_OAUTH_TOKEN`, from `claude setup-token` on the owner's own Claude account, so it's already the owner's credential, not a shared one.
   - Claude Code also accepts an `ANTHROPIC_API_KEY` secret instead, if the owner prefers paying per use.
   - Anyone who forks the repo sets their own secret, and the engine then runs on their account.
-  - Moving the engine into the browser was considered and rejected:
-    - it would only run while the app is open;
-    - browsers can't fetch most sites (CORS), so the link checker and collectors break;
-    - and it couldn't update the published feeds.
+  - **For now the engine stays exactly as it is** (the owner's decision, 2026-11-15). Daily news and the weekly AI step are unchanged.
+  - **Considered for later: a manual "Run this week's refresh" button.**
+    - The Actions would keep only the no-AI collectors and publish their raw results.
+    - The AI step would run in the browser on the BYOK key: four steps, a spend cap, results validated and saved to the Gist.
+    - The button would sit in the Updates tab header and in Sunday's fixed core.
+    - Not in this build.
 - **Where it shows:**
   - An "Ask AI" action on any task, pattern card, quiz item, or Notes page.
   - The persona picker sits next to the input (3 personas, below).
@@ -551,7 +553,9 @@ The JS runtime fundamentals stay at working depth (§9).
 - **Saving:**
   - Any response can be saved to the item's note (`tnotes`) or to a Notes page, so it syncs like other notes.
   - Saved responses keep the persona name and date.
-  - Conversations that aren't saved are not stored.
+  - **Bookmarks:** any AI answer can also be bookmarked. It goes into the existing `State.bookmarks` (synced), as a new kind, "AI answer". The bookmark keeps the answer text, the persona, the item it was about, and the date, and it shows in the Bookmarks list alongside saved news, interview threads and plan updates.
+  - Saved and bookmarked answers can take labels (§12).
+  - Conversations that aren't saved or bookmarked are not stored.
 - **Personas:** the system prompts are in the Appendix. Each is one shared base block plus the persona block. Owners can't edit them in v2; maybe later.
 
 ### 17. Explore later (replaces "Month 4")
