@@ -501,12 +501,37 @@ The JS runtime fundamentals stay at working depth (§9).
   - The owner pastes their own API key.
   - Anthropic comes first, using the official `@anthropic-ai/sdk`. The builder checks the SDK's documented browser-use option, since the app is a static site that calls the API from the browser.
   - The model is picked in Setup. Default is `claude-opus-5-5` at effort `medium` (the model's default). Cheaper options are offered: `claude-sonnet-5-5`, `claude-haiku-5-5`.
-  - Other providers can be added later, each through its own official SDK.
+  - **Any model, through four providers**, each behind a small adapter with the same interface: stream a reply to a system prompt plus messages.
+    - **Anthropic:** official `@anthropic-ai/sdk`.
+    - **OpenAI:** official SDK.
+    - **Google Gemini:** official SDK.
+    - **OpenRouter:** one key that reaches most other models.
+  - The owner can save a key for each provider and picks provider + model in Setup. The persona prompts work the same with every provider.
+  - Provider-specific extras apply only where they exist: refusal fallbacks and prompt caching for Anthropic, the provider's own caching elsewhere.
+  - The builder confirms each SDK's documented option for calling from a browser (CORS) before wiring it.
   - Nothing is sold or promoted; there's no upsell.
-- **The key stays on this device:**
-  - Stored in `localStorage` only, never in `State`, and never synced to the Gist.
-  - There's a "Remove key" button.
-  - Setup says plainly that the key is stored in this browser and used only from it.
+- **How keys are handled:**
+  - **Stored only in this browser** (`localStorage`). Never in `State`, never synced to the Gist, never in the repo or the build.
+  - **Sent only to the chosen provider**, straight from the browser. There's no server of ours in between.
+  - **A "Remember on this device" toggle.** When it's off, the key lives in `sessionStorage` and is gone when the tab closes.
+  - **"Remove key" per provider.** Keys are never shown again after saving, only their last 4 characters.
+  - **Setup says plainly:**
+    - "Your key stays in this browser and goes only to <provider>."
+    - Create a separate key for this app, with a monthly spend limit set in the provider's console.
+  - **Guarding the page.** Anything that runs on the page could read the key, so:
+    - add a Content-Security-Policy that limits `connect-src` to the provider API domains plus the existing ones (GitHub API for the Gist, the app's own JSON feeds);
+    - keep `script-src` to `'self'`;
+    - add no third-party scripts;
+    - never write the key to logs or error messages.
+- **The weekly engine doesn't use this key.**
+  - The key lives in a browser, and the engine runs on GitHub's servers on a schedule, so it can't reach it.
+  - The engine keeps its own repo secret. Today that's `CLAUDE_CODE_OAUTH_TOKEN`, from `claude setup-token` on the owner's own Claude account, so it's already the owner's credential, not a shared one.
+  - Claude Code also accepts an `ANTHROPIC_API_KEY` secret instead, if the owner prefers paying per use.
+  - Anyone who forks the repo sets their own secret, and the engine then runs on their account.
+  - Moving the engine into the browser was considered and rejected:
+    - it would only run while the app is open;
+    - browsers can't fetch most sites (CORS), so the link checker and collectors break;
+    - and it couldn't update the published feeds.
 - **Where it shows:**
   - An "Ask AI" action on any task, pattern card, quiz item, or Notes page.
   - The persona picker sits next to the input (3 personas, below).
