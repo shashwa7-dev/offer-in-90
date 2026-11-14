@@ -31,8 +31,8 @@ export function TaskInput({ initial = '', placeholder, onSave, onCancel, onDone,
       <input ref={ref} value={v} onChange={e => setV(e.target.value)} placeholder={placeholder} aria-label={placeholder}
         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); save(true); } if (e.key === 'Escape') { e.preventDefault(); finished.current = true; onCancel(); } }}
         onBlur={() => save(false)}
-        className="h-8 min-w-0 flex-1 rounded-md border border-input bg-background px-2.5 text-[15px] outline-none focus-visible:ring-3 focus-visible:ring-ring/30" />
-      <span className="hidden shrink-0 text-xs italic text-muted-foreground sm:block">Enter to save · Esc to cancel</span>
+        className="h-8 min-w-0 flex-1 rounded-md border border-input bg-card px-2.5 text-[13px] text-foreground outline-none placeholder:text-faint focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30" />
+      <span className="hidden shrink-0 text-[12px] text-faint sm:block">Enter to save · Esc to cancel</span>
     </div>
   );
 }
@@ -41,12 +41,12 @@ export function QuickAdd({ day, block }: { day: Day; block: string }) {
   const { update } = useStore();
   const [on, setOn] = useState(false);
   if (!on) return (
-    <button onClick={() => setOn(true)} className="-mx-2 mt-1 flex w-[calc(100%+1rem)] items-center gap-2 rounded-lg px-2 py-2 text-left text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground">
-      <Plus className="size-3.5" />Add your own task
+    <button type="button" onClick={() => setOn(true)} className="flex h-9 w-full items-center gap-2 border-t border-border pr-4 pl-11 text-left text-[13px] text-muted-foreground outline-none hover:bg-hover hover:text-foreground focus-visible:bg-hover">
+      <Plus className="size-3.5" />Add task
     </button>
   );
   return (
-    <TaskInput keepOpen className="mt-1.5 py-1" placeholder="Task name, paste a link to attach it" onCancel={() => setOn(false)}
+    <TaskInput keepOpen className="border-t border-border py-1.5 pr-4 pl-11" placeholder="Task name, paste a link to attach it" onCancel={() => setOn(false)}
       onSave={raw => {
         const { text, url } = parseTask(raw), id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
         update(s => ({ ...s, custom: { ...s.custom, [id]: { date: iso(day.date), block, text, ...(url ? { url } : {}), at: Date.now() } } }));

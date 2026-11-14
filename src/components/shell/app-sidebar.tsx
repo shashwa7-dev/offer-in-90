@@ -65,7 +65,7 @@ export function AppSidebar() {
         <n.icon />
         <span>{n.label}</span>
       </SidebarMenuButton>
-      {!!badge && <SidebarMenuBadge className="text-faint" aria-label={`${badge} unread`}>{badge}</SidebarMenuBadge>}
+      {!!badge && <SidebarMenuBadge className="text-muted-foreground" aria-label={`${badge} unread`}>{badge}</SidebarMenuBadge>}
     </SidebarMenuItem>
   );
 

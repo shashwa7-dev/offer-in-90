@@ -100,6 +100,87 @@ try {
     }
     await ctx.close();
   }
+  // ---------- Today (clock fixed at 14:10 on a weekday, day 9 of the plan) ----------
+  for (const [width, height] of [[1100, 900], [390, 844]]) {
+    const at = new Date(2026, 10, 12, 14, 10); // Thu 12 Nov 2026, 14:10 local
+    const st = new Date(at); st.setDate(st.getDate() - 9);
+    const fx = { ...fixture, start: isoDay(st), done: { 'k-wo': +at, 'k-pos': +at, 'k-ai': +at }, notes: {}, updatedAt: +at };
+    const ctx = await browser.newContext({ viewport: { width, height } });
+    await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
+    const page = await ctx.newPage();
+    await page.clock.install({ time: at });
+    const errors = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+    page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+    await page.goto(URL, { waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+    await page.waitForTimeout(500);
+    const W = `today ${width}`;
+    const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem('offer90.v1') || '{}'));
+    for (const b of ['Morning', 'Afternoon', 'Evening']) {
+      if (await page.getByRole('button', { name: new RegExp(`^${b}`) }).first().isVisible().catch(() => false)) ok(`${W}: band ${b} visible`); else fail(`${W}: band ${b} not visible`);
+    }
+    const nowRow = page.locator('[data-now]');
+    if ((await nowRow.count()) === 1 && /13:00/.test(await nowRow.innerText())) ok(`${W}: 13:00 block is now`); else fail(`${W}: no single [data-now] row at 13:00 (count ${await nowRow.count()})`);
+    const missed = page.locator('[data-missed]').filter({ hasText: '05:15' });
+    if (await missed.count()) ok(`${W}: 05:15 block is missed`); else fail(`${W}: no [data-missed] row at 05:15`);
+    const mc = await page.locator('[data-missed]').first().evaluate(e => getComputedStyle(e).color).catch(() => 'none');
+    if (mc === 'rgb(138, 128, 119)') ok(`${W}: missed row is stone`); else fail(`${W}: missed row colour ${mc}`);
+    await page.screenshot({ path: join(shots, `today-${width}.png`), fullPage: true });
+    if (width === 1100) {
+      // quick add in the open current block → a "Yours" row; then edit and remove it
+      await page.getByRole('button', { name: 'Add task' }).first().click();
+      await page.getByPlaceholder('Task name, paste a link to attach it').fill('Smoke own task');
+      await page.keyboard.press('Enter');
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(300);
+      const own = page.locator('[data-task]').filter({ hasText: 'Smoke own task' });
+      if (await own.count() && /Yours/.test(await own.first().innerText())) ok(`${W}: quick add creates a Yours row`); else fail(`${W}: quick add row missing`);
+      if (Object.values((await saved()).custom || {}).some(c => c.text === 'Smoke own task')) ok(`${W}: own task saved`); else fail(`${W}: own task not saved`);
+      await own.first().hover();
+      await page.getByRole('button', { name: 'Edit Smoke own task' }).click();
+      const ed = page.locator('input[value="Smoke own task"]');
+      await ed.fill('Smoke own task edited'); await page.keyboard.press('Enter');
+      await page.waitForTimeout(300);
+      if (Object.values((await saved()).custom || {}).some(c => c.text === 'Smoke own task edited')) ok(`${W}: own task edited`); else fail(`${W}: own task edit not saved`);
+      await page.locator('[data-task]').filter({ hasText: 'Smoke own task edited' }).first().hover();
+      await page.getByRole('button', { name: 'Remove Smoke own task edited' }).click();
+      await page.waitForTimeout(300);
+      if (!Object.values((await saved()).custom || {}).length) ok(`${W}: own task removed`); else fail(`${W}: own task not removed`);
+      // plan tasks expose no edit/remove
+      const planEdit = await page.locator('[data-task]:not([data-own]) [aria-label^="Edit "], [data-task]:not([data-own]) [aria-label^="Remove "]').count();
+      if (planEdit === 0) ok(`${W}: plan tasks have no edit/remove`); else fail(`${W}: plan tasks show ${planEdit} edit/remove buttons`);
+      // tick a task in the current block
+      const box = page.locator('[data-now] ~ [data-task] [role="checkbox"]').first();
+      const id = (await box.getAttribute('id') || '').replace(/^t-/, '');
+      await box.click(); await page.waitForTimeout(200);
+      if ((await saved()).done?.[id]) ok(`${W}: ticking saves (${id})`); else fail(`${W}: tick not saved (${id})`);
+      // open the missed DSA block and flag a problem
+      await page.locator('[data-missed]').filter({ hasText: '05:15' }).click();
+      await page.waitForTimeout(200);
+      const flagBtn = page.getByRole('button', { name: /^Flag / }).first();
+      await flagBtn.click(); await page.waitForTimeout(200);
+      if (Object.keys((await saved()).flags || {}).length) ok(`${W}: flag saves`); else fail(`${W}: flag not saved`);
+      // daily log in the review block
+      await page.locator('[data-block="review"]').click();
+      await page.waitForTimeout(200);
+      await page.getByPlaceholder('One line: how did today go?').fill('Smoke log line');
+      await page.waitForTimeout(200);
+      if ((await saved()).notes?.[9] === 'Smoke log line') ok(`${W}: daily log saves`); else fail(`${W}: daily log not saved`);
+      // notice: missed tasks link opens the Missed earlier band
+      const link = page.getByRole('button', { name: /missed task/ });
+      if (await link.count()) {
+        await link.click(); await page.waitForTimeout(400);
+        if (await page.locator('[data-band="missed-earlier"] [data-task]').first().isVisible().catch(() => false)) ok(`${W}: missed link opens Missed earlier`); else fail(`${W}: Missed earlier band did not open`);
+      } else fail(`${W}: no missed tasks link in the notice`);
+      await page.screenshot({ path: join(shots, `today-${width}-after.png`), fullPage: true });
+    } else {
+      const sw = await page.evaluate(() => document.documentElement.scrollWidth);
+      if (sw > 390) fail(`${W}: horizontal scroll (scrollWidth ${sw})`); else ok(`${W}: scrollWidth ${sw}`);
+    }
+    checkErrors(errors, W);
+    await ctx.close();
+  }
 } catch (e) {
   fail(`crashed: ${e.stack || e}`);
 } finally {

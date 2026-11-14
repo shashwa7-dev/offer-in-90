@@ -21,7 +21,7 @@ export function BottomBar() {
 
   const tab = (key: string, label: string, Icon: LucideIcon, active: boolean, onClick: () => void, dot?: boolean) => (
     <button key={key} type="button" data-nav={key} onClick={onClick} aria-current={active ? 'page' : undefined}
-      className={cn('relative flex h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium outline-none focus-visible:bg-hover', active ? 'text-foreground' : 'text-faint')}>
+      className={cn('relative flex h-14 flex-1 flex-col items-center justify-center gap-0.5 text-[11px] font-medium outline-none focus-visible:bg-hover', active ? 'text-foreground' : 'text-muted-foreground')}>
       <Icon className="size-5" strokeWidth={active ? 2 : 1.75} />
       {label}
       {dot && <span className="absolute top-2.5 left-[calc(50%+8px)] size-1.5 rounded-full bg-primary" aria-label="unread news" />}
@@ -47,7 +47,7 @@ export function BottomBar() {
                   className={cn('flex h-11 w-full items-center gap-3 rounded-md px-3 text-[14px] hover:bg-hover', view === n.v ? 'bg-hover font-medium text-foreground' : 'text-foreground')}>
                   <n.icon className="size-4 text-muted-foreground" />
                   {n.label}
-                  {n.v === 'news' && unread > 0 && <span className="ml-auto text-[12px] text-faint tabular-nums">{unread}</span>}
+                  {n.v === 'news' && unread > 0 && <span className="ml-auto text-[12px] text-muted-foreground tabular-nums">{unread}</span>}
                 </button>
               </li>
             ))}

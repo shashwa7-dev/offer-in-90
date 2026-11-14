@@ -1,6 +1,6 @@
 'use client';
 /* Shared building blocks for every page: sheet, header, collapsible band, row, chip, ring, segmented toggle, summary row, outside link. */
-import { Fragment, useState, type KeyboardEvent, type ReactNode } from 'react';
+import { Fragment, useState, type HTMLAttributes, type KeyboardEvent, type ReactNode } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { domainOf } from '@/lib/interview-feed';
@@ -47,10 +47,12 @@ export function PageHeader({ crumbs, count, actions }: { crumbs: Crumb[]; count?
 }
 
 /** Collapsible grey band with a title, a short count and an optional right-hand slot. */
-export function Band({ title, count, right, defaultOpen = true, children }: { title: string; count?: ReactNode; right?: ReactNode; defaultOpen?: boolean; children: ReactNode }) {
-  const [open, setOpen] = useState(defaultOpen);
+export function Band({ title, count, right, defaultOpen = true, open: openProp, onOpenChange, id, children }: { title: string; count?: ReactNode; right?: ReactNode; defaultOpen?: boolean; /** Controlled open state (optional). */ open?: boolean; onOpenChange?: (v: boolean) => void; /** Sets data-band, for scrolling to and tests. */ id?: string; children: ReactNode }) {
+  const [own, setOwn] = useState(defaultOpen);
+  const open = openProp ?? own;
+  const setOpen = (v: boolean) => { setOwn(v); onOpenChange?.(v); };
   return (
-    <Collapsible open={open} onOpenChange={setOpen} className="border-b border-border last:border-b-0">
+    <Collapsible open={open} onOpenChange={setOpen} data-band={id} className="scroll-mt-4 border-b border-border last:border-b-0">
       <div className="flex h-9 items-center gap-2 bg-band px-4">
         <CollapsibleTrigger className="-ml-1 flex min-w-0 flex-1 items-center gap-1.5 rounded-[5px] py-1 pl-1 text-left text-[13px] font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
           <ChevronRight className={cn('size-3.5 shrink-0 text-muted-foreground transition-transform', open && 'rotate-90')} />
@@ -65,10 +67,11 @@ export function Band({ title, count, right, defaultOpen = true, children }: { ti
 }
 
 /** 40px list row with a hairline; `now` gets an ink left edge, `stone` the muted tint. */
-export function Row({ children, className, onClick, tone }: { children: ReactNode; className?: string; onClick?: () => void; tone?: 'now' | 'stone' }) {
+export function Row({ children, className, onClick, tone, ...rest }: { children: ReactNode; className?: string; onClick?: () => void; tone?: 'now' | 'stone' } & Omit<HTMLAttributes<HTMLDivElement>, 'onClick' | 'className' | 'children'>) {
   const onKey = onClick ? (e: KeyboardEvent<HTMLDivElement>) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(); } } : undefined;
   return (
     <div
+      {...rest}
       onClick={onClick}
       onKeyDown={onKey}
       tabIndex={onClick ? 0 : undefined}
