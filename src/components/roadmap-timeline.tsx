@@ -63,13 +63,13 @@ export function RoadmapTimeline() {
         </div>
         {/* week numbers; the label after "now" sits right so the longer now label never covers it */}
         <div className="flex h-8 border-b border-border">
-          <div className="flex w-32 shrink-0 items-center px-4 text-[12px] text-faint">Track</div>
+          <div className="flex w-32 shrink-0 items-center px-4 text-[12px] text-muted-foreground">Track</div>
           <div className="grid flex-1 grid-cols-13">
             {Array.from({ length: WEEKS }, (_, k) => k + 1).map(w => (
               <div key={w} className={cn('relative flex items-center border-l border-border px-1.5 text-[12px] whitespace-nowrap tabular-nums',
-                w === nowWeek ? 'z-10 font-medium text-foreground' : 'text-faint',
+                w === nowWeek ? 'z-10 font-medium text-foreground' : 'text-muted-foreground',
                 nowWeek && w === nowWeek + 1 && 'justify-end')}>
-                {w === nowWeek ? <span className="bg-card pr-1">W{w} · now</span> : `W${w}`}
+                {w === nowWeek ? <span className="bg-card pr-1" title={`Week ${w}, this week`}><span className="max-sm:sr-only">W{w} · </span>now</span> : `W${w}`}
               </div>
             ))}
           </div>

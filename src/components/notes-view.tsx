@@ -48,6 +48,7 @@ export function NotesView() {
   const pick = (t: NoteTarget) => { setSel(t); setOpen(true); setFresh(null); };
   const newPage = () => {
     const id = 'pg' + Date.now();
+    setQ(''); // the new page must be visible in the list
     update(s => ({ ...s, pages: { ...s.pages, [id]: { title: 'Untitled', body: '', upd: Date.now() } } }));
     setSel({ kind: 'page', id }); setOpen(true); setFresh(id);
   };

@@ -119,7 +119,7 @@ function BlockView({ d, b, bs, nm, pickId, isOpen, toggle, log, setLog }: { d: D
   // Life blocks (meals, breaks) are thin grey lines.
   if (!b.tasks.length) return (
     <div data-block={b.k} data-now={now || undefined}
-      className={cn('flex h-7 items-center gap-3 border-t border-border px-4 text-[12px] text-faint first:border-t-0', now && 'text-muted-foreground shadow-[inset_2px_0_0_var(--primary)]')}>
+      className={cn('flex h-7 items-center gap-3 border-t border-border px-4 text-[12px] text-muted-foreground first:border-t-0', now && 'text-foreground shadow-[inset_2px_0_0_var(--primary)]')}>
       <span className="w-4 shrink-0" aria-hidden="true" />
       <span className="w-10 shrink-0 tabular-nums">{b.s}</span>
       <span className="min-w-0 truncate">{b.title}</span>

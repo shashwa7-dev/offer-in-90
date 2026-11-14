@@ -96,7 +96,7 @@ export function NewsInterviews() {
                             <span className="min-w-0 flex-1 truncate">{c.company}</span>
                             <span className="shrink-0 text-[12px] text-faint tabular-nums">{c.count}</span>
                             <button type="button" onClick={e => { e.stopPropagation(); e.preventDefault(); togglePin(c.company); }}
-                              className="shrink-0 rounded-[5px] px-1.5 py-0.5 text-[12px] text-faint hover:bg-card hover:text-foreground">
+                              className="shrink-0 rounded-[5px] px-1.5 py-0.5 text-[12px] text-muted-foreground hover:bg-card hover:text-foreground">
                               {c.target ? 'Unpin' : 'Pin as a target'}
                             </button>
                           </CommandItem>

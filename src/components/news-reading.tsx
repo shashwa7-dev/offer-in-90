@@ -28,7 +28,7 @@ export function NewsReading() {
         saved={<>
           {n.discussUrl && n.discussUrl !== n.url && (
             <a href={n.discussUrl} target="_blank" rel="noopener noreferrer" data-discuss title={`${n.comments} comments on ${domainOf(n.discussUrl)}`}
-              className="inline-flex size-7 items-center justify-center rounded-[6px] text-[12px] whitespace-nowrap text-faint hover:bg-card hover:text-foreground sm:w-auto sm:px-1.5">
+              className="inline-flex size-7 items-center justify-center rounded-[6px] text-[12px] whitespace-nowrap text-muted-foreground hover:bg-card hover:text-foreground sm:w-auto sm:px-1.5">
               <MessageSquare aria-hidden="true" className="size-3.5 sm:hidden" /><span className="sr-only sm:not-sr-only">comments ↗</span><span className="sr-only"> (opens in a new tab)</span>
             </a>
           )}
