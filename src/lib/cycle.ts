@@ -10,7 +10,8 @@ export interface CycleSummary {
   week: number; from: Date; to: Date; daysLeft: number;
   byStatus: Record<TaskStatus, number>; total: number; pct: number;
   days: { i: number; date: Date; isToday: boolean; byStatus: Record<TaskStatus, number> }[];
-  /** Series include skipped tasks (pending until skipped); `total` is the cycle's full study-task count/hours. */
+  /** A skipped task is in both pending and ideal until the end of the day it was skipped, then leaves both, so skipping
+      never shifts the trailing count by itself. `total` excludes skipped tasks (same scope as the summary total). */
   burndown: Record<CycleUnit, { pending: (number | null)[]; ideal: number[]; total: number }>;
   trailing: Record<CycleUnit, number | null>;
   tracks: { track: TrackKey; name: string; done: number; progress: number; total: number }[];
@@ -43,7 +44,7 @@ export function cycleOf(
   const byStatus = empty();
   const trk = new Map<TrackKey, { done: number; total: number }>();
   // time each task stopped being pending; -Infinity = before the cycle
-  const all: { day: number; hours: number; resolved: number }[] = [];
+  const all: { day: number; min: number; resolved: number; skipped: boolean }[] = [];
 
   const dayRows = wk.map((d, k) => {
     const ds = empty();
@@ -54,7 +55,7 @@ export function cycleOf(
       let resolved = Infinity;
       if (st === 'done') resolved = Math.max(done[t.id], start);
       else if (st === 'skipped') resolved = meta[`status/${t.id}`] ?? start;
-      all.push({ day: k, hours: t.min / 60, resolved });
+      all.push({ day: k, min: t.min, resolved, skipped: st === 'skipped' });
       const tr = trackOfCat(t.cat);
       if (tr && st !== 'skipped') {
         const e = trk.get(tr) ?? { done: 0, total: 0 };
@@ -70,12 +71,15 @@ export function cycleOf(
   const burndown = {} as CycleSummary['burndown'];
   const trailing = {} as CycleSummary['trailing'];
   for (const u of UNITS) {
-    const w = (x: { hours: number }) => (u === 'tasks' ? 1 : x.hours);
-    const tot = all.reduce((a, x) => a + w(x), 0);
-    const ideal = wk.map((_, k) => tot - all.filter((x) => x.day <= k).reduce((a, x) => a + w(x), 0));
-    const pending = wk.map((d) => (d.i > todayIdx ? null : all.filter((x) => x.resolved >= endOfDate(d.date)).reduce((a, x) => a + w(x), 0)));
+    // Sum in integers (minutes), divide by 60 once, so hours carry no accumulated float noise.
+    const w = (x: { min: number }) => (u === 'tasks' ? 1 : x.min);
+    const out = (n: number) => (u === 'tasks' ? n : n / 60);
+    const sum = (f: (x: (typeof all)[number]) => boolean) => all.reduce((a, x) => a + (f(x) ? w(x) : 0), 0);
+    const tot = out(sum((x) => !x.skipped));
+    const ideal = wk.map((d, k) => out(sum((x) => x.day > k && !(x.skipped && x.resolved < endOfDate(d.date)))));
+    const pending = wk.map((d) => (d.i > todayIdx ? null : out(sum((x) => x.resolved >= endOfDate(d.date)))));
     burndown[u] = { pending, ideal, total: tot };
-    trailing[u] = todayK < 0 ? null : (pending[todayK] as number) - ideal[todayK];
+    trailing[u] = todayK < 0 ? null : Math.round(((pending[todayK] as number) - ideal[todayK]) * 1e6) / 1e6;
   }
 
   return {

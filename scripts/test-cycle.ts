@@ -40,8 +40,9 @@ assert.equal(s.to.getTime(), d(7).getTime());
 // pending is null after today; length = cycle days
 assert.equal(s.burndown.tasks.pending.length, 7);
 assert.deepEqual(s.burndown.tasks.pending.slice(4), [null, null, null]);
-// skipped task e (meta Jan 3 09:00) leaves pending from day Jan 3; burndown total counts all 9 study... here 8
-assert.equal(s.burndown.tasks.total, 8);
+// skipped task e (meta Jan 3 09:00) leaves pending and ideal from day Jan 3; burndown total excludes skipped (matches summary total)
+assert.equal(s.burndown.tasks.total, 7);
+assert.equal(s.burndown.tasks.total, s.total);
 // a,b done Jan 1 -> pending(day0)=8-2=6; c..: day1 6; Jan3 skip -> 5; day3 5
 assert.deepEqual(s.burndown.tasks.pending.slice(0, 4), [6, 6, 5, 5]);
 // ideal follows the schedule: 8 - cumulative scheduled (2,3,4,6,6,7,8); flat on empty day
@@ -49,8 +50,8 @@ assert.deepEqual(s.burndown.tasks.ideal, [6, 5, 4, 2, 2, 1, 0]);
 // trailing = pending(today) - ideal(today)
 assert.equal(s.trailing.tasks, 5 - 2);
 
-// hours unit: minutes/60. total = (60*7 + 120)/60 = 9 hours.
-assert.equal(s.burndown.hours.total, 9);
+// hours unit: minutes/60. total excludes skipped e: 7 hours.
+assert.equal(s.burndown.hours.total, 7);
 assert.deepEqual(s.burndown.hours.ideal, [7, 6, 4, 2, 2, 1, 0]);
 assert.deepEqual(s.burndown.hours.pending.slice(0, 4), [7, 7, 5, 5]); // e (2h) skipped on day 3
 assert.equal(s.trailing.hours, 3);
@@ -106,6 +107,41 @@ assert.deepEqual(cycleList(days, 0, {}, {}, {}, now).map((x) => [x.week, x.state
 assert.deepEqual(cycleList(days, 8, {}, {}, {}, now).map((x) => [x.week, x.state]), [[1, 'past'], [2, 'current'], [3, 'upcoming']]);
 assert.deepEqual(cycleList(days, 9, {}, {}, {}, now).map((x) => [x.week, x.state]), [[2, 'past'], [3, 'current']]);
 assert.equal(cycleList(days, 0, { a: 1 }, {}, {}, now)[0].pct, 1 / 8);
+
+// skipping a FUTURE task leaves trailing unchanged (it leaves pending and ideal together)
+{
+  const base = cycleOf(days, 1, { a: T(1, 9) }, {}, {}, 3, now)!;
+  const sk = cycleOf(days, 1, { a: T(1, 9) }, { k: 'skipped' }, { 'status/k': T(4, 9) }, 3, now)!;
+  for (const u of ['tasks', 'hours'] as const) assert.equal(sk.trailing[u], base.trailing[u], `future skip ${u}`);
+  assert.equal(sk.burndown.tasks.pending[3], base.burndown.tasks.pending[3]! - 1);
+}
+// skipping an OVERDUE task lowers trailing by its weight, and never below the no-overdue level
+{
+  const allPast = { a: T(1, 9), b: T(1, 9), c: T(2, 9), e: T(3, 9) };
+  const clean = cycleOf(days, 1, { ...allPast, f: T(4, 9), g: T(4, 9) }, {}, {}, 3, now)!; // nothing overdue
+  const overdue = cycleOf(days, 1, allPast, {}, {}, 3, now)!; // f, g overdue
+  const skipped = cycleOf(days, 1, allPast, { f: 'skipped' }, { 'status/f': T(4, 9) }, 3, now)!;
+  assert.equal(overdue.trailing.tasks, 2);
+  assert.equal(skipped.trailing.tasks, 1);
+  assert.ok(skipped.trailing.tasks! >= clean.trailing.tasks!);
+  const skipAll = cycleOf(days, 1, allPast, { f: 'skipped', g: 'skipped' }, { 'status/f': T(4, 9), 'status/g': T(4, 9) }, 3, now)!;
+  assert.equal(skipAll.trailing.tasks, clean.trailing.tasks);
+}
+
+// hours: exact values, no float noise (45 min = 0.75, 20 min thirds)
+{
+  const fd: CycleDayInput[] = [
+    { i: 0, week: 1, date: d(1), type: 'work', tasks: [task('p', 'dsa', 45), task('q', 'dsa', 20), task('r2', 'dsa', 20)] },
+    { i: 1, week: 1, date: d(2), type: 'work', tasks: [task('s', 'dsa', 45), task('t', 'dsa', 20)] },
+  ];
+  const h = cycleOf(fd, 1, {}, {}, {}, 1, now)!;
+  assert.equal(h.burndown.hours.total, 150 / 60);
+  assert.deepEqual(h.burndown.hours.ideal, [65 / 60, 0]);
+  assert.deepEqual(h.burndown.hours.pending, [150 / 60, 150 / 60]);
+  assert.equal(h.trailing.hours, 150 / 60);
+  const h2 = cycleOf([{ ...fd[0], tasks: [task('p', 'dsa', 45)] }], 1, {}, {}, {}, 0, now)!;
+  assert.equal(h2.burndown.hours.total, 0.75);
+}
 
 // unknown week
 assert.equal(cycleOf(days, 99, {}, {}, {}, 0, now), null);
