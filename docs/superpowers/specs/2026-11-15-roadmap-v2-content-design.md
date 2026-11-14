@@ -570,6 +570,38 @@ The builder checks each link before adding it, the same way as §14.
   - catch up on missed tasks;
   - finish the week's open-source fix.
 
+**Sunday read** (one per Sunday, suggested in both modes, 30–60 min, light):
+- Read one real-world case study or paper.
+- Then write 3 lines in Notes:
+  - the real problem;
+  - the key trade-off they made;
+  - where you'd use the idea, or what you'd do differently.
+- It's optional and never counts as "behind".
+- The categories rotate: how a real app works, a real incident, a problem a whole industry faces, an AI paper, a classic systems paper.
+- None of these repeat the Monday "how it really works" reads (§4).
+
+| # | Category | Read | Source (checked Nov 2026) |
+|---|---|---|---|
+| 1 | How an app works | Uber: H3, the hexagonal spatial index behind pricing and dispatch (2018) | uber.com/blog/h3 |
+| 2 | Real incident | GitLab: postmortem of the Jan 31, 2017 database outage (6 h of data lost, backups that didn't work) | about.gitlab.com/blog/postmortem-of-database-outage-of-january-31 |
+| 3 | AI paper | OpenAI: "Why Language Models Hallucinate" (Kalai et al., Sep 2025), blog plus paper | openai.com/index/why-language-models-hallucinate · arXiv 2509.04664 |
+| 4 | Industry problem | Swiggy: "A brief introduction to engineering challenges at Swiggy" (food delivery: assignment, ETAs, peaks) | bytes.swiggy.com/engineering-challenges-at-swiggy-430dea6c86a3 |
+| 5 | Classic paper | Amazon Dynamo (SOSP 2007): availability over consistency, the paper behind DynamoDB and Cassandra | allthingsdistributed.com/2007/10/amazons_dynamo.html |
+| 6 | How an app works | Linear: "How we built multi-region support for Linear" | linear.app/blog/how-we-built-multi-region-support-for-linear |
+| 7 | Real incident | AWS us-east-1, Oct 19–20 2025: a race condition in DynamoDB's DNS automation that took down a large part of the internet | aws.amazon.com/message/101925 |
+| 8 | Industry problem | Uber: DeepETA, predicting arrival times with deep learning (2022) | uber.com/blog/deepeta-how-uber-predicts-arrival-times |
+| 9 | AI paper | Anthropic: "Tracing the thoughts of a large language model" (Mar 2025, interpretability) | anthropic.com/research/tracing-thoughts-language-model |
+| 10 | How an app works | Swiggy: how Group Ordering was built (a shared cart in real time, 2024) | blog.swiggy.com/2024/08/31/heres-how-swiggy-built-the-group-ordering-feature |
+| 11 | Real incident | CrowdStrike: Channel File 291 root-cause analysis (Jul 2024, the global Windows crash) | crowdstrike.com, the RCA PDF of 2024-08-06 |
+| 12 | Industry problem | Razorpay: payment gateway uptime and SLAs (UPI concentration risk in Indian payments) | razorpay.com/blog/payment-gateway-uptime-slas |
+| 13 | How an app works | Zomato with AWS: moving the billing platform from TiDB to DynamoDB | aws.amazon.com/blogs/database/unlocking-performance-scalability-and-cost-efficiency-of-zomatos-billing-platform-by-switching-from-tidb-to-dynamodb |
+| 14 | Industry problem | Hotstar: scaling live cricket to 25M+ concurrent viewers (why autoscaling fails for spikes; game days) | blog.hotstar.com "Scaling the Hotstar Platform for 50M" (**builder: open and confirm the URL**) |
+| 15 | How an app works | Linear: "Rebuilding the delta sync read path" (when Postgres reads stopped scaling) | linear.app/blog/rebuilding-delta-sync-read-path |
+
+- **Grind** uses reads 1–13.
+- **Steady** uses all 15, plus 2 more the builder picks from the same categories (one AI paper, one industry problem, for example healthcare or logistics), checked the same way.
+- The weekly update engine flags any of these links that break.
+
 **Rules:**
 - Mocks, speed pairs and peer mocks are on Saturdays now (§4).
 - "Optional: apply to 3–5 roles" shows as an optional Sunday item from week 8.
@@ -632,6 +664,8 @@ The builder checks each link before adding it, the same way as §14.
   - amitshekhariitbhu/ai-engineering-interview-questions; KalyanKS-NLP/LLM-Interview-Questions-and-Answers-Hub
   - shawlu95/Beyond-LeetCode-SQL; bigocheatsheet.com
 - **Depth reading (§14):** use-the-index-luke.com; stripe.com/blog/idempotency; inkandswitch.com/essay/local-first; applied-llms.org; eugeneyan.com/writing/llm-patterns; sre.google/sre-book/effective-troubleshooting
+
+- **Sunday reads (§18):** uber.com/blog/h3; uber.com/blog/deepeta-how-uber-predicts-arrival-times; about.gitlab.com postmortem (2017); aws.amazon.com/message/101925; CrowdStrike Channel File 291 RCA; openai.com/index/why-language-models-hallucinate; anthropic.com/research/tracing-thoughts-language-model; allthingsdistributed.com Dynamo; bytes.swiggy.com; blog.swiggy.com group ordering; razorpay.com/blog/payment-gateway-uptime-slas; AWS Database Blog (Zomato); linear.app/blog (multi-region, delta sync); blog.hotstar.com
 
 ## Appendix: AI persona prompts (§16)
 
