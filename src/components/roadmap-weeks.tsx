@@ -5,6 +5,7 @@ import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import { P, aiUnitOf, type Day } from '@/lib/engine';
 import { cycleOf } from '@/lib/cycle';
+import { dateRange } from '@/lib/cycle-input';
 import { Band, Chip, Ring, Row } from './shell/page';
 import { PHASE_SPANS } from './roadmap-timeline';
 import { useCycleDays } from './today-rail';
@@ -15,12 +16,6 @@ const PHASE_TEXT: Record<number, string> = {
   2: 'React depth, backend, LLD problems, HLD + AI design problems, the flagship product (real-time collaborative docs with AI, launched to real users), rest of NeetCode 150, advanced DSA, AI-enabled coding drills. AI: GPT-3, RLHF, RAG, CoT, ReAct, MCP, evals. Forward-deployed track starts. Referrals and applications.',
   3: 'Interview mode: Meta speed sets, Google plain-doc sets, AI-enabled coding drills, Amazon OA simulations, flagship launch + case study, mock loops (frontend, HLD, LLD, AI, FDE). AI: scaling laws, LoRA, Constitutional AI, AI system design. Decomposition reps, take-home practice, daily applications.',
 };
-
-const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-/** "5–11 Nov", or "29 Nov – 5 Dec" across a month boundary. */
-export const dateRange = (a: Date, b: Date) => a.getMonth() === b.getMonth()
-  ? `${a.getDate()}–${b.getDate()} ${MON[b.getMonth()]}`
-  : `${a.getDate()} ${MON[a.getMonth()]} – ${b.getDate()} ${MON[b.getMonth()]}`;
 
 /** Main topics of a week: DSA topics, frontend lessons, AI units. */
 export function weekSummary(days: Day[], w: number): string[] {

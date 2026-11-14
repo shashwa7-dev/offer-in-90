@@ -3,21 +3,14 @@
 import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
-import { cycleOf, type CycleDayInput, type CycleSummary, type CycleUnit } from '@/lib/cycle';
+import { cycleOf, type CycleSummary, type CycleUnit } from '@/lib/cycle';
 import { statusOf, type TaskStatus } from '@/lib/task-status';
 import { type Day, dayStats, hrs, study, toMin } from '@/lib/engine';
 import { Seg } from './shell/page';
 import { StatusIcon } from './status-control';
-import { dateRange } from './roadmap-weeks';
+import { dateRange, toCycleDays } from '@/lib/cycle-input';
 import { useUI } from './ui-state';
 
-/** Engine days as cycle input (own tasks are already merged into d.tasks). `end` is the task's block end, so
-    today's later blocks don't count as trailing; own tasks take the end of the block they were added to. */
-export const toCycleDays = (days: Day[]): CycleDayInput[] =>
-  days.map(d => {
-    const endOf = new Map(d.blocks.map(b => [b.k, toMin(b.e)]));
-    return { i: d.i, week: d.week, date: d.date, type: d.type, tasks: d.tasks.map(t => ({ id: t.id, cat: t.cat, min: t.min, study: study(t), own: t.own, end: endOf.get(t.bk) })) };
-  });
 export const useCycleDays = (days: Day[]) => useMemo(() => toCycleDays(days), [days]);
 
 // Bar fills: done ink, in progress grey, skipped a stone hatch over the track, rest the track.
