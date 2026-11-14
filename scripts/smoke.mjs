@@ -332,6 +332,22 @@ try {
     s = await saved();
     if (await renamed.count() && s.custom?.[ownId] && s.done?.[`u-${ownId}`] && s.tnotes?.[`u-${ownId}`]?.body === 'Smoke dialog note') ok(`${W}: Undo restores row, tick and note`); else fail(`${W}: Undo did not restore everything`);
     if (await renamed.first().locator('[data-status-icon][aria-pressed="true"]').count()) ok(`${W}: restored row still ticked`); else fail(`${W}: restored row not ticked`);
+    // status keys stay out of the Day picker; In progress survives delete + Undo
+    await renamed.first().locator('[data-title]').click(); await page.waitForTimeout(500);
+    await peek.locator('[data-chip="day"]').click(); await page.waitForTimeout(250);
+    await page.locator('[data-radix-popper-content-wrapper] button:not([disabled])').first().focus();
+    await page.keyboard.press('4'); await page.waitForTimeout(200);
+    if (!(await saved()).status?.[`u-${ownId}`]) ok(`${W}: key 4 inside the Day picker leaves the status alone`); else fail(`${W}: key 4 in the Day picker changed the status`);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(250);
+    await peek.getByRole('heading').first().click().catch(() => {});
+    await peek.locator('input[aria-label="Task title"]').evaluate(e => e.blur());
+    await page.keyboard.press('2'); await page.waitForTimeout(250);
+    if ((await saved()).status?.[`u-${ownId}`] === 'progress') ok(`${W}: own task set In progress from the peek`); else fail(`${W}: own task not In progress (${JSON.stringify((await saved()).status)})`);
+    await peek.getByRole('button', { name: 'More actions' }).click(); await page.waitForTimeout(200);
+    await page.getByRole('menuitem', { name: 'Delete' }).click(); await page.waitForTimeout(400);
+    if (!(await saved()).status?.[`u-${ownId}`]) ok(`${W}: delete clears the own task's status`); else fail(`${W}: delete left an orphan status`);
+    await page.getByRole('button', { name: 'Undo' }).last().click(); await page.waitForTimeout(400);
+    if ((await saved()).status?.[`u-${ownId}`] === 'progress' && /In progress/.test(await renamed.first().innerText().catch(() => ''))) ok(`${W}: Undo brings the own task back In progress`); else fail(`${W}: Undo lost In progress`);
     checkErrors(errors, W);
     await ctx.close();
   }
@@ -381,12 +397,6 @@ try {
     await r2.focus(); await page.keyboard.press('s'); await page.waitForTimeout(250);
     if (await page.getByRole('menu').isVisible().catch(() => false)) ok(`${W}: S opens the menu on a focused row`); else fail(`${W}: S did not open the menu`);
     await page.keyboard.press('Escape'); await page.getByRole('menu').waitFor({ state: 'detached' }).catch(() => {}); await page.waitForTimeout(150);
-    // keys are ignored while typing
-    await page.getByRole('button', { name: 'Add task' }).first().click();
-    await page.getByPlaceholder('Task name, paste a link to attach it').fill('');
-    await page.keyboard.type('4'); await page.waitForTimeout(150);
-    if (Object.values((await saved()).status || {}).filter(v => v === 'skipped').length === 0) ok(`${W}: keys ignored while typing`); else fail(`${W}: a key typed in an input changed a status`);
-    await page.keyboard.press('Escape'); await page.waitForTimeout(150);
     // 4. key 4 on a focused missed row: skipped, missed count drops
     const before = await missedCount();
     await page.locator('[data-missed]').filter({ hasText: '05:15' }).click(); await page.waitForTimeout(250);
@@ -406,6 +416,11 @@ try {
     const peek = page.locator('[data-peek]');
     const pIcon = peek.locator('[data-status-icon]');
     if (await pIcon.count() && /: Skipped$/.test(await pIcon.getAttribute('aria-label') || '')) ok(`${W}: peek shows the status control (Skipped)`); else fail(`${W}: peek status control missing or wrong`);
+    // keys are ignored while typing: a digit in the peek's Note leaves the status alone
+    const noteBox = peek.getByPlaceholder(/Write a note/);
+    await noteBox.click(); await page.keyboard.type('1'); await page.waitForTimeout(250);
+    if ((await saved()).status?.[idS] === 'skipped' && await noteBox.inputValue() === '1') ok(`${W}: digit typed in the Note does not change the status`); else fail(`${W}: typing in the Note changed the status`);
+    await noteBox.fill(''); await peek.getByRole('heading').first().click(); await page.waitForTimeout(150);
     await page.keyboard.press('2'); await page.waitForTimeout(250);
     if ((await saved()).status?.[idS] === 'progress') ok(`${W}: key 2 in the peek sets In progress`); else fail(`${W}: key 2 in the peek did nothing`);
     await pIcon.click(); await page.waitForTimeout(250);

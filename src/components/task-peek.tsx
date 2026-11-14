@@ -63,6 +63,7 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.defaultPrevented || document.querySelector('[role="menu"], [role="alertdialog"]')) return;
+      if ((e.target as Element | null)?.closest?.('[data-radix-popper-content-wrapper]')) return; // Day/Block pickers and other pop-ups own their keys
       statusKey(e, setStatus, () => setMenu(true));
     };
     window.addEventListener('keydown', onKey);

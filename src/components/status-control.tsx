@@ -72,12 +72,12 @@ export function StatusControl({ taskId, label, open: openProp, onOpenChange, sho
     <span className={cn('inline-flex shrink-0 items-center', className)} data-status={status}>
       <button type="button" data-status-icon onClick={() => set(status === 'done' ? 'todo' : 'done')}
         aria-label={`${label}: ${STATUS_LABEL[status]}`} aria-pressed={status === 'done'} title={`${STATUS_LABEL[status]} · click to ${status === 'done' ? 'reopen' : 'mark done'}`}
-        className="inline-flex size-4 items-center justify-center rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+        className="relative inline-flex size-4 items-center justify-center rounded-full outline-none before:absolute before:-inset-2 before:content-[''] focus-visible:ring-2 focus-visible:ring-ring/50">
         <StatusIcon status={status} />
       </button>
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger data-status-menu aria-label={`Change status of ${label}`} title="Change status (S)"
-          className={cn('ml-0.5 inline-flex h-4 w-3.5 items-center justify-center rounded-[4px] text-faint outline-none hover:bg-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 data-[state=open]:opacity-100',
+          className={cn('relative ml-0.5 inline-flex h-4 w-3.5 items-center justify-center rounded-[4px] text-faint outline-none hover:bg-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50 data-[state=open]:opacity-100',
             showMenu === 'hover' && '[@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 [@media(hover:hover)]:group-focus-within:opacity-100 [@media(hover:hover)]:focus-visible:opacity-100')}>
           <ChevronDown className="size-3" />
         </DropdownMenuTrigger>

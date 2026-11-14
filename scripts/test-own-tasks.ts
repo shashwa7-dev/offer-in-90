@@ -33,6 +33,7 @@ const s0 = {
   custom: { a: { date: '2026-11-12', block: 'fe', text: 'Mine', at: 1 }, b: { date: '2026-11-12', block: 'fe', text: 'Other', at: 2 } },
   done: { 'u-a': 111, 'fe-1': 5 } as Record<string, number>,
   tnotes: { 'u-a': { title: 'Mine', body: 'note', upd: 3 } } as Record<string, { title: string; body: string; upd: number }>,
+  status: { 'u-b': 'skipped', 'fe-3': 'progress' } as Record<string, 'progress' | 'skipped'>,
   other: 'kept',
 };
 const snap = snapshotOwn(s0, 'a');
@@ -57,5 +58,22 @@ const s4 = restoreOwn(withoutOwn(s0, 'b'), snapB);
 assert.ok(s4.custom.b);
 assert.ok(!('u-b' in s4.done));
 assert.ok(!('u-b' in s4.tnotes));
+
+
+// delete + undo keeps the task's status (In progress / Skipped) and leaves no orphan behind
+const sp = { ...s0, status: { ...s0.status, 'u-a': 'progress' as const } };
+const snapP = snapshotOwn(sp, 'a');
+const sp1 = withoutOwn(sp, 'a');
+assert.ok(!('u-a' in sp1.status), 'delete removes the status');
+assert.equal(sp1.status['fe-3'], 'progress', 'other statuses kept');
+assert.equal(sp1.status['u-b'], 'skipped');
+const sp2 = restoreOwn({ ...sp1, status: { ...sp1.status, 'fe-4': 'skipped' as const } }, snapP);
+assert.equal(sp2.status['u-a'], 'progress', 'undo restores the status');
+assert.equal(sp2.status['fe-4'], 'skipped', 'undo keeps later status changes');
+// skipped own task: restored as skipped, not as a missed task
+const sk = restoreOwn(withoutOwn(s0, 'b'), snapshotOwn(s0, 'b'));
+assert.equal(sk.status['u-b'], 'skipped');
+// a task with no status comes back without one
+assert.ok(!('u-a' in restoreOwn(withoutOwn(s0, 'a'), snapshotOwn(s0, 'a')).status));
 
 console.log('own-tasks: ok');
