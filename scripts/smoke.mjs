@@ -279,6 +279,44 @@ try {
     checkErrors(errors, W);
     await ctx.close();
   }
+  // ---------- Progress: running total chart, forecast, future start date ----------
+  for (const [width, height] of [[1100, 900], [390, 844]]) {
+    for (const future of [false, true]) {
+      const st = new Date(); st.setDate(st.getDate() + (future ? 5 : -9));
+      const fx = { ...fixture, start: isoDay(st) };
+      const ctx = await browser.newContext({ viewport: { width, height } });
+      await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
+      const page = await ctx.newPage();
+      const errors = [];
+      page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+      page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+      await page.goto(`${URL}/#progress`, { waitUntil: 'networkidle' });
+      await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+      await page.waitForTimeout(500);
+      const W = `progress ${width}${future ? ' future' : ''}`;
+      const noNaN = async label => { const t = await page.locator('body').innerText(); if (/NaN|Infinity/.test(t)) fail(`${W} ${label}: NaN in page text`); else ok(`${W} ${label}: no NaN`); };
+      if (await page.getByText('Running total vs plan').first().isVisible().catch(() => false)) ok(`${W}: "Running total vs plan" band`); else fail(`${W}: no "Running total vs plan" band`);
+      await noNaN('this month');
+      const sfx = future ? '-future' : '';
+      await page.screenshot({ path: join(shots, `progress-${width}-month${sfx}.png`), fullPage: true });
+      await page.getByRole('radio', { name: 'Whole plan' }).click().catch(async () => { await page.getByText('Whole plan', { exact: true }).click(); });
+      await page.waitForTimeout(300);
+      if (!future) { if (await page.locator('[data-forecast]').count()) ok(`${W}: whole plan shows [data-forecast]`); else fail(`${W}: no [data-forecast] in whole plan`); }
+      await noNaN('whole plan');
+      if (width === 390) { const sw = await page.evaluate(() => document.documentElement.scrollWidth); if (sw > 390) fail(`${W}: horizontal scroll (${sw})`); else ok(`${W}: scrollWidth ${sw}`); }
+      await page.screenshot({ path: join(shots, `progress-${width}-plan${sfx}.png`), fullPage: true });
+      if (!future && width === 1100) {
+        // clicking a day in the chart opens it on Today
+        await page.locator('[data-day="3"]').first().click({ force: true });
+        await page.waitForTimeout(400);
+        const hash = await page.evaluate(() => location.hash);
+        const hdr = await page.locator('header').first().innerText().catch(() => '');
+        if (hash === '' && /Day 3\b/.test(hdr)) ok(`${W}: clicking day 3 opens it on Today`); else fail(`${W}: day click → hash "${hash}", header "${hdr.replace(/\s+/g, ' ')}"`);
+      }
+      checkErrors(errors, W);
+      await ctx.close();
+    }
+  }
 } catch (e) {
   fail(`crashed: ${e.stack || e}`);
 } finally {
