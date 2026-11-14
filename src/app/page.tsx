@@ -35,6 +35,7 @@ function App() {
   const [nt, setNt] = useState<NewTaskPreset | null>(null);
   const [roadmapTab, setRoadmapTab] = useState<RoadmapTab>('timeline');
   const [openChanges, setOpenChanges] = useState(false);
+  const [focusWeek, setFocusWeek] = useState<number | null>(null);
   const [newsTab, setNewsTab] = useState<NewsTab>('interviews');
 
   useEffect(() => { if (ready) setViewIdx(Math.max(0, Math.min(days.length - 1, todayIdx))); // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -60,7 +61,7 @@ function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [newTask]);
 
-  const ui = useMemo(() => ({ view, go, viewIdx, setViewIdx, openDay, openNote: setNote, newTask, openTask, toast, roadmapTab, setRoadmapTab, openChanges, setOpenChanges, newsTab }), [view, go, viewIdx, openDay, newTask, openTask, toast, roadmapTab, openChanges, newsTab]);
+  const ui = useMemo(() => ({ view, go, viewIdx, setViewIdx, openDay, openNote: setNote, newTask, openTask, toast, roadmapTab, setRoadmapTab, focusWeek, setFocusWeek, openChanges, setOpenChanges, newsTab }), [view, go, viewIdx, openDay, newTask, openTask, toast, roadmapTab, focusWeek, openChanges, newsTab]);
 
   if (!ready) return <div className="p-8 text-muted-foreground">Loading your plan…</div>;
   return (

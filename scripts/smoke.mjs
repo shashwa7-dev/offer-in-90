@@ -532,6 +532,94 @@ try {
     checkErrors(errors, W);
     await ctx.close();
   }
+  // ---------- Today rail (cycle column) and sidebar Cycles (same fixed clock) ----------
+  for (const [width, height, scheme] of [[1100, 900, 'light'], [1440, 900, 'light'], [1440, 900, 'dark'], [390, 844, 'light'], [390, 844, 'dark']]) {
+    const at = new Date(2026, 10, 12, 14, 10);
+    const st = new Date(at); st.setDate(st.getDate() - 9);
+    const fx = { ...fixture, start: isoDay(st), done: { 'k-wo': +at }, status: {}, notes: {}, updatedAt: +at };
+    const ctx = await browser.newContext({ viewport: { width, height }, colorScheme: scheme });
+    await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
+    const page = await ctx.newPage();
+    await page.clock.install({ time: at });
+    const errors = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+    page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+    await page.goto(URL, { waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+    await page.waitForTimeout(500);
+    const W = `rail ${width}${scheme === 'dark' ? ' dark' : ''}`;
+    const rail = page.locator('[data-rail]');
+    const titles = await rail.locator('[data-rail-title]').allInnerTexts();
+    const want = [/^Today$/, /^Week \d+ cycle$/, /^Tracks this cycle$/, /^In progress$/];
+    if (want.every((re, k) => re.test(titles[k] || ''))) ok(`${W}: four card titles (${titles.join(' | ')})`); else fail(`${W}: card titles ${JSON.stringify(titles)}`);
+    const cyc = rail.locator('[data-rail-card="cycle"]');
+    const ct = await cyc.innerText().catch(() => '');
+    if (/\d+ \/ \d+ tasks/.test(ct)) ok(`${W}: cycle shows x / y tasks`); else fail(`${W}: no "x / y tasks" in cycle card`);
+    if (/Trailing by \d|Ahead by \d|On track/.test(ct)) ok(`${W}: cycle trailing line`); else fail(`${W}: no Trailing/Ahead/On track line`);
+    if (width === 390) {
+      const boxes = await page.evaluate(() => { const r = s => document.querySelector(s).getBoundingClientRect(); return { list: r('[data-today-list]').bottom, rail: r('[data-rail]').y }; });
+      if (boxes.rail >= boxes.list - 1) ok(`${W}: rail below the list`); else fail(`${W}: rail not below the list ${JSON.stringify(boxes)}`);
+      const sw = await page.evaluate(() => document.documentElement.scrollWidth);
+      if (sw > 390) fail(`${W}: horizontal scroll (${sw})`); else ok(`${W}: scrollWidth ${sw}`);
+    }
+    await page.screenshot({ path: join(shots, `rail-${width}-${scheme}.png`), fullPage: true });
+    if (width === 1100) {
+      // Tasks -> Hours changes the y-axis unit
+      const unit = cyc.locator('[data-burndown-unit]');
+      const u0 = await unit.innerText().catch(() => '');
+      await cyc.getByRole('radio', { name: 'Hours' }).click(); await page.waitForTimeout(250);
+      const u1 = await unit.innerText().catch(() => '');
+      if (u0 === 'tasks' && u1 === 'h') ok(`${W}: Hours switches the y-axis (${u0} -> ${u1})`); else fail(`${W}: y-axis unit ${u0} -> ${u1}`);
+      if (/Trailing by [\d.]+ h|Ahead by [\d.]+ h|On track/.test(await cyc.innerText())) ok(`${W}: trailing line in hours`); else fail(`${W}: trailing line not in hours`);
+      if (await page.evaluate(() => { try { return localStorage.getItem('offer90.cycleUnit'); } catch { return null; } }) === 'hours') ok(`${W}: unit saved`); else fail(`${W}: unit not saved`);
+      await cyc.getByRole('radio', { name: 'Tasks' }).click(); await page.waitForTimeout(200);
+      // In progress card: empty, then a task marked In progress shows up
+      const prog = rail.locator('[data-rail-card="progress"]');
+      if (/Nothing in progress\./.test(await prog.innerText())) ok(`${W}: In progress empty copy`); else fail(`${W}: In progress empty copy missing`);
+      const row = page.locator('[data-now] ~ [data-task]:not([data-own])').first();
+      const text = (await row.locator('[data-title]').innerText()).trim();
+      await row.hover(); await row.locator('[data-status-menu]').click(); await page.waitForTimeout(250);
+      await page.getByRole('menuitemradio', { name: /In progress/ }).click().catch(() => {}); await page.waitForTimeout(300);
+      const pr = prog.locator('[data-progress-task]').first();
+      if (await pr.count() && (await pr.innerText()).includes(text.slice(0, 20))) ok(`${W}: In progress card lists "${text.slice(0, 30)}"`); else fail(`${W}: In progress card missing "${text.slice(0, 30)}"`);
+      if (/today/.test(await pr.innerText().catch(() => ''))) ok(`${W}: In progress row labelled today`); else fail(`${W}: In progress row has no "today" label`);
+      await pr.click(); await page.waitForTimeout(500);
+      if (await page.locator('[data-peek]').isVisible().catch(() => false)) ok(`${W}: In progress row opens the peek`); else fail(`${W}: In progress row did not open the peek`);
+      await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+      // day bar opens that day; the rail stays on that day's week
+      const bar = cyc.locator('[data-cycle-day]:not([data-today])').first();
+      const no = await bar.getAttribute('data-day-no');
+      await bar.click(); await page.waitForTimeout(400);
+      if ((await page.locator('header').first().innerText()).includes(`Day ${no} of`)) ok(`${W}: day bar opens Day ${no}`); else fail(`${W}: day bar did not open Day ${no}`);
+      await page.screenshot({ path: join(shots, `rail-${width}-other-day.png`), fullPage: true });
+      // sidebar Cycles
+      const cy = page.locator('[data-slot="sidebar"] [data-cycles]');
+      const cur = cy.locator('[data-cycle]').filter({ hasText: /Week \d+ · current/ });
+      if (await cur.count()) ok(`${W}: sidebar shows "${(await cur.innerText()).replace(/\s+/g, ' ')}"`); else fail(`${W}: no "Week N · current" in sidebar`);
+      const wk = await cur.getAttribute('data-cycle');
+      await cur.click(); await page.waitForTimeout(700);
+      if (await page.evaluate(() => location.hash) === '#roadmap') ok(`${W}: cycle click goes to Roadmap`); else fail(`${W}: cycle click hash ${await page.evaluate(() => location.hash)}`);
+      if (await page.getByRole('radio', { name: 'Weeks', checked: true }).count()) ok(`${W}: lands on Weeks`); else fail(`${W}: not on Weeks tab`);
+      const wr = page.locator(`[data-week="${wk}"]`);
+      if (await wr.getAttribute('data-expanded').catch(() => null) != null && await wr.isVisible().catch(() => false)) ok(`${W}: Week ${wk} expanded`); else fail(`${W}: Week ${wk} not expanded`);
+      const inView = await wr.evaluate(e => { const b = e.getBoundingClientRect(); return b.top >= 0 && b.bottom <= innerHeight; }).catch(() => false);
+      if (inView) ok(`${W}: Week ${wk} scrolled into view`); else fail(`${W}: Week ${wk} not in view`);
+      // the next cycle opens a week further down
+      const nxt = cy.locator('[data-cycle]').filter({ hasText: /· next/ });
+      if (await nxt.count()) {
+        const wn = await nxt.getAttribute('data-cycle');
+        await nxt.click(); await page.waitForTimeout(700);
+        const r2 = page.locator(`[data-week="${wn}"]`);
+        if (await r2.getAttribute('data-expanded').catch(() => null) != null && await r2.evaluate(e => { const b = e.getBoundingClientRect(); return b.top >= 0 && b.bottom <= innerHeight; }).catch(() => false)) ok(`${W}: next Week ${wn} expanded and in view`); else fail(`${W}: next Week ${wn} not expanded/in view`);
+      } else fail(`${W}: no "· next" cycle in sidebar`);
+      await page.screenshot({ path: join(shots, `rail-${width}-roadmap.png`) });
+      // collapsed to icons: Cycles hidden
+      await page.keyboard.press('ControlOrMeta+b'); await page.waitForTimeout(400);
+      if (await cy.isVisible().catch(() => false)) fail(`${W}: Cycles visible when collapsed`); else ok(`${W}: Cycles hidden when collapsed`);
+    }
+    checkErrors(errors, W);
+    await ctx.close();
+  }
   // ---------- Progress: running total chart, forecast, future start date ----------
   for (const [width, height] of [[1100, 900], [390, 844]]) {
     for (const future of [false, true]) {

@@ -1,5 +1,5 @@
 'use client';
-/* Desktop sidebar: mark + status line, page nav with the News unread count, New task, Setup and the sync line. */
+/* Desktop sidebar: mark + status line, page nav with the News unread count, New task, Cycles, Setup and the sync line. */
 import { CalendarCheck2, ChartLine, Map as MapIcon, Newspaper, NotebookPen, Plus, Settings, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useStore, type State } from '@/lib/store';
@@ -7,8 +7,12 @@ import { overall, TOTAL, type Day, type NewsFeed } from '@/lib/engine';
 import type { StatusMap } from '@/lib/task-status';
 import type { ThreadsFeed } from '@/lib/interview-feed';
 import { useUI, type View } from '@/components/ui-state';
+import { cycleList } from '@/lib/cycle';
+import { Ring } from '@/components/shell/page';
+import { StatusIcon } from '@/components/status-control';
+import { useCycleDays } from '@/components/today-rail';
 import {
-  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarHeader,
+  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel, SidebarHeader,
   SidebarMenu, SidebarMenuBadge, SidebarMenuButton, SidebarMenuItem, SidebarRail,
 } from '@/components/ui/sidebar';
 
@@ -96,6 +100,7 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+        <SidebarCycles />
       </SidebarContent>
       <SidebarFooter className="pb-3">
         <SidebarMenu>{item(SETUP_NAV)}</SidebarMenu>
@@ -105,5 +110,40 @@ export function AppSidebar() {
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
+  );
+}
+
+/** Previous, current and next plan week; a click opens that week on Roadmap › Weeks. Hidden when collapsed to icons. */
+function SidebarCycles() {
+  const { state, days, todayIdx } = useStore();
+  const { go, setRoadmapTab, setFocusWeek } = useUI();
+  const input = useCycleDays(days);
+  const list = cycleList(input, todayIdx, state.done, state.status, state.meta, Date.now());
+  if (!list.length) return null;
+  const open = (w: number) => { setFocusWeek(w); setRoadmapTab('weeks'); go('roadmap'); };
+  return (
+    <SidebarGroup className="group-data-[collapsible=icon]:hidden" data-cycles>
+      <SidebarGroupLabel className="text-[12px] font-medium text-muted-foreground">Cycles</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {list.map(c => {
+            const pct = Math.round(c.pct * 100);
+            const icon = c.state === 'current' ? <StatusIcon status="progress" />
+              : c.state === 'upcoming' ? <StatusIcon status="todo" />
+              : pct >= 100 ? <StatusIcon status="done" /> : <Ring done={pct} total={100} />;
+            const tag = c.state === 'current' ? ' · current' : c.state === 'upcoming' ? ' · next' : '';
+            return (
+              <SidebarMenuItem key={c.week}>
+                <SidebarMenuButton data-cycle={c.week} onClick={() => open(c.week)} aria-label={`Week ${c.week}${tag}, ${pct}% done`}>
+                  {icon}
+                  <span>Week {c.week}<span className="text-muted-foreground">{tag}</span></span>
+                </SidebarMenuButton>
+                <SidebarMenuBadge className="text-faint tabular-nums">{pct}%</SidebarMenuBadge>
+              </SidebarMenuItem>
+            );
+          })}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
   );
 }

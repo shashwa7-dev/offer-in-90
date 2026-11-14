@@ -22,6 +22,8 @@ interface UI {
   openTask: (taskId: string, dayIdx: number) => void;
   /** Roadmap tab, kept across page switches so links can land on a tab. */
   roadmapTab: RoadmapTab; setRoadmapTab: (t: RoadmapTab) => void;
+  /** A week Roadmap › Weeks should open, expand and scroll to once (set by the sidebar Cycles); null when none. */
+  focusWeek: number | null; setFocusWeek: (w: number | null) => void;
   /** Whether Roadmap › Reference › Changes is open. */
   openChanges: boolean; setOpenChanges: (v: boolean) => void;
   /** Thin wrapper over sonner's toast so callers stay unchanged. */

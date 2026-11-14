@@ -14,6 +14,7 @@ import { TaskRow } from './task-row';
 import { QuickAdd } from './own-task';
 import { useUI } from './ui-state';
 import { STATUS_ORDER, StatusIcon } from './status-control';
+import { TodayRail } from './today-rail';
 import { DisplayMenu, TodayFilters, useTodayFilter } from './today-filters';
 
 type Status = 'now' | 'done' | 'missed' | 'past' | 'upcoming';
@@ -152,8 +153,8 @@ export function TodayView() {
         </div>
       </Surface>
       </div>
-      {/* Right column: filled in by the day rail (Task 6); stacks below the list on smaller screens. */}
-      <aside data-rail className="min-w-0" />
+      {/* Right column: the viewed day and its week as a cycle; stacks below the list on smaller screens. */}
+      <aside data-rail className="min-w-0"><TodayRail day={d} /></aside>
       </div>
     </div>
   );

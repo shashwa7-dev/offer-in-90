@@ -1,6 +1,7 @@
 'use client';
 /* Roadmap › Weeks: phase bands with one row per week (Plane Cycles style). */
-import { Fragment } from 'react';
+import { Fragment, useEffect, useState } from 'react';
+import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import { P, aiUnitOf, study, type Day } from '@/lib/engine';
 import { isSkipped, type StatusMap } from '@/lib/task-status';
@@ -49,15 +50,27 @@ function trackCounts(ds: Day[], done: Record<string, number>, status: StatusMap)
 
 export function RoadmapWeeks() {
   const { state, days, todayIdx } = useStore();
-  const { openDay } = useUI();
+  const { openDay, focusWeek, setFocusWeek } = useUI();
   const today = todayIdx >= 0 && todayIdx < days.length ? days[todayIdx] : undefined;
+  // Phase bands open by default on today's phase; a focus request (sidebar Cycles) opens its band and expands its week.
+  const [openPh, setOpenPh] = useState<Record<number, boolean>>({});
+  const [expanded, setExpanded] = useState<Record<number, boolean>>({});
+  useEffect(() => {
+    if (focusWeek == null) return;
+    const w = focusWeek, ph = PHASE_SPANS.find(p => w >= p.from && w <= p.to);
+    if (ph) setOpenPh(s => ({ ...s, [ph.p]: true }));
+    setExpanded(s => ({ ...s, [w]: true }));
+    setFocusWeek(null);
+    // scroll once the band has opened and the row is laid out
+    requestAnimationFrame(() => requestAnimationFrame(() => document.querySelector(`[data-week="${w}"]`)?.scrollIntoView({ block: 'center' })));
+  }, [focusWeek, setFocusWeek]);
 
   return (
     <>
       {PHASE_SPANS.map(ph => {
         const weeks = Array.from({ length: ph.to - ph.from + 1 }, (_, k) => ph.from + k);
         return (
-          <Band key={ph.p} id={`phase-${ph.p}`} title={`Phase ${ph.p} · ${ph.name}`} count={`W${ph.from}–${ph.to}`} defaultOpen={!today || today.phase === ph.p}>
+          <Band key={ph.p} id={`phase-${ph.p}`} title={`Phase ${ph.p} · ${ph.name}`} count={`W${ph.from}–${ph.to}`} open={openPh[ph.p] ?? (!today || today.phase === ph.p)} onOpenChange={v => setOpenPh(s => ({ ...s, [ph.p]: v }))}>
             <div className="border-t border-border">
               <p className="px-4 py-2.5 text-[13px] leading-snug text-muted-foreground">{PHASE_TEXT[ph.p]}</p>
               {weeks.map(w => {
@@ -69,10 +82,11 @@ export function RoadmapWeeks() {
                 const now = today?.week === w;
                 const [head, ...rest] = weekSummary(days, w);
                 const first = ds.find(d => d.type !== 'kick') ?? ds[0];
-                const counts = now ? trackCounts(ds, state.done, state.status) : null;
+                const open = now || !!expanded[w];
+                const counts = open ? trackCounts(ds, state.done, state.status) : null;
                 return (
                   <Fragment key={w}>
-                    <Row tone={now ? 'now' : undefined} onClick={() => openDay(first.i)} data-week={w}
+                    <Row tone={now ? 'now' : undefined} onClick={() => openDay(first.i)} data-week={w} data-expanded={open || undefined}
                       className="flex-wrap gap-x-2 gap-y-0.5 py-2 sm:flex-nowrap sm:gap-x-3">
                       <Ring done={n} total={total} />
                       <span className="w-16 shrink-0 font-medium">Week {w}</span>
@@ -87,8 +101,8 @@ export function RoadmapWeeks() {
                       <Chip>{dateRange(ds[0].date, ds[ds.length - 1].date)}</Chip>
                     </Row>
                     {counts && (
-                      <div className="px-4 pb-2.5 pl-11 text-[12px] leading-snug text-muted-foreground tabular-nums shadow-[inset_2px_0_0_var(--primary)]" data-week-tracks>
-                        {TRACKS.filter(t => counts[t.key].t > 0).map(t => `${t.name} ${counts[t.key].d}/${counts[t.key].t}`).join(' · ')}
+                      <div className={cn('px-4 pb-2.5 pl-11 text-[12px] leading-snug text-muted-foreground tabular-nums', now && 'shadow-[inset_2px_0_0_var(--primary)]')} data-week-tracks>
+                        {TRACKS.filter(t => counts[t.key].t > 0).map(t => `${t.name} ${counts[t.key].d}/${counts[t.key].t}`).join(' · ') || 'No track tasks this week.'}
                       </div>
                     )}
                   </Fragment>
