@@ -17,7 +17,7 @@ export function Surface({ children, className }: { children: ReactNode; classNam
 type Crumb = string | { label: string; onClick: () => void };
 
 /** Page title line: sidebar toggle (desktop), breadcrumb, optional count, actions on the right. */
-export function PageHeader({ crumbs, count, actions }: { crumbs: Crumb[]; count?: string; actions?: ReactNode }) {
+export function PageHeader({ crumbs, count, actions, keepLast }: { crumbs: Crumb[]; count?: string; actions?: ReactNode; /** Keep the last crumb whole; earlier crumbs truncate first. */ keepLast?: boolean }) {
   return (
     <header className="flex min-h-12 items-center gap-2 py-2">
       <SidebarTrigger className="-ml-1.5 hidden text-muted-foreground md:inline-flex" />
@@ -29,11 +29,11 @@ export function PageHeader({ crumbs, count, actions }: { crumbs: Crumb[]; count?
             return (
               <Fragment key={i}>
                 {i > 0 && <BreadcrumbSeparator />}
-                <BreadcrumbItem className={cn(last ? 'min-w-0' : 'shrink-0')}>
+                <BreadcrumbItem className={cn(last !== !!keepLast ? 'min-w-0' : 'shrink-0')}>
                   {typeof c !== 'string'
                     ? <button type="button" onClick={c.onClick} className="rounded-[5px] text-muted-foreground transition-colors hover:text-foreground">{label}</button>
                     : last ? <BreadcrumbPage className="truncate font-medium">{label}</BreadcrumbPage>
-                    : <span className="text-muted-foreground">{label}</span>}
+                    : <span className="truncate text-muted-foreground">{label}</span>}
                 </BreadcrumbItem>
               </Fragment>
             );

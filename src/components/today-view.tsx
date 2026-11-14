@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,7 +20,6 @@ export function TodayView() {
   const { viewIdx, setViewIdx, go, newTask } = useUI();
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [missedOpen, setMissedOpen] = useState(false);
-  const missedRef = useRef<HTMLDivElement>(null);
   const [nm, setNm] = useState(() => { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); });
   useEffect(() => { const t = setInterval(() => { const n = new Date(); setNm(n.getHours() * 60 + n.getMinutes()); }, 30_000); return () => clearInterval(t); }, []);
 
@@ -47,7 +46,7 @@ export function TodayView() {
 
   const showMissed = () => {
     setMissedOpen(true);
-    requestAnimationFrame(() => missedRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+    requestAnimationFrame(() => document.querySelector('[data-band="missed-earlier"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
   const items = [
     { k: 'Done', v: `${hrs(st.doneMin)} of ${hrs(st.planMin)} h` },
@@ -59,40 +58,36 @@ export function TodayView() {
     <div className="pb-16">
       <PageHeader
         crumbs={[d.no === 0 ? 'Day 0 · prep' : `Day ${d.no} of ${TOTAL}`, fmtDate(d.date)]}
+        keepLast
         actions={<>
           <Button variant="outline" size="icon-sm" onClick={() => setViewIdx(clamp(viewIdx - 1))} aria-label="Previous day"><ChevronLeft /></Button>
-          <Button variant="outline" size="sm" onClick={() => setViewIdx(clamp(todayIdx))} disabled={isToday}>Today</Button>
+          <Button variant="outline" size="sm" onClick={() => setViewIdx(clamp(todayIdx))} disabled={isToday} className="hidden sm:inline-flex">Today</Button>
           <Button variant="outline" size="icon-sm" onClick={() => setViewIdx(clamp(viewIdx + 1))} aria-label="Next day"><ChevronRight /></Button>
           <Button size="icon-sm" onClick={() => newTask()} aria-label="New task" title="New task (C)"><Plus /></Button>
         </>}
       />
 
-      <div className="flex flex-col gap-3">
-        <Surface>
-          <SummaryRow ring={{ pct: st.planMin ? st.doneMin / st.planMin : 0, label: dayTitle(d) }} items={items} />
-          {(unseen > 0 || overdue.length > 0) && (
-            <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-border px-4 py-2.5 text-[13px] text-muted-foreground" data-notice>
-              {unseen > 0 && <button type="button" onClick={() => go('roadmap')} className="rounded-[5px] font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">{unseen} plan update{unseen > 1 ? 's' : ''}</button>}
-              {unseen > 0 && overdue.length > 0 && <span aria-hidden="true">·</span>}
-              {overdue.length > 0 && <button type="button" onClick={showMissed} className="rounded-[5px] font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">{overdue.length} missed task{overdue.length > 1 ? 's' : ''}</button>}
-              {overdue.length > 0 && <span>from earlier days, {hrs(overdue.reduce((a, x) => a + x.t.min, 0))} h. Clear them in Sunday&apos;s catch-up block.</span>}
-            </div>
-          )}
-          {todayIdx < 0 && viewIdx === 0 && (
-            <div className="border-t border-border px-4 py-2.5 text-[13px] text-muted-foreground">
-              Your plan starts {fmtDate(parseISO(state.start))}, in {-todayIdx} day{todayIdx === -1 ? '' : 's'}. Import the calendar reminders and sleep by 22:00.
-            </div>
-          )}
-        </Surface>
-
-        <Surface>
+      <Surface>
+        <SummaryRow ring={{ pct: st.planMin ? st.doneMin / st.planMin : 0, label: dayTitle(d) }} items={items} />
+        {(unseen > 0 || overdue.length > 0) && (
+          <div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 border-t border-border px-4 py-2.5 text-[13px] text-muted-foreground" data-notice>
+            {unseen > 0 && <button type="button" onClick={() => go('roadmap')} className="rounded-[5px] font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">{unseen} plan update{unseen > 1 ? 's' : ''}</button>}
+            {unseen > 0 && overdue.length > 0 && <span aria-hidden="true">·</span>}
+            {overdue.length > 0 && <button type="button" onClick={showMissed} className="rounded-[5px] font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">{overdue.length} missed task{overdue.length > 1 ? 's' : ''}</button>}
+            {overdue.length > 0 && <span>from earlier days, {hrs(overdue.reduce((a, x) => a + x.t.min, 0))} h. Clear them in Sunday&apos;s catch-up block.</span>}
+          </div>
+        )}
+        {todayIdx < 0 && viewIdx === 0 && (
+          <div className="border-t border-border px-4 py-2.5 text-[13px] text-muted-foreground">
+            Your plan starts {fmtDate(parseISO(state.start))}, in {-todayIdx} day{todayIdx === -1 ? '' : 's'}. Import the calendar reminders and sleep by 22:00.
+          </div>
+        )}
+        <div className="border-t border-border">
           {overdue.length > 0 && (
-            <div ref={missedRef} className="scroll-mt-4">
-              <Band id="missed-earlier" title="Missed earlier" count={overdue.length} open={missedOpen} onOpenChange={setMissedOpen}>
-                {overdue.slice(0, 50).map(({ t, day }) => <TaskRow key={t.id} t={t} dayIdx={day.i} extra={`day ${day.no}`} status="missed" />)}
-                {overdue.length > 50 && <div className="border-t border-border py-2 pr-4 pl-11 text-[12px] text-faint">{overdue.length - 50} more not shown</div>}
-              </Band>
-            </div>
+            <Band id="missed-earlier" title="Missed earlier" count={overdue.length} open={missedOpen} onOpenChange={setMissedOpen}>
+              {overdue.slice(0, 50).map(({ t, day }) => <TaskRow key={t.id} t={t} dayIdx={day.i} extra={`day ${day.no}`} status="missed" />)}
+              {overdue.length > 50 && <div className="border-t border-border py-2 pr-4 pl-11 text-[12px] text-faint">{overdue.length - 50} more not shown</div>}
+            </Band>
           )}
           {BANDS.map(([key, label]) => {
             const blocks = d.blocks.filter(b => bandOf(b.s) === key);
@@ -112,8 +107,8 @@ export function TodayView() {
               </Band>
             );
           })}
-        </Surface>
-      </div>
+        </div>
+      </Surface>
     </div>
   );
 }
