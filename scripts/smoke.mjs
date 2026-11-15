@@ -1686,6 +1686,41 @@ try {
       await ctx.close();
     }
   }
+  // ---------- v2: day count per mode, and search finds patterns and owner labels ----------
+  for (const [mode, modes, want] of [['Grind', GRIND, /Day 1 of 91\b/], ['Steady', {}, /Day 1 of 119\b/]]) {
+    const at = new Date(2026, 10, 2, 10, 0); // Mon 2 Nov = Day 1
+    const fx = { ...fixture, modes, start: isoDay(new Date(2026, 10, 2)), done: {}, notes: {}, updatedAt: +at, labels: { 'lb-quokka': { id: 'lb-quokka', name: 'Quokka review', color: '#2563eb', kind: 'label' } } };
+    const ctx = await browser.newContext({ viewport: { width: 1100, height: 800 } });
+    await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
+    const page = await ctx.newPage();
+    await page.clock.install({ time: at });
+    const errors = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+    page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+    await page.goto(URL, { waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+    await page.waitForTimeout(500);
+    const W = `v2 ${mode}`;
+    const line = await page.locator('[data-shell="status"]').first().innerText().catch(() => '');
+    if (want.test(line)) ok(`${W}: status reads "${line}"`); else fail(`${W}: status reads "${line}"`);
+    if (mode === 'Grind') {
+      const dlg = page.locator('[data-search-dialog]'), input = page.locator('[data-search-input]');
+      await page.keyboard.press('ControlOrMeta+k'); await page.waitForTimeout(300);
+      await input.fill('sliding'); await page.waitForTimeout(250);
+      const firstGroup = await dlg.locator('[data-search-group]').first().getAttribute('data-search-group');
+      if (firstGroup === 'Patterns' && await dlg.locator('[data-search-hit="pattern"]').count()) ok(`${W}: "sliding" lists the pattern first`); else fail(`${W}: "sliding" first group is ${firstGroup}`);
+      await page.keyboard.press('Enter'); await page.waitForTimeout(500);
+      if ((await page.evaluate(() => location.hash)) === '#dsa') ok(`${W}: pattern hit opens the DSA page`); else fail(`${W}: pattern hit did not open the DSA page`);
+      await page.keyboard.press('ControlOrMeta+k'); await page.waitForTimeout(300);
+      await input.fill('quokka'); await page.waitForTimeout(250);
+      if (await dlg.locator('[data-search-hit="label"]').count()) ok(`${W}: owner label is searchable`); else fail(`${W}: owner label not found`);
+      await page.keyboard.press('Enter'); await page.waitForTimeout(500);
+      const stored = await page.evaluate(() => localStorage.getItem('offer90.todayFilter') || '');
+      if (/lb-quokka/.test(stored) && (await page.evaluate(() => location.hash)) === '') ok(`${W}: label hit filters Today`); else fail(`${W}: label hit did not filter Today (${stored})`);
+    }
+    checkErrors(errors, W);
+    await ctx.close();
+  }
 } catch (e) {
   fail(`crashed: ${e.stack || e}`);
 } finally {

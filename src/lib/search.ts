@@ -7,11 +7,13 @@ export type Hit =
   | { kind: 'note'; key: string; noteKind: 'page' | 'task'; title: string; meta: string }
   | { kind: 'post'; url: string; title: string; meta: string }
   | { kind: 'read'; id: string; url: string; title: string; meta: string }
+  | { kind: 'pattern'; id: string; title: string; meta: string }
+  | { kind: 'label'; id: string; title: string; meta: string }
   | { kind: 'day'; dayIdx: number; title: string; meta: string };
 
-export interface SearchIndex { tasks: Hit[]; notes: Hit[]; posts: Hit[]; reads: Hit[]; dayCount: number; dayIdxOfNo: Record<number, number> }
+export interface SearchIndex { tasks: Hit[]; notes: Hit[]; posts: Hit[]; reads: Hit[]; patterns: Hit[]; labels: Hit[]; dayCount: number; dayIdxOfNo: Record<number, number> }
 
-export type SearchGroup = 'Tasks' | 'Notes' | 'Interviews' | 'Reads' | 'Go to';
+export type SearchGroup = 'Tasks' | 'Notes' | 'Interviews' | 'Reads' | 'Patterns' | 'Labels' | 'Go to';
 
 export interface SearchInput {
   /** Plan days; `track` is the task's track name (omitted when it has none). */
@@ -20,6 +22,9 @@ export interface SearchInput {
   tnotes: Record<string, { title: string; body: string; upd?: number }>;
   posts: { company: string; title: string; url: string }[];
   reads: { id: string; title: string; url: string; source: string; category?: string }[];
+  /** DSA patterns (open the DSA page) and owner labels (apply the label filter in Today). */
+  patterns?: { id: string; name: string }[];
+  labels?: { id: string; name: string; color?: string }[];
   /** Clock for the "Page · 3 h ago" meta (default Date.now()). */
   now?: number;
 }
@@ -60,7 +65,9 @@ export function buildIndex(input: SearchInput): SearchIndex {
   }
   const posts = input.posts.map((p, i) => put({ kind: 'post', url: p.url, title: p.title.trim(), meta: `#${p.company} · ${domain(p.url)}` }, '', i));
   const reads = input.reads.map((r, i) => put({ kind: 'read', id: r.id, url: r.url, title: r.title.trim(), meta: `${r.source} · ${domain(r.url)}` }, r.category ?? '', i));
-  const ix: SearchIndex = { tasks, notes, posts, reads, dayCount: input.days.length, dayIdxOfNo };
+  const patterns = (input.patterns ?? []).map((p, i) => put({ kind: 'pattern', id: p.id, title: p.name, meta: 'DSA pattern' }, p.id.replace(/-/g, ' '), i));
+  const labels = (input.labels ?? []).map((l, i) => put({ kind: 'label', id: l.id, title: l.name, meta: 'Label · filter Today' }, '', i));
+  const ix: SearchIndex = { tasks, notes, posts, reads, patterns, labels, dayCount: input.days.length, dayIdxOfNo };
   // Date labels for "Go to Day N" (e.g. "Sat 14 Nov").
   const dates: Record<number, string> = {};
   for (const d of input.days) if (d.date) dates[d.i] = `${DOW[d.date.getDay()]} ${d.date.getDate()} ${MON[d.date.getMonth()]}`;
@@ -90,7 +97,7 @@ export function search(ix: SearchIndex, q: string, limitPerGroup = 6): { group: 
     const i = ix.dayIdxOfNo[no];
     if (i !== undefined && i < ix.dayCount) out.push({ group: 'Go to', hits: [{ kind: 'day', dayIdx: i, title: `Go to Day ${no}`, meta: DATES.get(ix)?.[i] ?? '' }] });
   }
-  const groups: [SearchGroup, Hit[]][] = [['Tasks', ix.tasks], ['Notes', ix.notes], ['Interviews', ix.posts], ['Reads', ix.reads]];
+  const groups: [SearchGroup, Hit[]][] = [['Patterns', ix.patterns], ['Labels', ix.labels], ['Tasks', ix.tasks], ['Notes', ix.notes], ['Interviews', ix.posts], ['Reads', ix.reads]];
   for (const [group, list] of groups) {
     const hits = rank(list, words, limitPerGroup);
     if (hits.length) out.push({ group, hits });

@@ -20,6 +20,16 @@ type Counts = Record<'all' | TaskStatus, number>;
 type Dim = 'tracks' | 'blocks' | 'labels' | 'diff';
 
 const KEY = 'offer90.todayFilter';
+const EVENT = 'offer90:today-filter';
+
+/** Make Today show only tasks with this label (replaces the label filter, keeps the other filters). */
+export function applyLabelFilter(id: string) {
+  try {
+    const cur = parseFilter(JSON.parse(localStorage.getItem(KEY) || 'null'));
+    localStorage.setItem(KEY, JSON.stringify({ ...cur, filter: { ...cur.filter, labels: [id] } }));
+  } catch { /* storage blocked: the filter just is not applied */ }
+  window.dispatchEvent(new Event(EVENT));
+}
 export const GROUP_LABEL: Record<GroupBy, string> = { time: 'Time of day', status: 'Status', track: 'Track' };
 const DIMS: { k: Dim; label: string }[] = [{ k: 'tracks', label: 'Track' }, { k: 'blocks', label: 'Block' }, { k: 'labels', label: 'Label' }, { k: 'diff', label: 'Difficulty' }];
 const DIFF_LABEL = { E: 'Easy', M: 'Medium', H: 'Hard' } as const;
@@ -32,6 +42,12 @@ export function useTodayFilter(): [TodayFilterValue, (v: TodayFilterValue) => vo
   const [v, setV] = useState<TodayFilterValue>(() => {
     try { return parseFilter(JSON.parse(localStorage.getItem(KEY) || 'null')); } catch { return { filter: { ...EMPTY_FILTER }, groupBy: 'time' }; }
   });
+  // Search can set the label filter from outside (applyLabelFilter below); re-read what it stored.
+  useEffect(() => {
+    const on = () => { try { setV(parseFilter(JSON.parse(localStorage.getItem(KEY) || 'null'))); } catch { /* ignore */ } };
+    window.addEventListener(EVENT, on);
+    return () => window.removeEventListener(EVENT, on);
+  }, []);
   useEffect(() => { try { localStorage.setItem(KEY, JSON.stringify(v)); } catch { /* storage blocked: keep in memory */ } }, [v]);
   const live = useMemo(() => pruneLabels(v, state.labels), [v, state.labels]);
   return [live, setV];
