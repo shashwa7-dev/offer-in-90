@@ -1,6 +1,6 @@
 // Run: node --experimental-strip-types scripts/test-dsa-page.ts
 import assert from 'node:assert/strict';
-import { readinessDot, solveKeyOf, solveOnStatus, patchSolve, planDayOf, planDayMap, resolveDayMap, todayPattern, DOT_LABEL } from '../src/lib/dsa-page.ts';
+import { readinessDot, solveKeyOf, isTimedSolve, solveOnStatus, patchSolve, planDayOf, planDayMap, resolveDayMap, todayPattern, DOT_LABEL } from '../src/lib/dsa-page.ts';
 import * as dsaPage from '../src/lib/dsa-page.ts';
 
 // readiness dot: none / unseen check passed / green
@@ -18,6 +18,12 @@ assert.equal(solveKeyOf('dsa:google-2'), null);
 assert.equal(solveKeyOf('dsa:timed-meta-1'), null);
 assert.equal(solveKeyOf('dsa:card-dp'), null);
 assert.equal(solveKeyOf('fe:closures'), null);
+// a Steady pattern revisit rv:<slug>:<date> logs the problem itself
+assert.equal(solveKeyOf('rv:two-sum:2026-12-05'), 'p-two-sum');
+assert.equal(solveKeyOf('rv::2026-12-05'), null);
+// timed solves (Phase 3 set items and pattern revisits): the 45-min footer and the Progress solved count
+for (const id of ['dsa:google-1:3sum', 'dsa:meta-2:3sum', 'dsa:revisit-1:3sum', 'dsa:timed-meta-1:3sum', 'rv:3sum:2026-12-05']) assert.ok(isTimedSolve(id), id);
+for (const id of ['p-3sum', 'rs:3sum:7', 'dsa:card-dp', 'fe:closures']) assert.ok(!isTimedSolve(id), id);
 
 const U = new Set(['longest-consecutive-sequence']);
 const T = 1_000;
@@ -47,6 +53,10 @@ assert.equal(solveOnStatus(rs, 'rs:two-sum:7', 'todo', T, U, { 'rs:two-sum:7': 5
 s = solveOnStatus({}, 'dsa:timed-meta-1:3sum', 'done', T, U);
 assert.deepEqual(s, { 'p-3sum': { unseen: false, at: T, via: 'dsa:timed-meta-1:3sum' } });
 assert.deepEqual(solveOnStatus(s, 'dsa:timed-meta-1:3sum', 'todo', T, U), {});
+// a revisit tick creates p-<slug> with via; un-ticking it removes it
+s = solveOnStatus({}, 'rv:3sum:2026-12-05', 'done', T, U);
+assert.deepEqual(s, { 'p-3sum': { unseen: false, at: T, via: 'rv:3sum:2026-12-05' } });
+assert.deepEqual(solveOnStatus(s, 'rv:3sum:2026-12-05', 'todo', T, U), {});
 // a log made by someone else (the problem's own tick, or another timed task) survives
 const have = { 'p-3sum': { unseen: true, minutes: 20, at: 7 } };
 assert.equal(solveOnStatus(have, 'dsa:timed-meta-1:3sum', 'done', T, U), have);

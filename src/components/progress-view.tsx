@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useStore } from '@/lib/store';
-import { PHASE3_SET } from '@/lib/dsa-page';
+import { isTimedSolve } from '@/lib/dsa-page';
 import { goodStreak, isSkipped, rate } from '@/lib/task-status';
 import { P, catName, dayStats, fmtDate, hrs, overall, parseISO, study } from '@/lib/engine';
 import { forecast } from '@/lib/forecast';
@@ -18,8 +18,8 @@ export function ProgressView() {
   const [range, setRange] = useState<ChartRange>('month');
   const done = state.done, o = overall(days, done, ti, state.status);
   // The must-solve problems in the daily plan (the optional pool stays out of it).
-  // A ticked Phase 3 timed-set item (dsa:google-n:<slug>, meta, revisit) counts as a solve of p-<slug>.
-  const timedSolved = new Set(days.flatMap(d => d.tasks.filter(t => t.slug && PHASE3_SET.test(t.id) && done[t.id]).map(t => t.slug!)));
+  // A ticked Phase 3 timed-set item (dsa:google-n:<slug>, meta, revisit) or pattern revisit (rv:<slug>:<date>) counts as a solve of p-<slug>.
+  const timedSolved = new Set(days.flatMap(d => d.tasks.filter(t => t.slug && isTimedSolve(t.id) && done[t.id]).map(t => t.slug!)));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const must = P.PROBLEMS.filter((p: any) => p.tier === 'must'), solved = must.filter((p: { slug: string }) => done['p-' + p.slug] || timedSolved.has(p.slug)).length;
   const daysDone = Math.max(0, Math.min(days.length, ti));
