@@ -7,6 +7,7 @@ import { TodayView } from '@/components/today-view';
 import { ProgressView } from '@/components/progress-view';
 import { RoadmapView } from '@/components/roadmap-view';
 import { NotesView } from '@/components/notes-view';
+import { DsaView } from '@/components/dsa-view';
 import { NewsView } from '@/components/updates-view';
 import { SetupView } from '@/components/setup-view';
 import { NoteSheet } from '@/components/note-sheet';
@@ -18,7 +19,7 @@ import { Toaster } from '@/components/ui/sonner';
 import { AppSidebar } from '@/components/shell/app-sidebar';
 import { BottomBar } from '@/components/shell/bottom-bar';
 
-const VIEWS: View[] = ['today', 'progress', 'roadmap', 'notes', 'news', 'setup'];
+const VIEWS: View[] = ['today', 'progress', 'roadmap', 'notes', 'dsa', 'news', 'setup'];
 
 /** True when a key press should go to a text field rather than a page shortcut. */
 const typing = (el: EventTarget | null) => {
@@ -92,6 +93,7 @@ function App() {
             {view === 'progress' && <ProgressView />}
             {view === 'roadmap' && <RoadmapView />}
             {view === 'notes' && <NotesView />}
+            {view === 'dsa' && <DsaView />}
             {view === 'news' && <NewsView />}
             {view === 'setup' && <SetupView />}
           </div>

@@ -1,5 +1,5 @@
 'use client';
-/* Phone tab bar: Today, Progress, Notes, More (sheet with Roadmap, News, Setup). Hidden from md up. */
+/* Phone tab bar: Today, Progress, Notes, More (sheet with Roadmap, DSA, News, Setup). Hidden from md up. */
 import { useState } from 'react';
 import { MoreHorizontal, Search, type LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -10,7 +10,7 @@ import { NAV, SETUP_NAV, newsUnread, syncLine } from './app-sidebar';
 
 const pick = (v: View) => [...NAV, SETUP_NAV].find(n => n.v === v)!;
 const MAIN = (['today', 'progress', 'notes'] as View[]).map(pick);
-const MORE = (['roadmap', 'news', 'setup'] as View[]).map(pick);
+const MORE = (['roadmap', 'dsa', 'news', 'setup'] as View[]).map(pick);
 
 export function BottomBar() {
   const { view, go, openSearch } = useUI();

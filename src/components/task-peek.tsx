@@ -1,7 +1,7 @@
 'use client';
 /* Plane-style side peek for one task: status, title, properties, note. Only the user's own tasks can be edited or deleted. */
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, CalendarDays, Clock, Flag, Gauge, Link2, Maximize2, Minimize2, MoreHorizontal, Newspaper, Tag, Trash2, User, X } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Play, Clock, Flag, Gauge, Link2, Maximize2, Minimize2, MoreHorizontal, Newspaper, Tag, Trash2, User, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import { defaultBlock } from '@/lib/own-tasks';
@@ -18,6 +18,8 @@ import { deleteOwn } from './own-task';
 import { BlockPick, DayPick, dayLabel } from './task-pickers';
 import { newsTabFor, useUI } from './ui-state';
 import { LabelChip, LabelPicker, taskLabelViews } from './label-picker';
+import { SolveFields } from './solve-fields';
+import { ROUND_SCRIPT, namePrompt, solveKeyOf } from '@/lib/dsa-page';
 
 export type PeekTarget = { taskId: string; dayIdx: number };
 const DIFF = { E: 'Easy', M: 'Medium', H: 'Hard' } as const;
@@ -75,7 +77,11 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
   // Recognition drill: patterns stay hidden until the owner has named them.
   const [reveal, setReveal] = useState(false);
   useEffect(() => { setReveal(false); }, [t.id]);
-  const title = t.text.replace(/^Re-solve without looking: /, '');
+  // An unseen check stays anonymous until Start (spec §2).
+  const hidden = !!t.hiddenUntilStart && st === 'todo';
+  const solveKey = solveKeyOf(t.id);
+  const isProblem = !!solveKey?.startsWith('p-') && !!t.slug;
+  const title = hidden ? 'Unseen problem' : t.text.replace(/^Re-solve without looking: /, '');
   const [name, setName] = useState(t.text);
   const [link, setLink] = useState(t.url || '');
   useEffect(() => { setName(t.text); }, [t.text]);
@@ -140,7 +146,7 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
                   aria-label="Task title" className={cn('-mx-1 min-w-0 flex-1 rounded-[5px] border border-transparent bg-transparent px-1 text-[18px] leading-7 font-semibold text-foreground outline-none hover:border-input focus-visible:border-ring', dim && 'text-muted-foreground')} />
               </SheetTitle>
             ) : (
-              <SheetTitle className={cn('min-w-0 flex-1 text-[18px] leading-7 font-semibold break-words', dim && 'text-muted-foreground')}>{t.text}</SheetTitle>
+              <SheetTitle className={cn('min-w-0 flex-1 text-[18px] leading-7 font-semibold break-words', dim && 'text-muted-foreground')}>{hidden ? namePrompt : t.text}</SheetTitle>
             )}
           </div>
           <SheetDescription className="sr-only">Task details and note</SheetDescription>
@@ -152,7 +158,7 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
           <div className="flex flex-col">
             {prop(<CalendarDays />, 'Day', own ? <DayPick value={own.date} onChange={moveTo} className="border-transparent text-[13px]" /> : readonly(`${dayLabel(d)} · ${fmtDate(d.date)}`))}
             {prop(<Clock />, 'Block', own ? <BlockPick day={d} value={b.k} onChange={k => edit(c => ({ ...c, block: k }))} className="border-transparent text-[13px]" /> : readonly(<><span className="tabular-nums">{b.s}</span> {b.title}</>))}
-            {prop(<Link2 />, 'Link', own ? (
+            {!hidden && prop(<Link2 />, 'Link', own ? (
               <input value={link} onChange={e => setLink(e.target.value)} onBlur={saveLink} onKeyDown={enterBlur} placeholder="Paste a link" aria-label="Link" className={fieldInput} />
             ) : t.url ? (
               <a href={t.url} target="_blank" rel="noopener noreferrer" className="flex min-w-0 items-center gap-1 rounded-[5px] px-2 py-1 text-foreground hover:bg-hover visited:text-muted-foreground">
@@ -166,8 +172,8 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
                 </a>
               </div>
             )}
-            {t.diff && prop(<Gauge />, 'Difficulty', <Chip className="ml-2">{DIFF[t.diff]}</Chip>)}
-            {t.slug && prop(<Flag />, 'Flag', (
+            {!hidden && t.diff && prop(<Gauge />, 'Difficulty', <Chip className="ml-2">{DIFF[t.diff]}</Chip>)}
+            {!hidden && t.slug && prop(<Flag />, 'Flag', (
               <button type="button" onClick={flag} aria-pressed={flagged} title="Flag to re-solve on Sunday"
                 className={cn('inline-flex h-7 items-center gap-1.5 rounded-[5px] px-2 text-[13px] outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring/40', flagged ? 'text-foreground' : 'text-muted-foreground')}>
                 <Flag className={cn('size-3.5', flagged && 'fill-current')} />{flagged ? 'Flagged to re-solve' : 'Not flagged'}
@@ -181,6 +187,20 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
             ))}
             {own && prop(<User />, 'Added', readonly(`Added by You · ${new Date(own.at).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`))}
           </div>
+
+          {hidden && (
+            <button type="button" data-start onClick={() => setStatus('progress')} className="inline-flex h-8 w-fit items-center gap-1.5 rounded-[6px] border border-input px-3 text-[13px] font-medium outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring/40"><Play className="size-3.5" />Start</button>
+          )}
+
+          {isProblem && !hidden && solveKey && (
+            <div className="flex flex-col gap-3 border-t border-border pt-4" data-solve>
+              <SolveFields solveKey={solveKey} enabled={done} />
+              <div data-round-script>
+                <h3 className="mb-1.5 text-[13px] font-medium text-foreground">Round script</h3>
+                <ol className="list-decimal pl-5 text-[13px] text-muted-foreground">{ROUND_SCRIPT.map(x => <li key={x}>{x}</li>)}</ol>
+              </div>
+            </div>
+          )}
 
           {t.drill && t.drill.length > 0 && (
             <div className="border-t border-border pt-4" data-drill>
@@ -205,7 +225,7 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
 
           <div className="border-t border-border pt-4">
             <h3 className="mb-2 text-[13px] font-medium text-foreground">Note</h3>
-            <NoteEditor key={noteKey(t)} target={{ kind: 'task', key: noteKey(t), title, url: t.url }} compact />
+            <NoteEditor key={noteKey(t)} target={{ kind: 'task', key: noteKey(t), title: t.text.replace(/^Re-solve without looking: /, ''), url: t.url }} compact />
           </div>
         </div>
       </div>

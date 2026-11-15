@@ -55,7 +55,7 @@ try {
     const sidebar = page.locator('[data-slot="sidebar"]:visible').first();
     if (await sidebar.count() && await sidebar.isVisible()) ok('1100: sidebar visible'); else fail('1100: sidebar not visible');
     if (await page.locator('[data-shell="bottom-bar"]').isVisible().catch(() => false)) fail('1100: bottom bar visible on desktop'); else ok('1100: bottom bar hidden');
-    for (const v of ['today', 'progress', 'roadmap', 'notes', 'news', 'setup']) {
+    for (const v of ['today', 'progress', 'roadmap', 'notes', 'dsa', 'news', 'setup']) {
       const item = page.locator(`[data-slot="sidebar"] [data-nav="${v}"]`).first();
       if (!(await item.count())) { fail(`1100: no sidebar nav item for ${v}`); continue; }
       await item.click();
@@ -98,7 +98,7 @@ try {
       await inSheet.click();
       return true;
     };
-    for (const v of ['today', 'progress', 'notes', 'roadmap', 'news', 'setup']) {
+    for (const v of ['today', 'progress', 'notes', 'roadmap', 'dsa', 'news', 'setup']) {
       if (!(await go(v))) { fail(`390: cannot reach ${v}`); continue; }
       await page.waitForTimeout(400);
       const sw = await page.evaluate(() => document.documentElement.scrollWidth);
@@ -1540,6 +1540,56 @@ try {
     await page.locator('[data-slot="sidebar"] [data-nav="today"]').first().click();
     await page.waitForTimeout(400);
     if (await page.locator('[data-label-chip]', { hasText: 'Smoke weak' }).count() === 0 && await page.locator('[data-filter-chip="labels"]').count() === 0) ok(`${W}: chip and filter are gone after delete`); else fail(`${W}: chip or filter still shown after delete`);
+    checkErrors(errors, W);
+    await ctx.close();
+  }
+  // ---------- DSA page: patterns, unseen logging, own problems ----------
+  {
+    const W = 'dsa';
+    const { ctx, page, errors } = await open(1100, 900);
+    await page.locator('[data-slot="sidebar"] [data-nav="dsa"]').first().click();
+    await page.waitForTimeout(400);
+    const n = await page.locator('[data-pattern]').count();
+    if (n === 24) ok(`${W}: 24 patterns listed`); else fail(`${W}: ${n} patterns listed`);
+    if (await page.locator('[data-pattern="hash-map"]').getAttribute('data-dot') === 'none') ok(`${W}: dot starts at ○`); else fail(`${W}: dot did not start at none`);
+    // optional problems show here as Pool; the unseen check keeps its name back
+    if (await page.locator('[data-problem="contains-duplicate"] [data-plan-day]').textContent() === 'Pool') ok(`${W}: optional problem is Pool`); else fail(`${W}: optional problem not Pool`);
+    if (await page.locator('[data-problem="longest-consecutive-sequence"] [data-unseen-hidden]').count()) ok(`${W}: unseen check is anonymous before Start`); else fail(`${W}: unseen check shows its name`);
+    // add a problem that is already in the plan
+    await page.locator('[data-add-problem]').click();
+    await page.getByLabel('LeetCode URL').fill('https://leetcode.com/problems/two-sum/');
+    await page.getByRole('button', { name: 'Add', exact: true }).click();
+    await page.waitForTimeout(200);
+    if (await page.locator('[data-in-plan]').count()) ok(`${W}: plan URL gives the in-plan prompt`); else fail(`${W}: no in-plan prompt`);
+    await page.getByRole('button', { name: 'Label the plan problem instead' }).click();
+    await page.waitForTimeout(300);
+    if (await page.locator('[data-problem="two-sum"]').count() && !(await page.locator('[data-add-dialog]').count())) ok(`${W}: "Label the plan problem instead" lands on the plan row`); else fail(`${W}: label-instead did not land on the row`);
+    let st = await page.evaluate(() => JSON.parse(localStorage.getItem('offer90.v1') || '{}'));
+    if (!st.own['two-sum']) ok(`${W}: a plan problem is not stored as own`); else fail(`${W}: plan problem stored as own`);
+    // add an own problem
+    await page.locator('[data-add-problem]').click();
+    await page.getByLabel('LeetCode URL').fill('https://leetcode.com/problems/smoke-own-problem/');
+    await page.getByLabel('Name').fill('Smoke own problem');
+    await page.getByLabel('Difficulty').selectOption('H');
+    await page.getByRole('button', { name: 'Add', exact: true }).click();
+    await page.waitForTimeout(300);
+    const own = page.locator('[data-problem="smoke-own-problem"]');
+    if (await own.count() && (await own.locator('[data-plan-day]').textContent()) === 'Pool') ok(`${W}: own problem joins the pattern pool`); else fail(`${W}: own problem missing`);
+    st = await page.evaluate(() => JSON.parse(localStorage.getItem('offer90.v1') || '{}'));
+    if (st.own['smoke-own-problem']?.diff === 'H' && st.own['smoke-own-problem']?.pattern === 'hash-map') ok(`${W}: own problem saved with pattern and difficulty`); else fail(`${W}: own problem not saved right`);
+    // tick the unseen check with 20 minutes: the dot turns ◐
+    const row = page.locator('[data-problem="longest-consecutive-sequence"]');
+    await row.locator('[data-status-icon]').click();
+    await page.waitForTimeout(300);
+    await row.locator('[data-solve-minutes]').fill('20');
+    await row.locator('[data-solve-minutes]').blur();
+    await page.waitForTimeout(300);
+    const dot = await page.locator('[data-pattern="hash-map"]').getAttribute('data-dot');
+    if (dot === 'check') ok(`${W}: unseen check in time turns the dot to ◐`); else fail(`${W}: dot is ${dot} after the unseen check`);
+    st = await page.evaluate(() => JSON.parse(localStorage.getItem('offer90.v1') || '{}'));
+    const lg = st.solves['p-longest-consecutive-sequence'];
+    if (lg && lg.unseen === true && lg.minutes === 20 && typeof lg.at === 'number') ok(`${W}: solve log {unseen, minutes, at} written`); else fail(`${W}: solve log is ${JSON.stringify(lg)}`);
+    await page.screenshot({ path: join(shots, 'dsa-1100.png') });
     checkErrors(errors, W);
     await ctx.close();
   }

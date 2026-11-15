@@ -1,6 +1,6 @@
 'use client';
 /* Desktop sidebar: mark + status line, page nav with the News unread count, New task, Cycles, Setup and the sync line. */
-import { CalendarCheck2, ChartLine, Map as MapIcon, Newspaper, NotebookPen, Plus, Search, Settings, type LucideIcon } from 'lucide-react';
+import { Binary, CalendarCheck2, ChartLine, Map as MapIcon, Newspaper, NotebookPen, Plus, Search, Settings, type LucideIcon } from 'lucide-react';
 import { cn, modKey } from '@/lib/utils';
 import { BASE, useStore, type State } from '@/lib/store';
 import { overall, totalDays, type Day, type NewsFeed } from '@/lib/engine';
@@ -21,6 +21,7 @@ export const NAV: { v: View; label: string; icon: LucideIcon }[] = [
   { v: 'progress', label: 'Progress', icon: ChartLine },
   { v: 'roadmap', label: 'Roadmap', icon: MapIcon },
   { v: 'notes', label: 'Notes', icon: NotebookPen },
+  { v: 'dsa', label: 'DSA', icon: Binary },
   { v: 'news', label: 'News', icon: Newspaper },
 ];
 export const SETUP_NAV = { v: 'setup' as View, label: 'Setup', icon: Settings };
