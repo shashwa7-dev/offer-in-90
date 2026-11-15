@@ -17,7 +17,7 @@ Written 2026-11-15 at the end of the Release 1 build session. Supersedes `HANDOF
 
 ## What happens next (in order)
 
-1. **Finish the parked Task 15 cleanup.** It's in `git stash list` as
+1. **DONE 2026-11-15 (8f090a5; tests, tsc pass; smoke 601 ok, 0 fail).** ~~Finish the parked Task 15 cleanup.~~ It's in `git stash list` as
    "WIP Task 15 fix round 2 …". The three fixes it was doing (all from the last review):
    - a saved routine slot can silently become wake-relative again when it coincidentally equals the
      shifted default (`setup-view.tsx` `routineDiff`) — always store touched/previously-saved rows absolute;
@@ -25,7 +25,7 @@ Written 2026-11-15 at the end of the Release 1 build session. Supersedes `HANDOF
      routine — show the resolved times;
    - README "Daily routine": editable wake-up, bedtime moves.
    Either `git stash pop` and finish/verify it, or drop it and redo the three fixes. It was unfinished.
-2. **Roadmap v3 content redesign** (approved by the owner 2026-11-15):
+2. **Spec revision 2 written (f57adb1): all must-fixes and should-fixes applied, every track 78 slots. Waiting on the owner's OK of the plain-words summary, then the short re-review.** Roadmap v3 content redesign (approved by the owner 2026-11-15):
    `docs/superpowers/specs/2026-11-15-roadmap-v3-ai-systems-design.md`.
    - **The independent spec review is done:** `docs/superpowers/specs/2026-11-15-roadmap-v3-spec-review.md`
      (verdict: not ready yet; 13 must-fix items, all spec-text changes; three tracks overflow 78 slots).
