@@ -541,6 +541,40 @@ Added 2026-11-15 with the owner's agreement. Not in the spec; this task text is 
 - [ ] **Step 3: Commit** `chore: search patterns and labels, smoke for v2, readme`.
 - [ ] **Step 4:** Push `roadmap-v2` and open a PR to `main` titled "Roadmap v2 · Release 1". The body summarises the release, links the spec and this plan, and ends with the attribution line. Ask the owner before merging, because merging deploys to Pages.
 
+### Task 14: DSA page clarity and pattern coverage
+
+Added 2026-11-15 with the owner's agreement ("just do it"). Where this task differs from spec §2 (24 patterns), this task text is the authority.
+
+**Files:**
+- Modify: `src/lib/content/dsa.js`, `src/lib/patterns.ts` (PatternId), `src/lib/tracks.ts` (dsa track), `src/components/dsa-view.tsx`, `src/components/task-row.tsx` (flag icons), and any component rendering 🔥/⭐/○◐● emoji.
+- Create: a pure filter helper (e.g. `src/lib/dsa-filter.ts`).
+- Tests: `scripts/test-patterns.ts`, `scripts/test-tracks.ts`, `scripts/test-content.ts`, a new `scripts/test-dsa-filter.ts`, `scripts/smoke.mjs`.
+
+**Coverage (27 patterns):**
+- Add 3 patterns, each with the full card (signal, template, why, complexity, traps, notWhen, one free link, verified with curl):
+  - `matrix` "Matrix and simulation" (topic "Arrays and strings"), placed after `graph-traversal` in teaching order;
+  - `design-ds` "Design a data structure" (topic "Design"), placed after `trie`;
+  - `math` "Math and number tricks" (topic "Math"), placed before `bits`.
+- Refile: `spiral-matrix`, `rotate-image`, `set-matrix-zeroes` → `matrix`; `lru-cache`, `min-stack`, `design-twitter` → `design-ds`; `powx-n`, `multiply-strings` → `math` (`happy-number` stays under `fast-slow`).
+- Add problems: `game-of-life` (matrix), `insert-delete-getrandom-o1` (design-ds), `sqrtx` (math), `sort-colors` (two-pointers, sub `dutch-flag`); KMP `find-the-index-of-the-first-occurrence-in-a-string` as optional (pattern `two-pointers` or a `strings` sub-tag).
+- Sub-tags (`sub`): `binary-search` gains `on-answer` (e.g. koko-eating-bananas); `top-k` gains `quickselect`; `graph-traversal` gains `multi-source-bfs`; `stack-monotonic` gains `monotonic-queue`.
+- Each new pattern has 3 must-solves: exactly one `teach`, one `var`, one `unseen`. Total must-solve stays ≤ 100: demote about 7 overlapping must-solves (never 🔥/⭐ ones, never a pattern's teach/unseen) to optional. No problem is deleted.
+- **Topics (13):** Arrays and strings, Stack, Binary search, Linked list, Trees, Tries, Heap, Backtracking, Graphs, Intervals, Greedy, Dynamic programming, Bit manipulation — plus "Design" and "Math" for the two new patterns (15 headings in all). Merge "Arrays and hashing", "Arrays" into "Arrays and strings"; "Advanced graphs" into "Graphs".
+
+**Schedule (no added load):** the dsa track stays 78 slots. The 3 new patterns take their slots from the Phase 3 timed sets (16 → about 12); patterns may now end by slot ≤ 57. Foundations, ADV_DSA and INTERVIEW_ENV placement are unchanged. Every other track is unchanged.
+
+**DSA page:**
+- Left panel: "All problems" at the top; each topic is a heading row (lucide `Layers` icon, bold small-caps, "N patterns" count); patterns are indented rows under it (lucide `Puzzle` icon, normal weight, readiness icon). No "Group by" switch.
+- Click a pattern → that pattern's card, notes and problems only. Click a topic → all its problems, grouped by pattern with sub-headings. "All problems" → everything, grouped by topic then pattern. Default on open: the pattern the plan is on today (else the first pattern).
+- Filter bar: Status (To do / Done), Difficulty (E/M/H), Tier (Must / Optional / Yours), Hot, Labels, and name search; each option shows a count; one "Clear". Hidden unseen problems never match the name search and stay anonymous. Remember the last filters per viewer (localStorage, wrapped in try/catch).
+- Each problem row shows its plan day and re-solve days, e.g. "Day 12 ✓ · re-solves Day 15, 19, 33" (or "Pool").
+- **Icons, not emoji, everywhere:** readiness = lucide `Circle` / `CircleDashed`-style half / `CircleCheck` (pick the closest available lucide icons for none / ◐ / green); hot = `Flame`; hard-hot = `Star`; each with an aria-label. Replace the emoji in task rows, the DSA table and the pattern list.
+
+- [ ] **Step 1:** Update tests first (27 patterns in order, refiles, new problems, must-solve ≤ 100 with per-pattern teach/var/unseen rules, sub-tags, topic list, dsa track 78 slots with patterns ending ≤ 57, filter helper). Run: FAIL.
+- [ ] **Step 2:** Implement data, tracks, filter helper, page and icons.
+- [ ] **Step 3:** `npm test && npm run build`, dev server + smoke (Chromium `--mute-audio`). Expected: PASS.
+- [ ] **Step 4:** Commit `feat(dsa): 27 patterns, topic/pattern navigation, filters, icons`.
+
 ---
 
 ## After Release 1
