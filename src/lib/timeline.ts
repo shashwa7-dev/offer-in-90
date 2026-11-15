@@ -87,6 +87,21 @@ export function stageBars(days: TimelineDay[], done: Record<string, number>, sta
   return bars.filter((b): b is StageBar => b !== null);
 }
 
+type SummaryTask = { id: string; cat: string; text: string; own?: string; pattern?: string; superseded?: boolean };
+export interface SummaryDay { week: number; type: string; blocks: { k: string; tasks: SummaryTask[] }[] }
+
+/** Roadmap › Weeks: the main topics of week `w`. DSA patterns from the DSA block; Frontend and AI topics by category
+ * (cat fe, cat ai; generated recall and news left out), one per content row (its Understand task, not `:do` / `:explain`).
+ * `patternName` and `short` come from engine.ts (patternNameOf, shortText): this module has no runtime imports. */
+export function weekSummary(days: SummaryDay[], w: number, patternName: (id: string) => string, short: (text: string) => string): string[] {
+  const ds = days.filter((x) => x.week === w && x.type === 'study'); if (!ds.length) return ['Kickoff'];
+  const tasks = ds.flatMap((x) => x.blocks.map((b) => ({ k: b.k, ts: b.tasks.filter((t) => !t.own && !t.superseded) })));
+  const pats = [...new Set(tasks.filter((b) => b.k === 'dsa').flatMap((b) => b.ts.flatMap((t) => (t.pattern ? [patternName(t.pattern)] : []))))];
+  const topics = (cat: string) => tasks.flatMap((b) => b.ts).filter((t) => of(t, cat) && !/:(do|explain)$/.test(t.id)).map((t) => short(t.text));
+  const fe = topics('fe'), ai = topics('ai');
+  return [pats.length ? `DSA: ${pats.join(', ')}` : 'DSA: foundations, timed sets + OA', fe.length ? `Frontend: ${fe.slice(0, 2).join(', ')}…` : 'Frontend: revision', ai.length ? `AI: ${ai.slice(0, 2).join('; ')}…` : 'AI: explain-it-back revision'];
+}
+
 export type Band = 'morning' | 'afternoon' | 'evening';
 
 export function bandOf(start: string): Band {

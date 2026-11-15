@@ -1,6 +1,6 @@
 // Run: node --experimental-strip-types scripts/test-timeline.ts
 import assert from 'node:assert/strict';
-import { bandOf, stageBars, STAGES, TRACKS } from '../src/lib/timeline.ts';
+import { bandOf, stageBars, STAGES, TRACKS, weekSummary } from '../src/lib/timeline.ts';
 import type { TimelineDay } from '../src/lib/timeline.ts';
 
 // bandOf
@@ -71,5 +71,26 @@ assert.equal(bars.filter((b) => b.track === 'ai').reduce((n, b) => n + b.total, 
 const order = bars.map((b) => STAGES.findIndex((s) => s.label === b.label));
 assert.deepEqual(order, [...order].sort((a, b) => a - b));
 assert.ok(all > 0);
+
+// Roadmap › Weeks summary: by category, not block key (block fe holds AI core, cat ai; block ai holds Frontend, cat fe)
+{
+  const t = (id: string, cat: string, text: string, extra = {}) => ({ id, cat, text, ...extra });
+  const wk = [
+    { week: 2, type: 'study', blocks: [
+      { k: 'dsa', tasks: [t('p-two-sum', 'dsa', 'Two Sum', { pattern: 'hash-map' }), t('rv:3sum:2026-12-05', 'dsa', 'Pattern revisit', { pattern: 'two-pointers' })] },
+      { k: 'aib', tasks: [t('d:2026-11-23:recall-ai', 'ai', 'AI recall (30 min): explain'), t('d:2026-11-23:news', 'ai', "Skim today's News")] },
+      { k: 'fe', tasks: [t('ai:rag', 'ai', 'RAG basics: retrieve then generate'), t('ai:rag:do', 'ai', 'Build a tiny RAG'), t('ai:rag:explain', 'ai', 'Explain RAG')] },
+      { k: 'ai', tasks: [t('fe:rendering-path', 'fe', 'The rendering path: parse, style'), t('fe:rendering-path:explain', 'fe', 'Explain the path'), t('own-1', 'fe', 'Mine', { own: 'own-1' })] },
+      { k: 'sd', tasks: [t('sd:ai-chat', 'ai', 'AI design · A chat assistant (RAG)')] },
+    ] },
+    { week: 2, type: 'study', blocks: [{ k: 'ai', tasks: [t('fe:react', 'fe', 'React internals, fiber'), t('fe:old', 'fe', 'Moved', { superseded: true })] }] },
+  ];
+  const name = (p: string) => p.toUpperCase();
+  const short = (x: string) => x.replace(/^[A-Za-z &]+ · /, '').split(/[:,(.]/)[0].trim();
+  assert.deepEqual(weekSummary(wk, 2, name, short), ['DSA: HASH-MAP, TWO-POINTERS', 'Frontend: The rendering path, React internals…', 'AI: RAG basics; A chat assistant…']);
+  assert.deepEqual(weekSummary(wk, 3, name, short), ['Kickoff']);
+  const bare = [{ week: 4, type: 'study', blocks: [{ k: 'fe', tasks: [t('d:x:recall-ai', 'ai', 'AI recall')] }] }];
+  assert.deepEqual(weekSummary(bare, 4, name, short), ['DSA: foundations, timed sets + OA', 'Frontend: revision', 'AI: explain-it-back revision']);
+}
 
 console.log('timeline ok');

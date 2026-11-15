@@ -3,8 +3,9 @@
 import { Fragment, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
-import { patternNameOf, phaseSpans, shortText, type Day } from '@/lib/engine';
+import { patternNameOf, phaseSpans, shortText } from '@/lib/engine';
 import { EMPTY_FILTER, matches } from '@/lib/task-filter';
+import { weekSummary } from '@/lib/timeline';
 import { cycleOf } from '@/lib/cycle';
 import { dateRange } from '@/lib/cycle-input';
 import { Band, Chip, Ring, Row } from './shell/page';
@@ -17,16 +18,6 @@ const PHASE_TEXT: Record<number, string> = {
   2: 'DSA patterns 12–26. AI: RAG, evals, agents, fine-tuning, inference and serving. Systems: HLD designs alternating with DDIA, case studies and building blocks. Platform: SQL, Postgres, Docker, Kubernetes, Terraform, CI/CD, AWS. Product: Ask your workspace with evals, agent actions, take-home 1, observability, integrations. Frontend: 12 frontend system designs. Career: FDE stages, decomposition reps, teardowns, applications from week 8. Saturdays: AI-enabled coding drills, OA rounds, peer mocks.',
   3: 'Interview mode. DSA: the last pattern, then Amazon OA simulations, Google plain-doc sets, Meta speed sets, hard-pattern revisits. AI: production AI, the AI designs, teach-backs and timed mocks. Systems: timed HLD mocks and second passes. Product: take-home 2, launch to real users, iterate, case study and demo. Frontend: machine-coding rehearsal reps. Career: the FDE take-home, negotiation, 4 full mock loops.',
 };
-
-/** Main topics of a week: DSA patterns, frontend lessons, AI reads (from the week's track blocks). */
-export function weekSummary(days: Day[], w: number): string[] {
-  const ds = days.filter(x => x.week === w && x.type === 'study'); if (!ds.length) return ['Kickoff'];
-  const inBlock = (k: string) => ds.flatMap(x => x.blocks.filter(b => b.k === k).flatMap(b => b.tasks.filter(t => !t.own && !t.superseded)));
-  const pats = [...new Set(inBlock('dsa').flatMap(t => (t.pattern ? [patternNameOf(t.pattern)] : [])))];
-  const fe = inBlock('fe').filter(t => t.id.startsWith('fe:') && !/^fe:(revise|bfe)-/.test(t.id)).map(t => shortText(t.text));
-  const ai = inBlock('ai').filter(t => t.id.startsWith('ai:') && !t.id.startsWith('ai:review-') && !t.id.startsWith('ai:revisit-')).map(t => shortText(t.text));
-  return [pats.length ? `DSA: ${pats.join(', ')}` : 'DSA: foundations, timed sets + OA', fe.length ? `Frontend: ${fe.slice(0, 2).join(', ')}…` : 'Frontend: revision', ai.length ? `AI: ${ai.slice(0, 2).join('; ')}…` : 'AI: explain-it-back revision'];
-}
 
 export function RoadmapWeeks() {
   const { state, days, todayIdx } = useStore();
@@ -68,7 +59,7 @@ export function RoadmapWeeks() {
                 const cyc = cycleOf(input, w, state.done, state.status, state.meta, todayIdx, Date.now());
                 const n = cyc?.byStatus.done ?? 0, total = cyc?.total ?? 0, share = cyc?.pct ?? 0;
                 const now = today?.week === w;
-                const [head, ...rest] = weekSummary(days, w);
+                const [head, ...rest] = weekSummary(days, w, patternNameOf, shortText);
                 const first = ds.find(d => d.type !== 'kick') ?? ds[0];
                 const open = now || !!expanded[w];
                 const tracks = open ? cyc?.tracks ?? [] : null;
