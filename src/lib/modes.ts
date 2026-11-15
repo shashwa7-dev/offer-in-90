@@ -15,12 +15,13 @@ const zeroCursors = (): Record<TrackId, number> => Object.fromEntries(TRACK_IDS.
 export function modeOn(modes: Modes, isoDate: string): ModeEntry & { since: string } {
   const since = Object.keys(modes).filter((d) => d <= isoDate).sort().at(-1);
   if (since === undefined) return { mode: 'steady', cursors: zeroCursors(), since: '' };
-  return { mode: modes[since].mode, cursors: { ...zeroCursors(), ...modes[since].cursors }, since };
+  return { ...modes[since], cursors: { ...zeroCursors(), ...modes[since].cursors }, since };
 }
 
-/** A new history with `today`'s entry written (a second switch the same day overwrites the first). */
-export function switchMode(modes: Modes, today: string, mode: Mode, cursorsNow: Record<TrackId, number>): Modes {
-  return { ...modes, [today]: { mode, cursors: { ...zeroCursors(), ...cursorsNow } } };
+/** A new history with `today`'s entry written (a second switch the same day overwrites the first). `basis` is the
+ * plan start `cursorsNow` was taken against (Ruling R11). */
+export function switchMode(modes: Modes, today: string, mode: Mode, cursorsNow: Record<TrackId, number>, basis: string): Modes {
+  return { ...modes, [today]: { mode, cursors: { ...zeroCursors(), ...cursorsNow }, basis } };
 }
 
 /** Grind week → Steady week (§14): round(w × 17/13). */

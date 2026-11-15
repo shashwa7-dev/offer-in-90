@@ -17,6 +17,10 @@ export type SlotItem = {
   sundayCarry?: boolean;
   /** A generated filler (revision tail or "Revisit" slot), not a content item. */
   filler?: true;
+  /** The content item that must be on an earlier calendar day (it may sit in another track). */
+  after?: string;
+  /** Set by the layout (Ruling R12) on a past copy of a slot that was laid out again after a mode switch. */
+  superseded?: true;
 };
 export type Slot = { items: SlotItem[] };
 
@@ -33,12 +37,14 @@ const weekOf = (i: number) => Math.floor(i / 6) + 1;
 const at = (week: number, dow: number) => (week - 1) * 6 + (dow - 1);
 const MWF = [1, 3, 5];
 
-/** Content item → slot item: the shared fields only (content `part`, `day`, `after` etc. stay behind). */
+/** Content item → slot item: the shared fields only (content `part`, `day` etc. stay behind; `after` is kept so the
+ * calendar layout can hold a slot back until its prerequisite is on an earlier day). */
 function item(x: Row, cat: Cat, extra: Partial<SlotItem> = {}): SlotItem {
   const it: SlotItem = { id: x.id, text: x.text, cat };
   if (x.url) it.url = x.url;
   if (x.depth) it.depth = true;
   if (typeof x.mins === 'number') it.mins = x.mins;
+  if (typeof x.after === 'string') it.after = x.after;
   return Object.assign(it, extra);
 }
 const filler = (id: string, text: string, cat: Cat, url?: string): SlotItem => ({ id, text, cat, ...(url ? { url } : {}), filler: true });
