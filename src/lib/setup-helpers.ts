@@ -35,11 +35,29 @@ export const parseRoutineForm = (form: RoutineForm): FullRoutine => ({
   wake: { s: form.wake },
 });
 
-/** What gets stored: only the entries that differ from `defaults`, so a field put back to its default is removed. */
-export function routineDiff(full: FullRoutine, defaults: FullRoutine): RoutineMap {
-  const out: Record<string, unknown> = {};
-  for (const k of Object.keys(defaults) as (keyof FullRoutine)[]) if (JSON.stringify(full[k]) !== JSON.stringify(defaults[k])) out[k] = full[k];
-  return out as RoutineMap;
+const SLOT_KEYS: RoutineKey[] = ['breakfast', 'lunch', 'extra', 'dinner'];
+
+/** What gets stored: wake-up if it is not `defaultWake`, and every touched slot (saved before, or edited in the form)
+ * as absolute times. Untouched slots are never written, so they stay relative to wake-up; a touched slot stays
+ * absolute even when it happens to equal its wake-relative default (only Reset makes slots relative again). */
+export function routineToStore(full: FullRoutine, touched: readonly RoutineKey[], defaultWake: string): RoutineMap {
+  const out: RoutineMap = {};
+  for (const k of SLOT_KEYS) if (touched.includes(k)) out[k] = full[k];
+  if (full.wake.s !== defaultWake) out.wake = full.wake;
+  return out;
+}
+
+type TBlock = { s: string; e: string; k: string; kind: string };
+/** Wake-up, gym start (if on), bedtime and study hours of a placed study day, for the Setup timetable. */
+export function timetableSummary(blocks: readonly TBlock[]): { wake: string; gym?: string; sleep: string; studyH: number } {
+  const m = (hm: string) => Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3));
+  const gym = blocks.find((b) => b.k === 'workout')?.s;
+  return {
+    wake: blocks.find((b) => b.k === 'wake')?.s ?? blocks[0].s,
+    ...(gym ? { gym } : {}),
+    sleep: blocks.find((b) => b.k === 'wind')?.e ?? blocks[blocks.length - 1].e,
+    studyH: blocks.filter((b) => b.kind === 'study').reduce((n, b) => n + m(b.e) - m(b.s), 0) / 60,
+  };
 }
 
 /** The line shown when the day needs a later bedtime than the usual one. */

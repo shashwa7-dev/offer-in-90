@@ -24,6 +24,8 @@ const BANDS = [['morning', 'Morning'], ['afternoon', 'Afternoon'], ['evening', '
 
 export function TodayView() {
   const { state, days, todayIdx, update, updates, v2Notice, dismissV2Notice } = useStore();
+  // Bedtime on the owner's study days (wake-up and routine placed, moved bedtime included).
+  const sleepBy = days.find(d => d.type === 'study')?.blocks.find(b => b.k === 'wind')?.e ?? '22:00';
   const { viewIdx, setViewIdx, go, newTask, setRoadmapTab, setOpenChanges, openSearch } = useUI();
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [missedOpen, setMissedOpen] = useState(false);
@@ -144,7 +146,7 @@ export function TodayView() {
         )}
         {todayIdx < 0 && viewIdx === 0 && (
           <div className="border-t border-border px-4 py-2.5 text-[13px] text-muted-foreground">
-            Your plan starts {fmtDate(parseISO(state.start))}, in {-todayIdx} day{todayIdx === -1 ? '' : 's'}. Import the calendar reminders and sleep by 22:00.
+            Your plan starts {fmtDate(parseISO(state.start))}, in {-todayIdx} day{todayIdx === -1 ? '' : 's'}. Import the calendar reminders and sleep by {sleepBy}.
           </div>
         )}
         <TodayFilters value={fv} onChange={setFv} counts={counts} blocks={blockOpts} />

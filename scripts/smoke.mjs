@@ -1039,6 +1039,13 @@ try {
     if (await lunchMin.inputValue() === '75') ok(`${W}: reset clears unsaved edits`); else fail(`${W}: reset kept unsaved edit`);
     if (!Object.keys((await saved()).routine || {}).length) ok(`${W}: routine reset clears the map`); else fail(`${W}: routine reset left entries`);
     if (await page.getByLabel('Wake up time').inputValue() === '05:00') ok(`${W}: reset restores wake-up`); else fail(`${W}: reset kept wake-up`);
+    // a saved slot stays absolute even when it equals its wake-relative default at a new wake-up
+    await page.getByLabel('Lunch start').fill('12:45'); await saveRoutine();
+    await page.getByLabel('Wake up time').fill('06:00'); await saveRoutine();
+    // (wake 05:30: a relative lunch would move to 12:15; a later wake with lunch held at 12:45 runs past 23:59)
+    await page.getByLabel('Wake up time').fill('05:30'); await saveRoutine();
+    { const r = (await saved()).routine || {}; if (r.lunch?.s === '12:45' && r.wake?.s === '05:30' && await page.getByLabel('Lunch start').inputValue() === '12:45' && await page.getByLabel('Breakfast start').inputValue() === '07:45') ok(`${W}: a saved slot stays absolute across wake-up changes`); else fail(`${W}: saved slot went relative (${JSON.stringify(r)})`); }
+    await page.getByRole('button', { name: 'Reset to defaults' }).click(); await page.waitForTimeout(300);
     await page.getByLabel('Wake up time').fill('06:00');
     if (await page.getByLabel('Lunch start').inputValue() === '12:45') ok(`${W}: after reset, slots are wake-relative again`); else fail(`${W}: after reset lunch not relative`);
     await page.getByRole('button', { name: 'Reset to defaults' }).click(); await page.waitForTimeout(300);
@@ -1065,7 +1072,8 @@ try {
     await page.getByRole('button', { name: 'View timetable' }).click();
     await page.waitForTimeout(400);
     const sheet = page.getByRole('dialog', { name: 'Daily timetable' });
-    if (await sheet.isVisible().catch(() => false) && await sheet.getByText('Mon–Sat').count() && await sheet.getByText('Sunday').count() && await sheet.getByText('05:15–06:45').count()) ok(`${W}: timetable sheet shows both tables`); else fail(`${W}: timetable sheet missing`);
+    if (await sheet.isVisible().catch(() => false) && await sheet.getByText('Mon–Sat', { exact: true }).count() && await sheet.getByText('Sunday', { exact: true }).count() && await sheet.getByText('05:15–06:45').count()) ok(`${W}: timetable sheet shows both tables`); else fail(`${W}: timetable sheet missing`);
+    if (await sheet.getByText('Mon–Sat: wake 05:00, sleep 22:00. Gym at 18:00. About 10.75 h of study blocks.', { exact: false }).count()) ok(`${W}: timetable line uses the routine`); else fail(`${W}: timetable line wrong`);
     await page.screenshot({ path: join(shots, 'setup-1100-timetable.png') });
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
 

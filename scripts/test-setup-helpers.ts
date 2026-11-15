@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
-import { nextMonday, parseDraft, parseRoutineForm, toDraft, toRoutineForm, routineDiff, bedtimeMessage, normalizeState, isPreV2, startOver } from '../src/lib/setup-helpers.ts';
-import { DEFAULT_ROUTINE, resolveRoutine } from '../src/lib/routine.ts';
+import { nextMonday, parseDraft, parseRoutineForm, toDraft, toRoutineForm, routineToStore, timetableSummary, bedtimeMessage, normalizeState, isPreV2, startOver } from '../src/lib/setup-helpers.ts';
+import { DEFAULT_ROUTINE, resolveRoutine, placeDay } from '../src/lib/routine.ts';
+import { WEEKDAY_BLOCKS } from '../src/lib/schedule.js';
 
 // 2026-11-16 is a Monday
 assert.equal(nextMonday('2026-11-16'), '2026-11-16');
@@ -17,21 +18,41 @@ assert.deepEqual(form.breakfast, toDraft(DEFAULT_ROUTINE.breakfast));
 assert.equal(form.wake, '05:00'); assert.ok(!('bed' in form));
 assert.deepEqual(parseRoutineForm(form), DEFAULT_ROUTINE);
 assert.deepEqual(parseRoutineForm({ ...form, wake: '06:00' }).wake, { s: '06:00' });
-// only what differs from the defaults is stored (so Reset / reverting a field records the deletion)
-assert.deepEqual(routineDiff(DEFAULT_ROUTINE, DEFAULT_ROUTINE), {});
-assert.deepEqual(routineDiff({ ...DEFAULT_ROUTINE, wake: { s: '04:30' }, lunch: { ...DEFAULT_ROUTINE.lunch, min: 60 } }, DEFAULT_ROUTINE),
-  { wake: { s: '04:30' }, lunch: { ...DEFAULT_ROUTINE.lunch, min: 60 } });
-
-// R15: the form shows untouched slots at their wake-relative times; saving against that baseline stores none of them
+// what is stored: wake-up if not 05:00, and every touched (saved or edited) slot, always as absolute times
+assert.deepEqual(routineToStore(DEFAULT_ROUTINE, [], '05:00'), {});
+assert.deepEqual(routineToStore({ ...DEFAULT_ROUTINE, wake: { s: '04:30' }, lunch: { ...DEFAULT_ROUTINE.lunch, min: 60 } }, ['lunch'], '05:00'),
+  { lunch: { ...DEFAULT_ROUTINE.lunch, min: 60 }, wake: { s: '04:30' } });
+// R15: the form shows untouched slots at their wake-relative times; saving stores none of them
 {
   const shown = toRoutineForm(resolveRoutine({ wake: { s: '06:00' } }));
   assert.equal(shown.breakfast.s, '08:15');
-  const full = parseRoutineForm(shown);
-  const baseline = { ...resolveRoutine({ wake: full.wake }), wake: DEFAULT_ROUTINE.wake };
-  assert.deepEqual(routineDiff(full, baseline), { wake: { s: '06:00' } }, 'untouched slots are not written');
+  assert.deepEqual(routineToStore(parseRoutineForm(shown), [], '05:00'), { wake: { s: '06:00' } }, 'untouched slots are not written');
   const edited = parseRoutineForm({ ...shown, lunch: { ...shown.lunch, s: '11:45' } });
-  assert.deepEqual(routineDiff(edited, baseline), { wake: { s: '06:00' }, lunch: { ...DEFAULT_ROUTINE.lunch, s: '11:45' } });
+  assert.deepEqual(routineToStore(edited, ['lunch'], '05:00'), { lunch: { ...DEFAULT_ROUTINE.lunch, s: '11:45' }, wake: { s: '06:00' } });
 }
+// A saved slot never silently becomes relative: lunch saved at 12:45 (wake 05:00), then wake 06:00 saved, where 12:45
+// is lunch's wake-relative default. Lunch must stay stored, so wake 06:30 later leaves it at 12:45 (not 13:15).
+{
+  const stored0 = routineToStore(parseRoutineForm({ ...toRoutineForm(DEFAULT_ROUTINE), lunch: { ...toRoutineForm(DEFAULT_ROUTINE).lunch, s: '12:45' } }), ['lunch'], '05:00');
+  assert.deepEqual(stored0, { lunch: { ...DEFAULT_ROUTINE.lunch, s: '12:45' } });
+  const touched = (Object.keys(stored0) as (keyof typeof stored0)[]).filter((k) => k !== 'wake');
+  const form1 = { ...toRoutineForm(resolveRoutine(stored0)), wake: '06:00' };
+  const stored1 = routineToStore(parseRoutineForm(form1), touched as any, '05:00');
+  assert.deepEqual(stored1, { lunch: { ...DEFAULT_ROUTINE.lunch, s: '12:45' }, wake: { s: '06:00' } });
+  assert.equal(resolveRoutine({ ...stored1, wake: { s: '06:30' } }).lunch.s, '12:45');
+  assert.equal(resolveRoutine({ ...stored1, wake: { s: '06:30' } }).breakfast.s, '08:45', 'untouched breakfast still moves');
+}
+
+// the timetable summary comes from the placed study-day blocks
+assert.deepEqual(timetableSummary(WEEKDAY_BLOCKS), { wake: '05:00', gym: '18:00', sleep: '22:00', studyH: 10.75 });
+{
+  const p = placeDay(WEEKDAY_BLOCKS, { wake: { s: '06:00' } });
+  assert.ok(p.ok);
+  assert.deepEqual(timetableSummary((p as any).blocks), { wake: '06:00', gym: '19:00', sleep: '23:00', studyH: 10.75 });
+  const q = placeDay(WEEKDAY_BLOCKS, { extra: { on: false, title: 'Gym', s: '18:00', min: 60 } });
+  assert.equal(timetableSummary((q as any).blocks).gym, undefined);
+}
+
 assert.equal(bedtimeMessage('22:40'), 'Bedtime moves to 22:40 on study days to fit everything.');
 // normalize: a saved or fresh state always starts on a Monday (non-Monday starts snap to the next Monday)
 {

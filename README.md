@@ -44,6 +44,10 @@ The prep day (day 0) is the Sunday before `start`, and `start` is always a Monda
 
 Setup has a routine editor for the meal and gym slots: **breakfast, lunch, dinner** and a renamable **4th slot** (the gym by default). Each can be turned on or off, renamed, moved and resized; the day is laid out around them, Monday to Saturday.
 
+- **Wake-up is editable** (default 05:00). It shifts the whole study day, bedtime included (17 h after wake-up). Slots you have never changed move with it; a slot you save keeps its time. Reset to defaults makes every slot follow wake-up again.
+- **Bedtime moves instead of refusing.** If the study blocks no longer fit before wind-down, wind-down and bedtime move later, and Setup shows the new bedtime. Study blocks are never cut, shortened or dropped. A routine is refused only if it is invalid (overlapping slots, a slot before wake-up ends) or the day would run past 23:59.
+- Sundays and the prep day keep their own times.
+
 ## Labels
 
 Every task carries read-only **system labels** (pattern, tier, frequency, source, flagged, depth) and any **owner labels** you create in Setup. Owner labels can sit in single- or multi-choice groups; deleting a label removes it from every item. Filter Today by label, or press the search key and pick a label to apply it as the Today filter.

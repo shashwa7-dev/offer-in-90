@@ -16,7 +16,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cursorsNow, fmtDate, iso, parseISO, totalDays } from '@/lib/engine';
 import { DEFAULT_ROUTINE, ROUTINE_KEYS, placeDay, resolveRoutine, validateRoutine } from '@/lib/routine';
 import { modeOn, switchMode, type Mode } from '@/lib/modes';
-import { nextMonday, bedtimeMessage, startOver, parseRoutineForm, routineDiff, toRoutineForm, type RoutineDraft, type RoutineForm as RoutineFormState } from '@/lib/setup-helpers';
+import { nextMonday, bedtimeMessage, startOver, parseRoutineForm, routineToStore, timetableSummary, toRoutineForm, type RoutineDraft, type RoutineForm as RoutineFormState } from '@/lib/setup-helpers';
 import type { RoutineKey } from '@/lib/state-types';
 import { companyCounts, flattenThreads } from '@/lib/interview-feed';
 import { useUI } from './ui-state';
@@ -89,9 +89,9 @@ function RoutineForm() {
     const full = parseRoutineForm(shown);
     const v = validateRoutine(full);
     if (!v.ok) { setError(v.error); return; }
-    // Stored: wake-up if not 05:00, and each slot that differs from its wake-relative default. Untouched rows equal
-    // that default, so they are not written; dropped entries are removed so sync records the deletion.
-    const next = routineDiff(full, { ...resolveRoutine({ wake: full.wake }), wake: DEFAULT_ROUTINE.wake });
+    // Stored: wake-up if not 05:00, and every touched row (saved before or edited here) as absolute times. Untouched
+    // rows are not written, so they keep moving with wake-up; dropped entries are removed so sync records the deletion.
+    const next = routineToStore(full, [...touched], DEFAULT_ROUTINE.wake.s);
     // Bedtime may move to fit the day (shown below once saved); only invalid input or a day past 23:59 is refused.
     const p = placeDay(WEEKDAY_BLOCKS, next);
     if (!p.ok) { setError(p.error); return; }
@@ -155,9 +155,11 @@ export function SetupView() {
     update(s => ({ ...s, modes: switchMode(s.modes, today, m, cursorsNow(s, today), s.start) }));
     toast(`Switched to ${m === 'grind' ? 'Grind' : 'Steady'} from today. Done work stays done.`);
   };
-  const wake = WEEKDAY_BLOCKS.find(b => b.k === 'wake')?.s ?? WEEKDAY_BLOCKS[0].s;
-  const gym = WEEKDAY_BLOCKS.find(b => b.k === 'workout')?.s;
-  const sleep = WEEKDAY_BLOCKS[WEEKDAY_BLOCKS.length - 1].e;
+  // The owner's study day as placed (wake-up, slots, moved bedtime); the template if the routine cannot be placed.
+  const placedWeek = placeDay(WEEKDAY_BLOCKS, state.routine);
+  const week = placedWeek.ok ? placedWeek.blocks : WEEKDAY_BLOCKS;
+  const { wake, gym, sleep, studyH } = timetableSummary(week);
+  const gymTitle = week.find(b => b.k === 'workout')?.title ?? 'Gym';
   const syncLine = sync.state === 'syncing' ? 'Syncing…' : sync.state === 'error' ? 'Not synced' : `Synced${sync.at ? ` at ${new Date(sync.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}`;
 
   return (
@@ -322,9 +324,9 @@ export function SetupView() {
         <SheetContent className="flex w-full flex-col gap-0 overflow-y-auto bg-card p-0 sm:max-w-md">
           <SheetHeader className="px-4 pt-4 pb-3">
             <SheetTitle className="text-[15px]">Daily timetable</SheetTitle>
-            <SheetDescription className="text-[13px]">Sleep 22:00–05:00. Gym at 18:00, Mon–Sat. Mon–Sat has about 10.75 h of study blocks. Sunday is a 3.5 h morning, then rest.</SheetDescription>
+            <SheetDescription className="text-[13px] tabular-nums">Mon–Sat: wake {wake}, sleep {sleep}.{gym ? ` ${gymTitle} at ${gym}.` : ''} About {studyH} h of study blocks. Sunday is a 3.5 h morning, then rest.</SheetDescription>
           </SheetHeader>
-          <Timetable title="Mon–Sat" blocks={WEEKDAY_BLOCKS} />
+          <Timetable title="Mon–Sat" blocks={week} />
           <Timetable title="Sunday" blocks={SUNDAY_BLOCKS} />
         </SheetContent>
       </Sheet>
