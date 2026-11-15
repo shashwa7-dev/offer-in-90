@@ -99,59 +99,66 @@ function toSlots(track: string, slots: SlotItem[][]): Slot[] {
   return slots.map((items) => ({ items }));
 }
 
-// ---------- dsa (§2, §3, §18, Task 14): foundations, 27 patterns, ADV_DSA, Phase 3 timed sets ----------
+// ---------- dsa (v3 §1): 2 foundations, 27 patterns x 2 days, 22 Phase 3 slots ----------
 const AI_DRILL = 'AI-enabled coding drill (Meta-style, 60 min): read a small multi-file repo for 5 min, fix one bug without AI, add a feature using AI chat only (no autocomplete), then optimize for a 10× input. Narrate everything.';
 const AI_DRILL_URL = 'https://www.hellointerview.com/blog/meta-ai-enabled-coding';
-const PROBLEMS_PER_SLOT = 2;
-// Patterns may run to slot 57 (week 10 Thu); the 3 patterns added in Task 14 took their slots from the Phase 3 timed sets.
-const PATTERNS_END = 57;
 
-const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+/** The hardest patterns first (the same order the Steady revisit days use). */
+const HARD_PATTERNS = ['dp', 'graph-traversal', 'topo-sort', 'union-find', 'shortest-path-mst', 'backtracking', 'tree-dfs', 'tree-bfs', 'top-k', 'two-heaps', 'k-way-merge', 'intervals', 'sliding-window', 'binary-search'];
+/** Phase 3 (slots 57–78), in order. */
+const PHASE3 = ['oa-1', 'google-1', 'adv-1', 'meta-1', 'oa-2', 'revisit-1', 'google-2', 'oa-3', 'meta-2', 'adv-2', 'oa-4', 'google-3', 'revisit-2', 'oa-5', 'meta-3', 'oa-6', 'adv-3', 'google-4', 'oa-7', 'meta-4', 'revisit-3', 'oa-8'];
+
 const problemItem = (p: Row): SlotItem => ({
   id: `p-${p.slug}`, text: p.name, url: p.url, cat: 'dsa', pattern: p.pattern, tier: p.tier, flags: [...p.flags], slug: p.slug, diff: p.d,
   ...(p.role ? { role: p.role } : {}), ...(p.role === 'unseen' ? { hiddenUntilStart: true } : {}),
 });
 
 function dsaTrack(c: TrackContent): Slot[] {
-  const slots: SlotItem[][] = (c.FOUNDATIONS as Row[]).map((f) => [item(f, 'dsa')]);
-  // Patterns: the must-solve problems in pattern order, 2 per morning block. The pattern card rides on the pattern's
-  // first slot (before its first problem) and the explain-back on its last slot (after its last problem).
-  const pats: Row[] = c.PATTERNS;
-  const must: Row[] = pats.flatMap((pt) => c.PROBLEMS.filter((p: Row) => p.tier === 'must' && p.pattern === pt.id));
-  const pat = (id: string) => pats.find((p) => p.id === id);
-  for (let k = 0; k < must.length; k += PROBLEMS_PER_SLOT) {
-    const items: SlotItem[] = [];
-    must.slice(k, k + PROBLEMS_PER_SLOT).forEach((p, j) => {
-      const n = k + j, pt = pat(p.pattern);
-      if (must[n - 1]?.pattern !== p.pattern) items.push({ id: `dsa:card-${pt.id}`, cat: 'dsa', pattern: pt.id, ...(pt.link ? { url: pt.link } : {}),
-        text: `Pattern card · ${pt.name}: learn the signal, template, why it works, complexity and traps; add your own notes.` });
-      items.push(problemItem(p));
-      if (must[n + 1]?.pattern !== p.pattern) items.push({ id: `dsa:explain-back-${pt.id}`, cat: 'dsa', pattern: pt.id,
-        text: `${pt.name} · Explain-back: fill the card from memory, then compare` });
-    });
-    slots.push(items);
+  const slots: SlotItem[][] = [];
+  for (const f of c.FOUNDATIONS as Row[]) slots.push(...expandRow(f, 'dsa'));
+  // Patterns, 2 days each. Day A: the pattern card + the teach problem. Day B: the unseen problem + the explain-back.
+  const P: Row[] = c.PROBLEMS;
+  for (const pt of c.PATTERNS as Row[]) {
+    const teach = P.find((p) => p.pattern === pt.id && p.role === 'teach'), unseen = P.find((p) => p.pattern === pt.id && p.role === 'unseen');
+    if (!teach || !unseen) throw new Error(`dsa: pattern ${pt.id} needs a teach and an unseen problem`);
+    slots.push([{ id: `dsa:card-${pt.id}`, cat: 'dsa', pattern: pt.id, ...(pt.link ? { url: pt.link } : {}),
+      text: `Pattern card · ${pt.name}: learn the signal, template, why it works, complexity and traps; add your own notes.` }, problemItem(teach)]);
+    slots.push([problemItem(unseen), { id: `dsa:explain-back-${pt.id}`, cat: 'dsa', pattern: pt.id,
+      text: `${pt.name} · Explain-back: fill the card from memory, then compare` }]);
   }
-  mustFit('dsa (patterns by slot 57)', slots.length - (PATTERNS_END + 1), PATTERNS_END + 1);
-  // ADV_DSA at full length, one morning block each.
-  for (const [text, url] of c.ADV_DSA as [string, string][]) {
-    const adv = text.startsWith('Advanced DSA: ');
-    slots.push([{ id: `adv:${slugify(adv ? text.slice('Advanced DSA: '.length) : text.split(':')[0])}`, cat: 'dsa', url,
-      text: adv ? `${text} (learn it + solve 1 problem)` : text }]);
-  }
-  // Phase 3: timed sets rotating Meta speed / Google doc / Amazon OA / AI-enabled drill, from must-solve + hot problems
-  // (medium and hard), spread across patterns. The day's patterns are hidden: no pattern field, no pattern in the text.
-  const byPattern = pats.map((pt) => c.PROBLEMS.filter((p: Row) => p.pattern === pt.id && p.d !== 'E' && (p.tier === 'must' || p.flags.includes('hot'))));
-  const pool: Row[] = [];
-  for (let r = 0; byPattern.some((ps: Row[]) => ps[r]); r++) byPattern.forEach((ps: Row[]) => ps[r] && pool.push(ps[r]));
+  mustFit('dsa (patterns end at slot 56)', slots.length - 56, 56);
+  // Phase 3: patterns are hidden by design (no `pattern` field, no pattern name in the text).
+  // A problem whose title names a pattern would give the pattern away, so those stay out of Phase 3.
+  const patNames: string[] = (c.PATTERNS as Row[]).map((pt) => pt.name.toLowerCase());
+  const leaks = (p: Row) => patNames.some((n) => p.name.toLowerCase().includes(n));
+  const used = new Set<string>(P.filter((p) => p.tier === 'must').map((p) => p.slug));
+  // Revisits: var problems from the hardest patterns, one pattern each, 2 per revisit.
+  const vars = HARD_PATTERNS.map((id) => P.find((p) => p.pattern === id && p.role === 'var' && !p.flags.length && !leaks(p))).filter(Boolean).slice(0, 6) as Row[];
+  vars.forEach((p) => used.add(p.slug));
+  const revisit = queue(vars);
+  // Google / Meta sets: company-tagged problems (medium and hard) not placed yet, spread across the patterns. Only 16 such
+  // problems exist, so once they run out the sets take untagged medium and hard problems (var first), same spread.
+  const spread = (ok: (p: Row) => boolean) => {
+    const by = (c.PATTERNS as Row[]).map((pt) => P.filter((p) => p.pattern === pt.id && p.d !== 'E' && !used.has(p.slug) && !leaks(p) && ok(p)));
+    const out: Row[] = [];
+    for (let r = 0; by.some((ps: Row[]) => ps[r]); r++) by.forEach((ps: Row[]) => ps[r] && out.push(ps[r]));
+    return out;
+  };
+  const tagged = spread((p) => p.flags.length > 0);
+  const pool: Row[] = [...tagged, ...spread((p) => p.flags.length === 0 && p.role === 'var'), ...spread((p) => p.flags.length === 0 && p.role !== 'var')];
   const draw = queue(pool);
-  const set = (key: string, head: string): SlotItem[] => [{ id: `dsa:timed-${key}`, cat: 'dsa', text: head },
-    ...[0, 1, 2].map(() => { const p = draw.next(); return { id: `dsa:timed-${key}:${p.slug}`, text: p.name, url: p.url, cat: 'dsa' as Cat, slug: p.slug, diff: p.d }; })];
-  for (let r = 0; slots.length < SLOTS; r++) {
-    const kind = r % 4, n = Math.floor(r / 4) + 1;
-    if (kind === 0) slots.push(set(`meta-${n}`, 'Meta speed set: first 2 problems in 40 minutes, then the third. Talk out loud; name each pattern before you code.'));
-    else if (kind === 1) slots.push(set(`google-${n}`, 'Google set: 3 problems in 90 min, typed in a plain Google Doc (no autocomplete, no running code)'));
-    else if (kind === 2) slots.push([{ id: `dsa:oa-${n}`, cat: 'dsa', url: c.OA_LINKS[(n - 1) % c.OA_LINKS.length], text: 'Amazon OA simulation: 2 problems from this post in 70 minutes' }]);
-    else slots.push([{ id: `dsa:ai-drill-${n}`, cat: 'dsa', url: AI_DRILL_URL, text: AI_DRILL }]);
+  const set = (id: string, head: string, next: () => Row | undefined): SlotItem[] => [{ id: `dsa:${id}`, cat: 'dsa', text: head },
+    ...[0, 1].map(() => { const p = next(); if (!p) throw new Error(`BLOCKED: dsa ${id} has no problem left`); return { id: `dsa:${id}:${p.slug}`, text: p.name, url: p.url, cat: 'dsa' as Cat, slug: p.slug, diff: p.d }; })];
+  const adv = queue(c.ADV_DSA as Row[]);
+  const oa: string[] = c.OA_LINKS;
+  for (const key of PHASE3) {
+    const [kind, k] = key.split('-'), n = Number(k);
+    if (kind === 'oa') slots.push([{ id: `dsa:oa-${n}`, cat: 'dsa', url: oa[n - 1], mins: 60,
+      text: 'Amazon OA simulation (60 minutes): solve 2 problems from this post, timed. Then read the best solution to each and log your minutes.' }]);
+    else if (kind === 'google') slots.push(set(`google-${n}`, 'Google set (60 min): 2 problems typed in a plain Google Doc. No autocomplete, no running code. Check each by hand.', draw.next));
+    else if (kind === 'meta') slots.push(set(`meta-${n}`, 'Meta speed set (40 min): 2 problems, talking out loud. Then optimize each and explain the trade-off.', draw.next));
+    else if (kind === 'revisit') slots.push(set(`revisit-${n}`, 'Revisit (60 min): 2 problems you have met before, solved again from a blank file. Talk out loud.', revisit.next));
+    else slots.push(expandRow(adv.next(), 'dsa')[0]);
   }
   // Interview-environment practice rides along on the Monday of its week (weeks 10–13).
   for (const env of c.INTERVIEW_ENV as Row[]) slots[at(env.week, 1)].push(item(env, 'dsa'));

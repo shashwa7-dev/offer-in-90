@@ -54,7 +54,6 @@ const PRIMARY = (judgment.JT_DEPTH_READS as Any[]).slice(1); // [0] is the Strip
 const SKIP_FDE = new Set([...(judgment.DECOMP as Any[]).filter((x) => x.from).map((x) => x.from), 'fde:practical-coding-log', 'fde:reengineering-round']);
 const expected: string[] = [
   ...(dsa.PROBLEMS as Any[]).filter((p) => p.tier === 'must').map((p) => `p-${p.slug}`),
-  ...(dsa.FOUNDATIONS as Any[]),
   ...(fe.FE as Any[]), ...(fe.FE_DEPTH_READS as Any[]), ...(ux.UX as Any[]), ...(career.BEH as Any[]),
   ...(career.FDE as Any[]).filter((x) => !SKIP_FDE.has(x.id)), ...(career.TEARDOWNS as Any[]),
   ...(ai.AI_EVENING as Any[]), ...(ai.AI_REVIEW as Any[]),
@@ -68,64 +67,91 @@ const expected: string[] = [
 const seen = all.filter((x) => !x.filler).map((x) => (x.part ? `${x.id.replace(/:part-\d$/, '')}#${x.part[0]}` : x.id));
 for (const id of expected) assert.equal(seen.filter((s) => s === id).length, 1, `${id} appears exactly once`);
 for (const id of (mc.MC_TIMED as string[])) assert.equal(allIds.filter((x) => x === `${id}:timed`).length, 1, `${id} timed pass once`);
-assert.equal(all.filter((x) => x.id.startsWith('adv:')).length, 8, 'ADV_DSA x8');
-const known = new Set([...expected, ...(mc.MC_TIMED as string[]).map((id) => `${id}:timed`)]);
+assert.equal(all.filter((x) => /^adv:[a-z-]+$/.test(x.id)).length, 3, 'ADV_DSA x3');
+const known = new Set([...expected, ...(dsa.FOUNDATIONS as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`]), ...(dsa.ADV_DSA as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`]), ...(mc.MC_TIMED as string[]).map((id) => `${id}:timed`)]);
 const extras = all.filter((x) => !x.filler && !known.has(x.part ? `${x.id.replace(/:part-\d$/, '')}#${x.part[0]}` : x.id));
 // Non-content items the builder adds on purpose: pattern cards, explain-backs, foundations, ADV_DSA, Phase 3 sets, FE revision, SD mocks, jt Saturdays.
-for (const x of extras) assert.match(x.id, /^(dsa:(card|explain-back|timed|oa|ai-drill)-|adv:|fe:revise-|fe:bfe-|sdm:|jt:(ai-drill|mock|peer-mock|speed-pair|mock-loop)-)/, `unexpected item ${x.id}`);
+for (const x of extras) assert.match(x.id, /^(dsa:(card|explain-back|oa|google|meta|revisit)-|fe:revise-|fe:bfe-|sdm:|jt:(ai-drill|mock|peer-mock|speed-pair|mock-loop)-)/, `unexpected item ${x.id}`);
 // The SD_MOCKS rotation is used in order from its first item.
 const sdm = T.sd.flatMap((s: Any) => s.items).filter((x: Any) => x.id.startsWith('sdm:')).map((x: Any) => x.id);
 assert.deepEqual(sdm, (sd.SD_MOCKS as Any[]).slice(0, sdm.length).map((x) => x.id));
 
 // ---------- dsa ----------
+const HARD = ['dp', 'graph-traversal', 'topo-sort', 'union-find', 'shortest-path-mst', 'backtracking', 'tree-dfs', 'tree-bfs', 'top-k', 'two-heaps', 'k-way-merge', 'intervals', 'sliding-window', 'binary-search'];
 const PATS = (dsa.PATTERNS as Any[]).map((p) => p.id);
-assert.deepEqual(T.dsa.slice(0, 5).map((s: Any) => s.items.map((x: Any) => x.id)), (dsa.FOUNDATIONS as Any[]).map((x) => [x.id]), 'foundations from content in slots 0–4');
-assert.notEqual(T.dsa[0].items[0], (dsa.FOUNDATIONS as Any[])[0], 'slot items are copies');
+const FOUND = dsa.FOUNDATIONS as Any[];
+assert.equal(FOUND.length, 2);
+FOUND.forEach((f, i) => {
+  assert.deepEqual(ids('dsa', i), [f.id, `${f.id}:do`, `${f.id}:explain`], `slot ${i + 1} is the ${f.id} learning row`);
+  assert.match(T.dsa[i].items[2].text, /Deep enough when you can/);
+  assert.ok(T.dsa[i].items[0].url, `${f.id} keeps a url`);
+});
+assert.equal(ids('dsa', 0)[0], 'dsa:foundations-big-o');
+assert.equal(ids('dsa', 1)[0], 'dsa:foundations-recursion');
+assert.equal(T.dsa[1].items[0].url, 'https://javascript.info/recursion');
+assert.equal(T.dsa[0].items[0].url, 'https://www.bigocheatsheet.com/');
+assert.match(T.dsa[1].items.map((x: Any) => x.text).join(' '), /discrete math/i);
+for (const w of ['logic', 'sets', 'combinatorics', 'probability']) assert.match(T.dsa[1].items[0].text, new RegExp(w, 'i'), `recursion mentions ${w}`);
+assert.ok(!allIds.some((id) => id.includes('foundations-build')), 'no foundations-build');
+assert.notEqual(T.dsa[0].items[0], FOUND[0], 'slot items are copies');
 assert.notEqual(all.find((x) => x.flags)?.flags, (dsa.PROBLEMS as Any[]).find((p) => all.find((x) => x.flags)?.slug === p.slug).flags, 'flags copied');
-const lastPatternSlot = Math.max(...T.dsa.map((s: Any, i: number) => (s.items.some((x: Any) => x.id.startsWith('p-') || x.id.startsWith('dsa:card-')) ? i : -1)));
-assert.ok(lastPatternSlot <= 57, `patterns end by slot 57 (got ${lastPatternSlot})`);
-const dsaProblems = T.dsa.slice(0, lastPatternSlot + 1).flatMap((s: Any) => s.items).filter((x: Any) => x.id.startsWith('p-')).map((x: Any) => x.id);
-// must-solve problems in the pattern teaching order (not ROWS order)
-const mustInOrder = PATS.flatMap((id: string) => (dsa.PROBLEMS as Any[]).filter((p) => p.tier === 'must' && p.pattern === id)).map((p) => `p-${p.slug}`);
-assert.deepEqual(dsaProblems, mustInOrder, '27 patterns in order, must-solve only');
 assert.equal(PATS.length, 27);
-const perSlot = T.dsa.slice(5, lastPatternSlot + 1).map((s: Any) => s.items.filter((x: Any) => x.id.startsWith('p-')).length);
-assert.ok(perSlot.slice(0, -1).every((n: number) => n === 2) && [1, 2].includes(perSlot[perSlot.length - 1]), '2 problems per pattern block (the last may hold 1)');
-// the three new patterns sit where the teaching order puts them
-const firstSlot = (p: string) => T.dsa.findIndex((s: Any) => s.items.some((x: Any) => x.id === `dsa:card-${p}`));
-assert.ok(firstSlot('trie') < firstSlot('design-ds') && firstSlot('design-ds') <= firstSlot('top-k'), 'design-ds after trie');
-assert.ok(firstSlot('graph-traversal') < firstSlot('matrix') && firstSlot('matrix') <= firstSlot('topo-sort'), 'matrix after graph-traversal');
-assert.ok(firstSlot('dp') < firstSlot('math') && firstSlot('math') <= firstSlot('bits'), 'math before bits');
-for (const p of PATS) {
-  const slots = T.dsa.map((s: Any, i: number) => (s.items.some((x: Any) => x.id.startsWith('p-') && x.pattern === p) ? i : -1)).filter((i: number) => i >= 0);
-  assert.ok(has('dsa', slots[0], new RegExp(`^dsa:card-${p}$`)), `${p} card on first slot`);
-  assert.ok(has('dsa', slots[slots.length - 1], new RegExp(`^dsa:explain-back-${p}$`)), `${p} explain-back on last slot`);
-  const eb = T.dsa[slots[slots.length - 1]].items.find((x: Any) => x.id === `dsa:explain-back-${p}`);
-  assert.match(eb.text, /Explain-back: fill the card from memory, then compare/);
-  const items = T.dsa[slots[0]].items.map((x: Any) => x.id);
-  assert.ok(items.indexOf(`dsa:card-${p}`) < items.findIndex((id: string) => (dsa.PROBLEMS as Any[]).some((q) => `p-${q.slug}` === id && q.pattern === p)), `${p} card before its first problem`);
-}
+const P = dsa.PROBLEMS as Any[];
+const mustAll = P.filter((p) => p.tier === 'must');
+assert.equal(mustAll.length, 54, '54 must-solves');
+assert.ok(mustAll.every((p) => p.role === 'teach' || p.role === 'unseen'), 'every must is teach or unseen');
+const former = P.filter((p) => p.role === 'var');
+assert.equal(former.length, 45, '45 var problems');
+assert.ok(former.every((p) => p.tier === 'optional'), 'var problems are optional');
+// patterns: 2 days each
+PATS.forEach((id: string, k: number) => {
+  const teach = P.find((p) => p.pattern === id && p.role === 'teach'), unseen = P.find((p) => p.pattern === id && p.role === 'unseen');
+  assert.deepEqual(ids('dsa', 2 * k + 2).slice(0, 2), [`dsa:card-${id}`, `p-${teach.slug}`], `${id} day A`);
+  assert.deepEqual(ids('dsa', 2 * k + 3).slice(0, 2), [`p-${unseen.slug}`, `dsa:explain-back-${id}`], `${id} day B`);
+  assert.equal(T.dsa[2 * k + 3].items[0].hiddenUntilStart, true, `${id} unseen hidden`);
+  assert.match(T.dsa[2 * k + 3].items[1].text, /Explain-back: fill the card from memory, then compare/);
+});
 for (const x of all.filter((x) => x.role === 'unseen')) assert.equal(x.hiddenUntilStart, true, `${x.id} hiddenUntilStart`);
 assert.ok(all.filter((x) => x.hiddenUntilStart).every((x) => x.role === 'unseen'), 'only unseen checks hidden');
-// ADV_DSA follows the patterns, 8 slots; the Phase 3 timed sets fill the rest (the 3 new patterns took their slots).
-const ADV0 = lastPatternSlot + 1, P3 = ADV0 + 8;
-for (let i = ADV0; i < P3; i++) assert.ok(has('dsa', i, /^adv:/), `dsa[${i}] ADV_DSA`);
-assert.equal(T.dsa.flatMap((s: Any) => s.items).filter((x: Any) => x.id.startsWith('adv:')).length, 8, 'ADV_DSA 8 slots');
-assert.ok(SLOTS - P3 >= 12, `Phase 3 keeps at least 12 timed slots (got ${SLOTS - P3})`);
-const KINDS = ['meta', 'google', 'oa', 'ai-drill'];
-for (let i = P3; i < 78; i++) {
-  const k = KINDS[(i - P3) % 4], head = T.dsa[i].items[0];
-  if (k === 'meta') assert.match(head.text, /^Meta speed set/);
-  if (k === 'google') assert.match(head.text, /^Google set/);
-  if (k === 'oa') assert.match(head.text, /^Amazon OA simulation/);
-  if (k === 'ai-drill') assert.match(head.text, /^AI-enabled coding drill/);
-  for (const x of T.dsa[i].items.filter((x: Any) => x.slug)) {
-    const p = (dsa.PROBLEMS as Any[]).find((q) => q.slug === x.slug);
-    assert.ok(p.tier === 'must' || p.flags.includes('hot'), `${x.id} from must-solve + hot`);
-    assert.equal(x.pattern, undefined, `${x.id} pattern hidden`);
-    assert.ok(!x.text.includes(p.pattern), `${x.id} text hides the pattern`);
-  }
+// Phase 3: slots 57–78
+const ORDER = ['oa-1', 'google-1', 'adv-1', 'meta-1', 'oa-2', 'revisit-1', 'google-2', 'oa-3', 'meta-2', 'adv-2', 'oa-4', 'google-3', 'revisit-2', 'oa-5', 'meta-3', 'oa-6', 'adv-3', 'google-4', 'oa-7', 'meta-4', 'revisit-3', 'oa-8'];
+const ADV = (dsa.ADV_DSA as Any[]).map((x) => x.id);
+assert.deepEqual(ADV, ['adv:difference-array-line-sweep', 'adv:fenwick-segment-tree', 'adv:dp-on-trees-digit-dp']);
+ORDER.forEach((o, j) => {
+  const i = 56 + j, head = T.dsa[i].items[0], [kind, n] = o.split('-');
+  if (kind === 'adv') { assert.equal(head.id, ADV[+n - 1], `dsa[${i}] ${o}`); assert.deepEqual(ids('dsa', i).slice(0, 3), [head.id, `${head.id}:do`, `${head.id}:explain`]); return; }
+  assert.equal(head.id, `dsa:${o}`, `dsa[${i}] ${o}`);
+  const probs = T.dsa[i].items.filter((x: Any) => x.slug);
+  if (kind === 'oa') {
+    assert.equal(T.dsa[i].items.filter((x: Any) => !x.id.startsWith('env:')).length, 1);
+    assert.equal(head.url, (reference.OA_LINKS as string[])[+n - 1]);
+    assert.match(head.text, /60 minutes/);
+  } else if (kind === 'google') { assert.equal(probs.length, 2); assert.match(head.text, /60 min/); assert.match(head.text, /Google Doc/);
+  } else if (kind === 'meta') { assert.equal(probs.length, 2); assert.match(head.text, /40 min/);
+  } else { assert.equal(probs.length, 2, `${o} 2 problems`); for (const p of probs) { const q = P.find((r) => r.slug === p.slug); assert.equal(q.role, 'var'); assert.ok(HARD.includes(q.pattern), `${p.slug} from a hard pattern`); } }
+  for (const p of probs) { const q = P.find((r) => r.slug === p.slug); assert.ok(q, p.id); assert.equal(p.id, `${head.id}:${p.slug}`); if (kind !== 'revisit') assert.notEqual(q.d, 'E', `${p.slug} medium or hard`); }
+});
+// Google and Meta sets draw the 16 tagged problems first; untagged medium/hard problems fill what is left.
+const gm = T.dsa.slice(56).flatMap((s: Any) => s.items).filter((x: Any) => x.slug && /^dsa:(google|meta)-/.test(x.id)).map((x: Any) => P.find((q) => q.slug === x.slug).flags.length > 0);
+assert.equal(gm.length, 16);
+assert.deepEqual(gm, [...gm].sort((a, b) => Number(b) - Number(a)), 'tagged problems come before untagged ones');
+assert.ok(gm.filter(Boolean).length >= 10, 'most of the sets are tagged problems');
+const p3 = T.dsa.slice(56).flatMap((s: Any) => s.items);
+assert.equal(p3.filter((x: Any) => /^dsa:oa-\d$/.test(x.id)).length, 8);
+assert.equal(p3.filter((x: Any) => /^dsa:google-\d$/.test(x.id)).length, 4);
+assert.equal(p3.filter((x: Any) => /^dsa:meta-\d$/.test(x.id)).length, 4);
+assert.equal(p3.filter((x: Any) => /^dsa:revisit-\d$/.test(x.id)).length, 3);
+assert.equal(p3.filter((x: Any) => /^adv:[a-z-]+$/.test(x.id)).length, 3);
+assert.deepEqual(new Set(p3.filter((x: Any) => /^dsa:oa-\d$/.test(x.id)).map((x: Any) => x.url)), new Set((reference.OA_LINKS as string[]).slice(0, 8)));
+const patNames = (dsa.PATTERNS as Any[]).map((p) => p.name.toLowerCase());
+for (const x of p3.filter((x: Any) => !x.id.startsWith('env:'))) {
+  assert.equal(x.pattern, undefined, `${x.id} no pattern field`);
+  for (const n of patNames) assert.ok(!x.text.toLowerCase().includes(n), `${x.id} text hides "${n}"`);
 }
+const p3slugs = p3.filter((x: Any) => x.slug).map((x: Any) => x.slug);
+assert.equal(p3slugs.length, 22);
+assert.equal(new Set(p3slugs).size, 22, 'no problem twice in Phase 3');
+assert.ok(p3slugs.every((s: string) => !mustAll.some((p) => p.slug === s)), 'Phase 3 problems are not must-solves');
 for (const [n, env] of (judgment.INTERVIEW_ENV as Any[]).entries()) {
   const i = slotOf('dsa', env.id);
   assert.equal(Math.floor(i / 6) + 1, 10 + n, `${env.id} in week ${10 + n}`);

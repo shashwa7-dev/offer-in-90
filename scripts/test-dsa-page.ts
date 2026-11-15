@@ -13,6 +13,8 @@ assert.equal(readinessDot({ unseenSolved: 2, blankResolve: true, green: true, un
 assert.equal(solveKeyOf('p-two-sum'), 'p-two-sum');
 assert.equal(solveKeyOf('rs:two-sum:7'), 'rs:two-sum');
 assert.equal(solveKeyOf('dsa:timed-meta-1:3sum'), 'p-3sum');
+for (const k of ['google-2', 'meta-1', 'revisit-3']) assert.equal(solveKeyOf(`dsa:${k}:3sum`), 'p-3sum');
+assert.equal(solveKeyOf('dsa:google-2'), null);
 assert.equal(solveKeyOf('dsa:timed-meta-1'), null);
 assert.equal(solveKeyOf('dsa:card-dp'), null);
 assert.equal(solveKeyOf('fe:closures'), null);

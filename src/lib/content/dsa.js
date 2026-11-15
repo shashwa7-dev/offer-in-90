@@ -341,35 +341,45 @@ for (const [pattern, rows] of Object.entries(ROWS)) for (const [slug, d, role, x
   const flags = [];
   if (HOT.includes(slug)) flags.push('hot');
   if (HARD_HOT.includes(slug)) flags.push('hard-hot');
-  const p = { slug, name: prettify(slug), d, pattern, tier: role ? 'must' : 'optional', flags, url: x.nc ? NC(x.nc) : LC(slug) };
+  const p = { slug, name: prettify(slug), d, pattern, tier: role === 'teach' || role === 'unseen' ? 'must' : 'optional', flags, url: x.nc ? NC(x.nc) : LC(slug) };
   if (x.sub) p.sub = x.sub;
   if (role) p.role = role;
   if (x.nc || x.lcPremium) p.premium = true;
   PROBLEMS.push(p);
 }
 
-// Advanced DSA from the board. Moves to morning DSA slots once the 27 patterns are done (§2).
+// Advanced awareness (v3): 3 combined learning rows, ids as the roadmap names them. Know when it applies, solve 1.
+// The 8 v2 strings (DSU, difference array, line sweep, Fenwick, segment tree, DP on trees, digit DP, DP roadmap) are no longer exported.
 export const ADV_DSA = [
-  ['Advanced DSA: Union-Find / DSU', 'https://leetcode.com/discuss/post/1072418/disjoint-set-union-dsuunion-find-a-compl-2oqn/'],
-  ['Advanced DSA: Difference array', 'https://medium.com/@p.thapar99/the-beauty-of-difference-array-technique-in-problem-solving-6d45eb726531'],
-  ['Advanced DSA: Line sweep', 'https://leetcode.com/discuss/post/2166045/line-sweep-algorithms-by-c0d3m-8ebq/'],
-  ['Advanced DSA: Fenwick tree (BIT)', 'https://leetcode.com/discuss/post/1093346/introduction-to-fenwick-treebinary-index-tp6h/'],
-  ['Advanced DSA: Segment tree', 'https://www.youtube.com/watch?v=jGA1DonowlQ'],
-  ['Advanced DSA: DP on trees', 'https://www.youtube.com/watch?v=kM3A6AjHvjM'],
-  ['Advanced DSA: Digit DP', 'https://www.youtube.com/watch?v=KaU-AM8wo4Q'],
-  ['DP roadmap: map the DP patterns you know vs the ones you don\'t', 'https://www.reddit.com/r/leetcode/comments/14o10jd/the_ultimate_dynamic_programming_roadmap/'],
+  { id: 'adv:difference-array-line-sweep', covers: [],
+    understand: 'Advanced DSA: difference array and line sweep. Learn when each applies (many range updates; overlapping ranges and events), and the template for each.',
+    url: 'https://medium.com/@p.thapar99/the-beauty-of-difference-array-technique-in-problem-solving-6d45eb726531',
+    url2: 'https://leetcode.com/discuss/post/2166045/line-sweep-algorithms-by-c0d3m-8ebq/',
+    do: 'In TypeScript (AI assistant allowed), solve 1 problem with a difference array or a line sweep, then check it against a brute force on small inputs.',
+    explain: 'Out loud, 3 min: when a difference array beats re-adding on every update, and how a line sweep orders its events. Deep enough when you can say why the sweep sorts ends before starts on a tie, or the reverse.' },
+  { id: 'adv:fenwick-segment-tree', covers: [],
+    understand: 'Advanced DSA: Fenwick tree (BIT) and segment tree. Learn when each applies (point updates with range queries) and how each answers a query in O(log n).',
+    url: 'https://leetcode.com/discuss/post/1093346/introduction-to-fenwick-treebinary-index-tp6h/',
+    url2: 'https://www.youtube.com/watch?v=jGA1DonowlQ',
+    do: 'In TypeScript (AI assistant allowed), solve 1 range-query problem with a Fenwick or segment tree, and say why a running total of the array would be too slow once values change.',
+    explain: 'Out loud, 3 min: what one node stores and why a query touches O(log n) nodes. Deep enough when you can pick Fenwick or segment tree for a new problem and say why.' },
+  { id: 'adv:dp-on-trees-digit-dp', covers: [],
+    understand: 'Advanced DSA: DP on trees and digit DP. Learn when each applies (a tree where a node needs its children\'s answers; counting numbers up to N with a digit rule).',
+    url: 'https://www.youtube.com/watch?v=kM3A6AjHvjM',
+    url2: 'https://www.youtube.com/watch?v=KaU-AM8wo4Q',
+    do: 'In TypeScript (AI assistant allowed), solve 1 problem with DP on a tree or digit DP, and write the state in one line before the code.',
+    explain: 'Out loud, 3 min: the state and the transition for each. Deep enough when you can say what the "tight" flag in digit DP is for.' },
 ];
 
-// Week 1 foundations (§2): about 5 morning DSA blocks before the patterns start. URLs checked 2026-11-15 (curl, 200).
+// Week 1 foundations (v3): two learning rows (Understand / Do / Explain). URLs checked 2026-11-15 (curl, 200).
 export const FOUNDATIONS = [
-  { id: 'dsa:foundations-big-o', url: 'https://www.bigocheatsheet.com/',
-    text: 'Foundations · Big-O as reasoning: from the input size to the complexity you need ("n = 10⁵ means I need n log n").' },
-  { id: 'dsa:foundations-recursion', url: 'https://javascript.info/recursion',
-    text: 'Foundations · Recursion and the call stack: base case, the stack frames, depth limits. Trace 3 recursive functions by hand.' },
-  { id: 'dsa:foundations-build-1', url: 'https://github.com/trekhleb/javascript-algorithms',
-    text: 'Foundations · Build it yourself in TypeScript, with tests: dynamic array, hash map, linked list.' },
-  { id: 'dsa:foundations-build-2', url: 'https://github.com/trekhleb/javascript-algorithms',
-    text: 'Foundations · Build it yourself in TypeScript, with tests: stack/queue, binary heap, BST.' },
-  { id: 'dsa:foundations-build-3', url: 'https://github.com/trekhleb/javascript-algorithms',
-    text: 'Foundations · Build it yourself in TypeScript, with tests: trie, graph adjacency list, union-find.' },
+  { id: 'dsa:foundations-big-o', covers: ['dsa:foundations-big-o'], url: 'https://www.bigocheatsheet.com/',
+    understand: 'Foundations · Big-O as reasoning: from the input size to the complexity you need ("n = 10⁵ means I need n log n").',
+    do: 'In a TS scratch file (AI assistant allowed), time one function at n = 10³, 10⁴ and 10⁵ and match its growth to O(n), O(n log n) or O(n²).',
+    explain: 'Out loud, 3 min: how you go from the input limit to the complexity you need. Deep enough when you can say what n = 10⁵ and n = 20 each allow.' },
+  { id: 'dsa:foundations-recursion', covers: ['dsa:foundations-recursion'], url: 'https://javascript.info/recursion',
+    url2: 'https://www.khanacademy.org/math/statistics-probability/counting-permutations-and-combinations',
+    understand: 'Foundations · Recursion, induction and counting: base case, the call stack, depth limits. Then a discrete math overview: logic, sets, combinatorics and basic probability.',
+    do: 'In a TS scratch file (AI assistant allowed), trace 3 recursive functions by hand, then count the subsets of 5 items with code and check the count against n choose k.',
+    explain: 'Out loud, 3 min: why a recursive call needs a smaller input and a base case, and how n choose k counts subsets. Deep enough when you can say what the stack holds at depth 3.' },
 ];

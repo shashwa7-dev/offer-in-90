@@ -4,6 +4,7 @@ import { CalendarCheck, ChevronLeft, ChevronRight, Plus, Search, X } from 'lucid
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { PHASE3_SET } from '@/lib/dsa-page';
 import { useStore } from '@/lib/store';
 import { TRACKS, bandOf } from '@/lib/timeline';
 import { STATUS_LABEL, isSkipped, owes, settled, statusOf } from '@/lib/task-status';
@@ -221,7 +222,7 @@ function BlockView({ d, b, bs, optLast, nm, pickId, shown, isOpen, toggle, log, 
       </Row>
       {isOpen && <>
         {(optLast ? optionalLast(shown ?? b.tasks) : (shown ?? b.tasks)).map(t => <TaskRow key={t.id} t={t} dayIdx={d.i} status={missed && owes(t, state.done, state.status) ? 'missed' : t.id === pickId ? 'pick' : undefined} />)}
-        {!shown && b.k === 'dsa' && d.type === 'study' && b.tasks.some(t => t.id.startsWith('p-') || (!!t.slug && t.id.startsWith('dsa:timed-'))) && (
+        {!shown && b.k === 'dsa' && d.type === 'study' && b.tasks.some(t => t.id.startsWith('p-') || (!!t.slug && PHASE3_SET.test(t.id))) && (
           <p className="border-t border-border py-2 pr-4 pl-11 text-[12px] text-muted-foreground">45 min max per problem. Stuck? Read the solution, understand it, flag it, write what you missed in its note.</p>
         )}
         {(shown ?? b.tasks).some(t => t.log) && (

@@ -323,7 +323,12 @@ for (const [plan, modes, name] of [[G, GRIND, 'grind'], [S, {}, 'steady']] as co
 }
 
 // ---------- Steady: DSA rest days are a pattern revisit, not a buffer (Review Focus 3) ----------
-{
+// Run on the real plan, and on one whose first DSA slots carry no pattern (4 Phase 3 slots moved to the front), so a rest day
+// before any pattern is covered still happens: v3 has only 2 foundation days.
+const tracksEarly: Any = { ...tracks, dsa: [...tracks.dsa.slice(56, 60), ...tracks.dsa.slice(0, 56), ...tracks.dsa.slice(60)] };
+const SEarly = buildPlanFrom({ ...base, modes: {} }, [], {}, { ...lib, tracks: tracksEarly });
+for (const [tr, plan, early] of [[tracks, S, false], [tracksEarly, SEarly, true]] as Any[]) {
+  const tracks = tr, S = plan;
   const HARD = ['dp', 'graph-traversal', 'topo-sort', 'union-find', 'shortest-path-mst', 'backtracking', 'tree-dfs', 'tree-bfs', 'top-k', 'two-heaps', 'k-way-merge', 'intervals', 'sliding-window', 'binary-search'];
   const inSlots = new Set(Object.values(tracks).flatMap((ts: Any) => ts.flatMap((s: Any) => s.items.map((x: Any) => x.slug).filter(Boolean))));
   const pool = (dsa.PROBLEMS as Any[]).filter((p) => (p.role === 'var' || p.tier === 'optional') && !inSlots.has(p.slug));
@@ -364,7 +369,7 @@ for (const [plan, modes, name] of [[G, GRIND, 'grind'], [S, {}, 'steady']] as co
     for (const x of L[i].slots.dsa?.items ?? []) if (x.pattern) covered.add(x.pattern);
   });
   assert.ok(revisits >= 20, `Steady has ${revisits} revisit days`);
-  assert.ok(flaggedDays >= 1, 'early revisit day with nothing covered: re-solve a flagged problem');
+  if (early) assert.ok(flaggedDays >= 1, 'early revisit day with nothing covered: re-solve a flagged problem');
   assert.ok(nonHardDays >= 1, 'before any hard pattern: picks from any covered pattern');
   // Grind never revisits
   assert.ok(!G.some((d) => d.tasks.some((t) => t.id.startsWith('rv:') || t.id.endsWith(':revisit-flagged'))));

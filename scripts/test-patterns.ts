@@ -35,7 +35,7 @@ assert.deepEqual(TOPICS, TOPIC_LIST);
 assert.deepEqual([...new Set(PATTERNS.map((p: any) => p.topic))], TOPIC_LIST);
 for (const t of ['Arrays and hashing', 'Arrays', 'Advanced graphs']) assert.ok(!PATTERNS.some((p: any) => p.topic === t), `${t} merged`);
 assert.deepEqual(FLAG_SOURCE, { name: 'liquidslr/leetcode-company-wise-problems', asOf: '2025-10' });
-assert.ok(Array.isArray(ADV_DSA) && ADV_DSA.length === 8);
+assert.ok(Array.isArray(ADV_DSA) && ADV_DSA.length === 3);
 
 // problem shape
 const slugs = PROBLEMS.map((p: any) => p.slug);
@@ -46,8 +46,8 @@ for (const p of PROBLEMS as any[]) {
   assert.ok(['E', 'M', 'H'].includes(p.d), `${p.slug} d`);
   assert.ok(['must', 'optional'].includes(p.tier), `${p.slug} tier`);
   assert.ok(p.name && p.url.startsWith('https://'), `${p.slug} name/url`);
-  if (p.tier === 'optional') assert.equal(p.role, undefined, `${p.slug} optional has no role`);
-  else assert.ok(['teach', 'var', 'unseen'].includes(p.role), `${p.slug} role`);
+  if (p.tier === 'optional') assert.ok(p.role === undefined || p.role === 'var', `${p.slug} optional is plain or var`);
+  else assert.ok(['teach', 'unseen'].includes(p.role), `${p.slug} must is teach or unseen`);
   if (p.sub !== undefined) assert.ok((pat(p.pattern).sub ?? []).includes(p.sub), `${p.slug} sub ${p.sub}`);
 }
 void DP_SUBS;
@@ -74,22 +74,21 @@ assert.equal(bySlug('insert-delete-getrandom-o1').name, 'Insert Delete GetRandom
 const must = PROBLEMS.filter((p: any) => p.tier === 'must');
 for (const id of IDS) {
   const m = must.filter((p: any) => p.pattern === id);
-  assert.ok(m.length >= 3 && m.length <= 5, `${id} has ${m.length} must`);
+  assert.equal(m.length, 2, `${id} has ${m.length} must`);
   assert.equal(m.filter((p: any) => p.role === 'teach').length, 1, `${id} teach`);
   assert.equal(m.filter((p: any) => p.role === 'unseen').length, 1, `${id} unseen`);
-  assert.ok(m.some((p: any) => p.role === 'var'), `${id} var`);
-  if (NEW.includes(id)) assert.deepEqual(m.map((p: any) => p.role).sort(), ['teach', 'unseen', 'var'], `${id}: exactly one teach, var, unseen`);
+  assert.ok(PROBLEMS.some((p: any) => p.pattern === id && p.role === 'var'), `${id} keeps a var problem (optional tier)`);
 }
-assert.ok(must.length >= 90 && must.length <= 100, `must total ${must.length}`);
+assert.equal(must.length, 54, 'must total (v3: teach + unseen per pattern)');
+assert.equal(PROBLEMS.filter((p: any) => p.role === 'var').length, 45, '45 var problems');
+assert.ok(PROBLEMS.filter((p: any) => p.role === 'var').every((p: any) => p.tier === 'optional'), 'var problems left the must tier');
 // demoted to optional to keep the must-solve total ≤ 100 (never a hot/hard-hot problem; nothing deleted)
 const DEMOTED = ['longest-repeating-character-replacement', 'middle-of-the-linked-list', 'reverse-linked-list-ii', 'k-closest-points-to-origin', 'find-k-pairs-with-smallest-sums', 'number-of-connected-components-in-an-undirected-graph', 'counting-bits'];
 for (const s of DEMOTED) { assert.equal(bySlug(s).tier, 'optional', `${s} demoted`); assert.deepEqual(bySlug(s).flags, [], `${s} not flagged`); }
-// every flagged must-solve stays must (the two flagged frequent extras were optional already)
-for (const p of PROBLEMS as any[]) if (p.flags.length && !['majority-element', 'longest-common-prefix'].includes(p.slug)) assert.equal(p.tier, 'must', `${p.slug} flagged stays must`);
+// flagged problems that left the must tier keep their flags (nothing deleted); the must set is teach + unseen only
 const mustSlugs = new Set(must.map((p: any) => p.slug));
-for (const s of ['trapping-rain-water', 'minimum-window-substring', 'merge-k-sorted-lists', 'find-median-from-data-stream', 'word-ladder',
-  'subarray-sum-equals-k', 'minimum-remove-to-make-valid-parentheses', 'lowest-common-ancestor-of-a-binary-tree', 'basic-calculator-ii', 'next-permutation', 'find-peak-element', 'merge-sorted-array'])
-  assert.ok(mustSlugs.has(s), `must has ${s}`);
+for (const s of ['basic-calculator-ii', 'next-permutation', 'merge-sorted-array']) assert.ok(mustSlugs.has(s), `must has ${s}`);
+for (const s of ['trapping-rain-water', 'minimum-window-substring', 'merge-k-sorted-lists', 'word-ladder', 'subarray-sum-equals-k']) assert.ok(!mustSlugs.has(s) && bySlug(s).role === 'var', `${s} is optional var`);
 
 // coverage: NeetCode 150 (snapshot of the old DSA_TOPICS), gap-fill, frequent extras
 const NC150: string[] = ["contains-duplicate","valid-anagram","two-sum","group-anagrams","top-k-frequent-elements","encode-and-decode-strings","product-of-array-except-self","valid-sudoku","longest-consecutive-sequence","valid-palindrome","two-sum-ii-input-array-is-sorted","3sum","container-with-most-water","trapping-rain-water","best-time-to-buy-and-sell-stock","longest-substring-without-repeating-characters","longest-repeating-character-replacement","permutation-in-string","minimum-window-substring","sliding-window-maximum","valid-parentheses","min-stack","evaluate-reverse-polish-notation","generate-parentheses","daily-temperatures","car-fleet","largest-rectangle-in-histogram","binary-search","search-a-2d-matrix","koko-eating-bananas","find-minimum-in-rotated-sorted-array","search-in-rotated-sorted-array","time-based-key-value-store","median-of-two-sorted-arrays","reverse-linked-list","merge-two-sorted-lists","linked-list-cycle","reorder-list","remove-nth-node-from-end-of-list","copy-list-with-random-pointer","add-two-numbers","find-the-duplicate-number","lru-cache","merge-k-sorted-lists","reverse-nodes-in-k-group","invert-binary-tree","maximum-depth-of-binary-tree","diameter-of-binary-tree","balanced-binary-tree","same-tree","subtree-of-another-tree","lowest-common-ancestor-of-a-binary-search-tree","binary-tree-level-order-traversal","binary-tree-right-side-view","count-good-nodes-in-binary-tree","validate-binary-search-tree","kth-smallest-element-in-a-bst","construct-binary-tree-from-preorder-and-inorder-traversal","binary-tree-maximum-path-sum","serialize-and-deserialize-binary-tree","implement-trie-prefix-tree","design-add-and-search-words-data-structure","word-search-ii","kth-largest-element-in-a-stream","last-stone-weight","k-closest-points-to-origin","kth-largest-element-in-an-array","task-scheduler","design-twitter","find-median-from-data-stream","subsets","combination-sum","combination-sum-ii","permutations","subsets-ii","word-search","palindrome-partitioning","letter-combinations-of-a-phone-number","n-queens","number-of-islands","max-area-of-island","clone-graph","walls-and-gates","rotting-oranges","pacific-atlantic-water-flow","surrounded-regions","course-schedule","course-schedule-ii","graph-valid-tree","number-of-connected-components-in-an-undirected-graph","redundant-connection","word-ladder","network-delay-time","min-cost-to-connect-all-points","cheapest-flights-within-k-stops","reconstruct-itinerary","swim-in-rising-water","alien-dictionary","climbing-stairs","min-cost-climbing-stairs","house-robber","house-robber-ii","longest-palindromic-substring","palindromic-substrings","decode-ways","coin-change","maximum-product-subarray","word-break","longest-increasing-subsequence","partition-equal-subset-sum","unique-paths","longest-common-subsequence","best-time-to-buy-and-sell-stock-with-cooldown","coin-change-ii","target-sum","interleaving-string","edit-distance","longest-increasing-path-in-a-matrix","distinct-subsequences","burst-balloons","regular-expression-matching","maximum-subarray","jump-game","jump-game-ii","gas-station","hand-of-straights","merge-triplets-to-form-target-triplet","partition-labels","valid-parenthesis-string","meeting-rooms","insert-interval","merge-intervals","non-overlapping-intervals","meeting-rooms-ii","minimum-interval-to-include-each-query","happy-number","plus-one","rotate-image","spiral-matrix","set-matrix-zeroes","powx-n","multiply-strings","detect-squares","single-number","number-of-1-bits","counting-bits","reverse-bits","missing-number","sum-of-two-integers","reverse-integer"];
