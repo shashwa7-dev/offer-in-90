@@ -2,11 +2,11 @@
 import assert from 'node:assert/strict';
 import { FE, FE_DEPTH_READS } from '../src/lib/content/fe.js';
 import { UX } from '../src/lib/content/ux.js';
-import { BEH, FDE, COMPANY_MAP } from '../src/lib/content/career.js';
+import { BEH, FDE, COMPANY_MAP, TEARDOWNS } from '../src/lib/content/career.js';
 import { AIB_MOVED } from '../src/lib/content/ai.js';
 import { PLAN } from '../src/lib/plan-data.js';
 
-const ALL_ID_LISTS: any[][] = [FE, FE_DEPTH_READS, UX, BEH, FDE, AIB_MOVED];
+const ALL_ID_LISTS: any[][] = [FE, FE_DEPTH_READS, UX, BEH, FDE, AIB_MOVED, TEARDOWNS];
 const byId = (list: any[], id: string) => list.find((x) => x.id === id);
 
 // ---- 4a: FE, UX, career ----
@@ -81,6 +81,18 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
   assert.equal(PLAN.BEH[0].length, 2);
   assert.equal(PLAN.FDE.length, 42, 'old engine still sees the moved items');
   assert.equal(PLAN.COMPANY_MAP.length, 9);
+  // product teardowns: one per company row that has a product (not the round/topic rows)
+  const NO_PRODUCT = ['Meta AI-enabled round', 'Forward-deployed', 'System design in 2026'];
+  const companies = COMPANY_MAP.filter((r) => !NO_PRODUCT.some((n) => r[0].startsWith(n)));
+  assert.equal(TEARDOWNS.length, companies.length);
+  for (const row of companies) {
+    const t = TEARDOWNS.find((x) => row[0].startsWith(x.company));
+    assert.ok(t, `teardown for ${row[0]}`);
+    assert.match(t.id, /^beh:teardown-[a-z0-9-]+$/);
+    assert.ok(t.text.includes('3 improvements'));
+    assert.match(t.url, /^https:\/\//);
+  }
+  assert.equal(new Set(TEARDOWNS.map((x) => x.id)).size, TEARDOWNS.length);
 }
 
 console.log('test-content: ok');

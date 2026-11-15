@@ -97,3 +97,15 @@ export const COMPANY_MAP = [
   ['Apple (team-specific)', 'Varies by team. Deep frontend craft, accessibility, performance and privacy questions, plus a long deep dive into a past project.', 'Frontend block (a11y, performance), UX block (Apple HIG), project deep dives in the career block'],
   ['Stripe', 'Bug squash, an integration round, API design and code review.', 'Re-engineering reps, API design (frontend and CS block), code-review reps, FDE integration engineering'],
 ];
+
+// Product engineer prep (roadmap v2 §8): one teardown per target company with a consumer or developer product.
+// Sequenced by Task 5 after BEH runs out, alongside the FDE items. Rows of COMPANY_MAP that are rounds or topics (Meta AI-enabled round, forward-deployed, system design in 2026) have no product, so no teardown.
+const teardown = (slug, company, url) => ({ id: `beh:teardown-${slug}`, company, text: `Product teardown · ${company}: use the product, write 3 improvements`, url });
+export const TEARDOWNS = [
+  teardown('google', 'Google', 'https://www.google.com/maps'),
+  teardown('meta', 'Meta', 'https://www.instagram.com/'),
+  teardown('microsoft', 'Microsoft', 'https://www.microsoft.com/en-us/microsoft-365'),
+  teardown('amazon', 'Amazon', 'https://www.amazon.in/'),
+  teardown('apple', 'Apple', 'https://www.apple.com/'),
+  teardown('stripe', 'Stripe', 'https://stripe.com/payments/checkout'),
+];
