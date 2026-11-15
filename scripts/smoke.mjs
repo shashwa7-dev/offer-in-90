@@ -1593,6 +1593,99 @@ try {
     checkErrors(errors, W);
     await ctx.close();
   }
+  // ---------- Sundays: revision toggle, burnout guard, baseline scores (Task 12) ----------
+  {
+    const W = 'sundays 1100';
+    const mk = async (at, extra) => {
+      const fx = { ...fixture, modes: GRIND, start: isoDay(new Date(2026, 10, 2)), done: {}, notes: {}, updatedAt: +at, ...extra };
+      const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
+      await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
+      const page = await ctx.newPage();
+      await page.clock.install({ time: at });
+      const errors = [];
+      page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+      page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+      await page.goto(URL, { waitUntil: 'networkidle' });
+      await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+      await page.waitForTimeout(500);
+      return { ctx, page, errors };
+    };
+    const expandAll = async page => {
+      for (let n = 0; n < 20 && await page.locator('[data-block][aria-expanded="false"]').count(); n++) await page.locator('[data-block][aria-expanded="false"]').first().click().catch(() => {});
+      await page.waitForTimeout(200);
+    };
+    const saved = page => page.evaluate(() => JSON.parse(localStorage.getItem('offer90.v1') || '{}'));
+    // 1. Sunday 8 Nov: flip to Revision, the middle block shows revision tasks
+    {
+      const { ctx, page, errors } = await mk(new Date(2026, 10, 8, 14, 10));
+      await expandAll(page);
+      if (await page.locator('[data-task="d:2026-11-08:flagged"]').count()) fail(`${W}: revision task present in rest mode`); else ok(`${W}: rest mode has no revision tasks`);
+      if (await page.locator('[data-task="d:2026-11-08:explore"]').count()) ok(`${W}: rest mode shows the explore task`); else fail(`${W}: no explore task in rest mode`);
+      await page.locator('[data-sunday-mode]:visible').getByRole('radio', { name: 'Revision' }).click();
+      await page.waitForTimeout(400);
+      await expandAll(page);
+      if ((await saved(page)).sundayMode?.['2026-11-08'] === 'revision') ok(`${W}: sundayMode saved`); else fail(`${W}: sundayMode not saved`);
+      if (await page.locator('[data-task="d:2026-11-08:flagged"]').count() && await page.locator('[data-task="d:2026-11-08:catchup"]').count()) ok(`${W}: Revision shows revision tasks`); else fail(`${W}: revision tasks missing`);
+      if (await page.locator('[data-task="d:2026-11-08:explore"]').count()) fail(`${W}: explore task still shown in revision`); else ok(`${W}: explore task gone in revision`);
+      // the self-check peek takes four scores
+      await page.locator('[data-task="d:2026-11-08:check"] [data-title]').click();
+      await page.waitForTimeout(400);
+      const f = page.locator('[data-peek] [data-score-input]');
+      if ((await f.count()) === 4) ok(`${W}: self-check has 4 score fields`); else fail(`${W}: self-check score fields ${await f.count()}`);
+      await page.locator('[data-peek] [data-score-input="w1/dsa"]').fill('75'); await page.locator('[data-peek] [data-score-input="w1/dsa"]').blur();
+      await page.locator('[data-peek] [data-score-input="w1/ai"]').fill('101'); await page.locator('[data-peek] [data-score-input="w1/ai"]').blur();
+      await page.waitForTimeout(300);
+      const sc = (await saved(page)).scores || {};
+      if (sc['w1/dsa'] === 75 && !('w1/ai' in sc)) ok(`${W}: weekly score saved, 101 rejected`); else fail(`${W}: scores ${JSON.stringify(sc)}`);
+      checkErrors(errors, `${W} toggle`);
+      await ctx.close();
+    }
+    // 2. Burnout guard: Saturday 14 Nov with nothing done
+    {
+      const { ctx, page, errors } = await mk(new Date(2026, 10, 14, 14, 10));
+      const line = page.locator('[data-burnout]');
+      if (await line.count() && /more than 8 h behind\. Make this Sunday a revision Sunday\?/.test(await line.innerText())) ok(`${W}: burnout line shown on Saturday`); else fail(`${W}: no burnout line on Saturday`);
+      await page.locator('[data-burnout-yes]').click();
+      await page.waitForTimeout(300);
+      if ((await saved(page)).sundayMode?.['2026-11-15'] === 'revision' && !(await page.locator('[data-burnout]').count())) ok(`${W}: button sets the coming Sunday and the line goes`); else fail(`${W}: burnout button did not set Sunday 15 Nov`);
+      checkErrors(errors, `${W} burnout`);
+      await ctx.close();
+    }
+    {
+      const { ctx, page } = await mk(new Date(2026, 10, 12, 14, 10));
+      if (await page.locator('[data-burnout]').count()) fail(`${W}: burnout line shown on a Thursday`); else ok(`${W}: no burnout line on a weekday`);
+      await ctx.close();
+    }
+    // 3. Baseline scores on the prep day (Sun 1 Nov) reach Progress
+    {
+      const { ctx, page, errors } = await mk(new Date(2026, 10, 1, 14, 10));
+      await expandAll(page);
+      await page.locator('[data-task="baseline:dsa"] [data-title]').click();
+      await page.waitForTimeout(400);
+      await page.locator('[data-peek] [data-score-input="baseline/dsa"]').fill('62');
+      await page.locator('[data-peek] [data-score-input="baseline/dsa"]').blur();
+      await page.waitForTimeout(300);
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(300);
+      if ((await saved(page)).scores?.['baseline/dsa'] === 62) ok(`${W}: baseline score saved`); else fail(`${W}: baseline score not saved`);
+      await page.locator('[data-slot="sidebar"] [data-nav="progress"]').first().click();
+      await page.waitForTimeout(400);
+      const row = page.locator('[data-score-row="dsa"]');
+      if (await row.count() && /62/.test(await row.innerText())) ok(`${W}: baseline score shows in Progress`); else fail(`${W}: baseline score missing in Progress`);
+      await page.screenshot({ path: join(shots, 'scores-1100.png'), fullPage: true });
+      // Reference: depth areas and Sunday reads
+      await page.locator('[data-slot="sidebar"] [data-nav="roadmap"]').first().click();
+      await page.waitForTimeout(300);
+      await page.getByRole('radio', { name: 'Reference' }).click();
+      await page.waitForTimeout(300);
+      await page.locator('[data-band="depth-areas"] button').first().click().catch(() => {});
+      await page.locator('[data-band="sunday-reads"] button').first().click().catch(() => {});
+      await page.waitForTimeout(300);
+      if (await page.getByText('deep enough when').count() && await page.locator('[data-sunday-read]').count() >= 15) ok(`${W}: reference shows depth areas and Sunday reads`); else fail(`${W}: reference missing depth areas or reads`);
+      checkErrors(errors, `${W} baseline`);
+      await ctx.close();
+    }
+  }
 } catch (e) {
   fail(`crashed: ${e.stack || e}`);
 } finally {

@@ -8,14 +8,15 @@ import { useStore } from '@/lib/store';
 import { TRACKS, bandOf } from '@/lib/timeline';
 import { STATUS_LABEL, isSkipped, owes, settled, statusOf } from '@/lib/task-status';
 import { EMPTY_FILTER, isActive, matches, statusCounts, trackOfCat, type GroupBy } from '@/lib/task-filter';
-import { totalDays, type Block, type Day, type Task, dayStats, dayTitle, fmtDate, hrs, overall, parseISO, toMin } from '@/lib/engine';
-import { Band, Chip, PageFrame, PageHeader, Ring, Row, Surface, SummaryRow } from './shell/page';
+import { totalDays, type Block, type Day, type Task, dayStats, dayTitle, fmtDate, hrs, iso, overall, parseISO, toMin } from '@/lib/engine';
+import { Band, Chip, PageFrame, PageHeader, Ring, Row, Seg, Surface, SummaryRow } from './shell/page';
 import { TaskRow } from './task-row';
 import { QuickAdd } from './own-task';
 import { useUI } from './ui-state';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { STATUS_ORDER, StatusIcon } from './status-control';
 import { TodayRail } from './today-rail';
+import { burnoutGuard, comingSunday, optionalLast } from '@/lib/sundays';
 import { DisplayMenu, TodayFilters, useTodayFilter } from './today-filters';
 
 type Status = 'now' | 'done' | 'missed' | 'past' | 'upcoming';
@@ -54,6 +55,16 @@ export function TodayView() {
     const ended = when === 'past' || (when === 'today' && nm >= toMin(b.e));
     return ended ? (b.tasks.some(owed) ? 'missed' : 'past') : 'upcoming';
   };
+  // Sundays: Active rest (default) or Revision, saved per date. Burnout guard (§17): over 8 h behind on a Saturday or Sunday
+  // offers a revision Sunday and sorts optional tasks last. It never adds time to a day.
+  const isSun = d.type === 'sun', dISO = iso(d.date);
+  const sunMode = state.sundayMode[dISO] ?? 'rest';
+  const setSunMode = (date: string, m: 'rest' | 'revision') => update(s => ({ ...s, sundayMode: { ...s.sundayMode, [date]: m } }));
+  const burnout = isToday && burnoutGuard(o.behindMin, d.date.getDay());
+  const offerIdx = burnout ? comingSunday(days, todayIdx) : null;
+  const offerDate = offerIdx === null ? null : iso(days[offerIdx].date);
+  const showOffer = !!offerDate && (state.sundayMode[offerDate] ?? 'rest') !== 'revision';
+  const modeSeg = isSun ? <Seg value={sunMode} onChange={m => setSunMode(dISO, m)} options={[{ value: 'rest', label: 'Active rest' }, { value: 'revision', label: 'Revision' }]} /> : null;
   const pick = cur?.tasks.find(t => !resolved(t));
   const missedHere = d.blocks.filter(b => blockStatus(b) === 'missed').reduce((a, b) => a + b.tasks.filter(owed).length, 0);
 
@@ -100,6 +111,7 @@ export function TodayView() {
           <Button variant="outline" size="sm" onClick={() => setViewIdx(clamp(todayIdx))} disabled={isToday} className="hidden sm:inline-flex">Today</Button>
           {!isToday && <Button variant="outline" size="icon-sm" onClick={() => setViewIdx(clamp(todayIdx))} aria-label="Go to today" title="Go to today" data-today-phone className="sm:hidden"><CalendarCheck /></Button>}
           <Button variant="outline" size="icon-sm" onClick={() => setViewIdx(clamp(viewIdx + 1))} aria-label="Next day"><ChevronRight /></Button>
+          {modeSeg && <div data-sunday-mode className="hidden sm:block">{modeSeg}</div>}
           <DisplayMenu groupBy={groupBy} onChange={setGroupBy} />
           <Button size="sm" onClick={() => newTask()} aria-label="New task" title="New task (C)" className="max-sm:w-8 max-sm:px-0"><Plus /><span className="hidden sm:inline">New task</span></Button>
         </>}
@@ -115,6 +127,13 @@ export function TodayView() {
             {unseen > 0 && overdue.length > 0 && <span aria-hidden="true">·</span>}
             {overdue.length > 0 && <button type="button" onClick={showMissed} className="rounded-[5px] font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">{overdue.length} missed earlier{active && shownOverdue.length !== overdue.length ? ` (${shownOverdue.length} shown)` : ''}</button>}
             {overdue.length > 0 && <span>· {hrs(overdue.reduce((a, x) => a + x.t.min, 0))} h. Clear them in Sunday&apos;s catch-up block.</span>}
+          </div>
+        )}
+        {isSun && <div data-sunday-mode className="flex items-center gap-2 border-t border-border px-4 py-2.5 text-[13px] text-muted-foreground sm:hidden">Sunday mode {modeSeg}</div>}
+        {showOffer && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-border px-4 py-2.5 text-[13px] text-muted-foreground" data-burnout>
+            <span>You&apos;re more than 8 h behind. Make this Sunday a revision Sunday?</span>
+            <Button variant="outline" size="xs" data-burnout-yes onClick={() => setSunMode(offerDate!, 'revision')}>Make it a revision Sunday</Button>
           </div>
         )}
         {todayIdx < 0 && viewIdx === 0 && (
@@ -146,7 +165,7 @@ export function TodayView() {
             return (
               <Band key={key} id={key} title={label} count={count}>
                 {blocks.map((b, j) => (
-                  <BlockView key={b.k} d={d} b={b} bs={ss[j]} nm={nm} pickId={pick?.id}
+                  <BlockView key={b.k} d={d} b={b} bs={ss[j]} optLast={burnout} nm={nm} pickId={pick?.id}
                     shown={active ? b.tasks.filter(t => hit(t, b.k)) : undefined}
                     isOpen={open[`${d.i}-${b.k}`] ?? (active || b.k === firstOpen)}
                     toggle={v => setOpen(s => ({ ...s, [`${d.i}-${b.k}`]: v }))}
@@ -165,7 +184,7 @@ export function TodayView() {
   );
 }
 
-function BlockView({ d, b, bs, nm, pickId, shown, isOpen, toggle, log, setLog }: { d: Day; b: Block; bs: Status; nm: number; pickId?: string; /** Tasks left by an active filter (all tasks when unset). */ shown?: Task[]; isOpen: boolean; toggle: (v: boolean) => void; log: string; setLog: (v: string) => void }) {
+function BlockView({ d, b, bs, optLast, nm, pickId, shown, isOpen, toggle, log, setLog }: { d: Day; b: Block; bs: Status; optLast: boolean; nm: number; pickId?: string; /** Tasks left by an active filter (all tasks when unset). */ shown?: Task[]; isOpen: boolean; toggle: (v: boolean) => void; log: string; setLog: (v: string) => void }) {
   const { state } = useStore();
   const now = bs === 'now', missed = bs === 'missed';
   // Life blocks (meals, breaks) are thin grey lines.
@@ -193,7 +212,7 @@ function BlockView({ d, b, bs, nm, pickId, shown, isOpen, toggle, log, setLog }:
         <ChevronRight className={cn('hidden size-3.5 shrink-0 text-faint sm:block transition-transform motion-reduce:transition-none', isOpen && 'rotate-90')} aria-hidden="true" />
       </Row>
       {isOpen && <>
-        {(shown ?? b.tasks).map(t => <TaskRow key={t.id} t={t} dayIdx={d.i} status={missed && owes(t, state.done, state.status) ? 'missed' : t.id === pickId ? 'pick' : undefined} />)}
+        {(optLast ? optionalLast(shown ?? b.tasks) : (shown ?? b.tasks)).map(t => <TaskRow key={t.id} t={t} dayIdx={d.i} status={missed && owes(t, state.done, state.status) ? 'missed' : t.id === pickId ? 'pick' : undefined} />)}
         {!shown && b.k === 'dsa' && d.type === 'study' && b.tasks.some(t => t.id.startsWith('p-') || (!!t.slug && t.id.startsWith('dsa:timed-'))) && (
           <p className="border-t border-border py-2 pr-4 pl-11 text-[12px] text-muted-foreground">45 min max per problem. Stuck? Read the solution, understand it, flag it, write what you missed in its note.</p>
         )}

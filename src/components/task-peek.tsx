@@ -19,6 +19,7 @@ import { BlockPick, DayPick, dayLabel } from './task-pickers';
 import { newsTabFor, useUI } from './ui-state';
 import { LabelChip, LabelPicker, taskLabelViews } from './label-picker';
 import { SolveFields } from './solve-fields';
+import { parseScore, scoreFields, withScore } from '@/lib/sundays';
 import { ROUND_SCRIPT, namePrompt, solveKeyOf } from '@/lib/dsa-page';
 
 export type PeekTarget = { taskId: string; dayIdx: number };
@@ -202,6 +203,13 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
             </div>
           )}
 
+          {t.scoreKey && !hidden && (
+            <div className="flex flex-col gap-2 border-t border-border pt-4" data-scores>
+              <h3 className="text-[13px] font-medium text-foreground">Score (0–100)</h3>
+              {scoreFields(t.scoreKey).map(f => <ScoreField key={f.key} k={f.key} label={f.label} />)}
+            </div>
+          )}
+
           {t.drill && t.drill.length > 0 && (
             <div className="border-t border-border pt-4" data-drill>
               <div className="mb-2 flex items-center justify-between gap-2">
@@ -230,5 +238,28 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
         </div>
       </div>
     </div>
+  );
+}
+
+/** One hand-scored 0–100 field, saved on blur (empty clears it, anything else reverts). */
+function ScoreField({ k, label }: { k: string; label: string }) {
+  const { state, update } = useStore();
+  const saved = state.scores[k];
+  const [v, setV] = useState(saved === undefined ? '' : String(saved));
+  useEffect(() => { setV(saved === undefined ? '' : String(saved)); }, [saved]);
+  const save = () => {
+    const raw = v.trim();
+    if (raw === '') { if (saved !== undefined) update(s => ({ ...s, scores: withScore(s.scores, k, null) })); return; }
+    const n = parseScore(raw);
+    if (n === null) { setV(saved === undefined ? '' : String(saved)); return; }
+    if (n !== saved) update(s => ({ ...s, scores: withScore(s.scores, k, n) }));
+    setV(String(n));
+  };
+  return (
+    <label className="grid grid-cols-[112px_minmax(0,1fr)] items-center gap-2 text-[13px]">
+      <span className="text-muted-foreground">{label}</span>
+      <input value={v} onChange={e => setV(e.target.value)} onBlur={save} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+        inputMode="numeric" maxLength={3} placeholder="0–100" aria-label={`${label} score`} data-score-input={k} className={cn(fieldInput, 'w-24 tabular-nums')} />
+    </label>
   );
 }

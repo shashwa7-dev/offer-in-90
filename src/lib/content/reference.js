@@ -108,3 +108,11 @@ export const OA_LINKS = [
   'https://www.reddit.com/r/leetcode/comments/1htdjbf/amazon_oa_questions_w_solutions/',
   'https://www.reddit.com/r/leetcode/comments/1kx4zs4/just_got_bodied_by_the_amazon_sde_ii_oa_sharing/',
 ];
+
+// §13 depth areas: where to know things inside out. Tasks in them carry the system label Depth. `test` is the "deep enough when you can…" bar.
+export const DEPTH_AREAS = [
+  { id: 'depth:data-state', area: 'Data and state', where: 'FE/CS SQL, NoSQL, Redis, queues, API design; SD concepts; practical coding; decision memos', test: 'Name the race condition or stale-data bug in a design, and pick the fix and its cost' },
+  { id: 'depth:realtime-sync', area: 'Real-time and sync', where: 'Flagship real-time and offline steps; how-it-works reads (Figma, Linear, Slack); chat, doc and whiteboard designs', test: 'Explain what happens when two people edit offline and reconnect, and why your design handles it' },
+  { id: 'depth:llm-apps', area: 'Building LLM applications', where: 'AI build slot, AI evening, FDE stages 5 and 7, AI designs, flagship AI steps', test: 'Take an AI feature that "sometimes gives wrong answers", find the cause with evals and traces, and fix it, with numbers' },
+  { id: 'depth:debugging', area: 'Debugging and reading unfamiliar code', where: 'Open-source fixes, re-engineering reps, the Meta AI drill, code-review reps', test: 'Find and explain a bug in a codebase you\'ve never seen, in under an hour, with a clear write-up' },
+];

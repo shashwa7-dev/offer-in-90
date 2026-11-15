@@ -102,6 +102,18 @@ export function RoadmapReference() {
       <Ref id="whimsical-board" title="Whimsical board → where it is in the plan" n={P.BOARD_MAP.length}>
         <Table head={['Board section', 'In the plan']} rows={P.BOARD_MAP} />
       </Ref>
+      <Ref id="depth-areas" title="Depth areas · know these inside out" n={P.DEPTH_AREAS.length}>
+        <Table head={['Area', 'Where in the plan', "You're deep enough when you can…"]} rows={P.DEPTH_AREAS.map((x: { area: string; where: string; test: string }) => [x.area, x.where, x.test])} />
+        <Note>Application-level depth: explain why it behaves as it does, predict how it fails, choose between options, debug it. Everything else is breadth.</Note>
+      </Ref>
+      <Ref id="sunday-reads" title="Sunday reads · optional, one a week" n={P.SUNDAY_READS.length}>
+        <List items={P.SUNDAY_READS.map((x: { id: string; text: string; url: string; category: string }) => (
+          <span key={x.id} data-sunday-read={x.id}>
+            <a href={x.url} target="_blank" rel="noopener noreferrer" className="text-foreground hover:underline">{x.text.replace(/^Sunday read · /, '').split(/\. Then 3 lines/)[0]} ↗<span className="sr-only">(opens in a new tab)</span></a>
+          </span>
+        ))} />
+        <Note>Grind uses the first 13 reads; Steady uses all 17. Never counted as behind.</Note>
+      </Ref>
       <Ref id="explore-later" title="Explore later · outside the daily plan" n={P.EXPLORE_LATER.length}>
         <List items={P.EXPLORE_LATER.map((x: { id: string; area: string; text: string; resources: { text: string; url: string }[] }) => (
           <span key={x.id} data-explore={x.id}>

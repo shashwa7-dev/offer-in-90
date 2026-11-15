@@ -4,6 +4,7 @@ import { useStore } from '@/lib/store';
 import { goodStreak, isSkipped, rate } from '@/lib/task-status';
 import { P, catName, dayStats, fmtDate, hrs, overall, parseISO, study } from '@/lib/engine';
 import { forecast } from '@/lib/forecast';
+import { scoreTable } from '@/lib/sundays';
 import { Band, Chip, PageFrame, PageHeader, Row, Seg, Surface, SummaryRow } from './shell/page';
 import { ProgressChart, type ChartRange } from './progress-chart';
 import { useUI } from './ui-state';
@@ -68,6 +69,7 @@ export function ProgressView() {
     { k: 'Status', v: o.status[1] },
     { k: 'Streak', v: <span title={`${goodDays} day${goodDays === 1 ? '' : 's'} at 80% or more`}>{streak} day{streak === 1 ? '' : 's'}</span> },
   ];
+  const sc = scoreTable(state.scores);
   const pctTxt = fc.pct === null ? '' : `${Math.round(fc.pct * 100)}%`;
 
   return (
@@ -104,6 +106,23 @@ export function ProgressView() {
           <Band id="slipping" title="Where you're slipping" count={past.length ? insights.length : undefined}>
             <div className="border-t border-border">
               {insights.map(([, t], i) => <Row key={i} className="py-2.5 leading-snug">{t}</Row>)}
+            </div>
+          </Band>
+          <Band id="scores" title="Scores" count={sc.rows.length || undefined}>
+            <div className="border-t border-border" data-scores>
+              {sc.rows.length ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-[13px]">
+                    <thead><tr><th className="border-b border-border px-4 py-2 text-left text-[12px] font-medium text-muted-foreground">Section</th>{sc.columns.map(c => <th key={c.id} className="border-b border-border px-3 py-2 text-right text-[12px] font-medium text-muted-foreground">{c.label}</th>)}</tr></thead>
+                    <tbody>{sc.rows.map(r => (
+                      <tr key={r.section} data-score-row={r.section} className="border-b border-border last:border-b-0">
+                        <td className="px-4 py-2 font-medium">{r.label}</td>
+                        {r.cells.map((v, j) => <td key={j} className="px-3 py-2 text-right tabular-nums text-muted-foreground">{v ?? '·'}</td>)}
+                      </tr>
+                    ))}</tbody>
+                  </table>
+                </div>
+              ) : <p className="px-4 py-3 text-[13px] text-muted-foreground">No scores yet. Enter your baseline on the prep day, then the weekly self-check each Sunday (open the task to type a score from 0 to 100).</p>}
             </div>
           </Band>
           <Band id="tracks" title="Tracks" count={byCat.length}>
