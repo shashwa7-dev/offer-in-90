@@ -1,6 +1,54 @@
 {
   "weeks": [
     {
+      "weekOf": "2026-11-15",
+      "generatedAt": "2026-11-15T13:00:00.000Z",
+      "counts": { "leetcode": 49, "reddit": 0, "web": 0 },
+      "headline": "Google's AI-assisted code comprehension round is mentioned again (3 of 8 Google posts), and Amazon SDE-2 posts keep reporting a codebase-debugging OA task and an extra LLD round. No frontend- or FDE-specific reports this week.",
+      "companies": [
+        {
+          "company": "Google",
+          "reports": 8,
+          "roles": ["swe"],
+          "loop": "One L5 post lists: hiring assessment, domain knowledge, Googlyness, two DSA rounds, system design. L4 posts mention virtual rounds after an online assessment. Some L4 candidates are told of a 45-minute code comprehension round using an AI assistant.",
+          "changes": [
+            "AI-assisted code comprehension round (Gemini, Google-provided codebase) mentioned in 3 of 8 posts",
+            "Extra 45-minute conversational AI/ML knowledge interview during team matching (1 post)",
+            "Domain Knowledge round listed before onsite for L5 (1 post)"
+          ],
+          "questions": ["Debug and optimize an existing codebase with AI help", "Conversational AI/ML knowledge questions", "DSA x2 onsite", "System design"],
+          "prep": "Practise reading unfamiliar code, finding bugs and explaining trade-offs while using an AI assistant, alongside normal DSA.",
+          "confidence": "medium",
+          "citations": [
+            "https://leetcode.com/discuss/post/8610508/google-is-testing-code-comprehension-rou-exxm/",
+            "https://leetcode.com/discuss/post/8608478/google-ai-assisted-code-comprehension-ro-q48r/",
+            "https://leetcode.com/discuss/post/8604707/google-full-loop-for-updated-interview-p-t919/",
+            "https://leetcode.com/discuss/post/8598580/google-aiml-knowledge-interview-during-t-7rxj/"
+          ]
+        },
+        {
+          "company": "Amazon",
+          "reports": 14,
+          "roles": ["swe"],
+          "loop": "OA, then about 4 rounds mixing DSA, Leadership Principles, design and a bar raiser. One Bangalore post says 3 rounds were in-person on the same day, with pen-and-paper coding.",
+          "changes": [
+            "OA includes a codebase/debugging task in Java Spring Boot, Node or Django (3 posts)",
+            "Extra LLD round requested after the initial 4 rounds for SDE-2 (1 post)",
+            "Pen-and-paper coding in onsite (1 post)"
+          ],
+          "questions": ["Leadership Principles stories", "Event management system design (search, view, book tickets)", "LLD round", "DSA with a behavioral follow-up"],
+          "prep": "Prepare 6-8 Leadership Principles stories and practise fixing bugs in a small existing codebase.",
+          "confidence": "medium",
+          "citations": [
+            "https://leetcode.com/discuss/post/8598606/amazon-sde-2-oa-by-anonymous_user-346e/",
+            "https://leetcode.com/discuss/post/8612260/amazon-sde-2-interview-experience-5-roun-chz3/",
+            "https://leetcode.com/discuss/post/8605534/amazon-sde-1-auta-interview-experience-b-yggg/",
+            "https://leetcode.com/discuss/post/8600739/amazon-system-design-experience-by-nikhi-o1h2/"
+          ]
+        }
+      ]
+    },
+    {
       "weekOf": "2026-11-09",
       "generatedAt": "2026-11-09T13:00:00.000Z",
       "counts": { "leetcode": 66, "reddit": 0, "web": 1 },
