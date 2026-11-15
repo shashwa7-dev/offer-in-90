@@ -29,7 +29,7 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
   const react = FE.filter((x) => x.id.startsWith('fe:react-'));
   assert.ok(react.length >= 5);
   for (const r of react) assert.ok(r.summary && r.summary.length <= 400, `${r.id} summary`);
-  for (const slug of ['sql', 'nosql', 'redis', 'queues', 'api-design', 'websockets-sse']) {
+  for (const slug of ['sql', 'nosql', 'redis', 'queues', 'api-design', 'websockets-sse', 'http-caching']) {
     assert.equal(byId(FE, `fe:${slug}`)?.depth, true, `fe:${slug} depth`);
   }
   assert.equal(FE_DEPTH_READS.length, 2);
@@ -57,7 +57,7 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
   // FDE: 42 old items minus 2 Python minus 4 Stage-6 cloud
   assert.equal(FDE.length, 36);
   for (const s of ['python-for-js', 'pandas', 'aws', 'terraform', 'containers', 'devops']) assert.ok(!byId(FDE, `fde:${s}`), `fde:${s} moved`);
-  assert.ok(FDE.some((x) => x.id === 'fde:terraform' || x.text.includes('Terraform')) === false);
+  for (const m of AIB_MOVED) assert.ok(!FDE.some((x) => x.text === m.text), `${m.id} text absent from FDE`);
 
   // moved items
   assert.deepEqual(AIB_MOVED.map((x) => x.id), ['aib:python-for-js', 'aib:pandas', 'aib:aws', 'aib:terraform', 'aib:containers', 'aib:devops']);
@@ -80,6 +80,10 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
   assert.equal(PLAN.UX[0].length, 2);
   assert.equal(PLAN.BEH[0].length, 2);
   assert.equal(PLAN.FDE.length, 42, 'old engine still sees the moved items');
+  // old FDE order is preserved (moved items back at their original positions)
+  const OLD_ORDER = `fde:stage1-intro fde:stage1-glossary fde:decomposition-framework aib:python-for-js aib:pandas fde:git-beyond-basics fde:linux-shell fde:practical-coding-log fde:data-audit-modeling fde:sql-analysis fde:data-pipelines fde:data-warehouses fde:decomposition-2 fde:context-engineering fde:model-providers fde:agents-memory fde:integration-engineering fde:reengineering-round aib:aws aib:terraform aib:containers aib:devops fde:client-simulation-1 fde:eval-pipelines fde:debugging-agents fde:inference-optimization fde:security fde:governance-privacy fde:mlops fde:learning-round fde:discovery fde:scoping fde:business-acumen fde:stakeholders fde:communication fde:decomposition-3 fde:client-simulation-2 fde:take-home-1 fde:take-home-2 fde:take-home-3 fde:decomposition-4 fde:mock-fde-loop`.split(' ');
+  assert.equal(OLD_ORDER.length, 42);
+  assert.deepEqual(PLAN.FDE.map((r: any) => r[0]), OLD_ORDER.map((id) => [...FDE, ...AIB_MOVED].find((x) => x.id === id)!.text));
   assert.equal(PLAN.COMPANY_MAP.length, 9);
   // product teardowns: one per company row that has a product (not the round/topic rows)
   const NO_PRODUCT = ['Meta AI-enabled round', 'Forward-deployed', 'System design in 2026'];

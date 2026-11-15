@@ -1,8 +1,9 @@
 // Checks every URL in the curriculum. No AI involved. Writes .engine/link-report.json for the refresh engine.
 // Usage: node scripts/check-links.mjs
-import { readFileSync, mkdirSync, writeFileSync, appendFileSync } from 'node:fs';
+import { readFileSync, readdirSync, mkdirSync, writeFileSync, appendFileSync } from 'node:fs';
 
-const sources = ['src/lib/plan-data.js', 'src/lib/engine.ts'];
+const contentFiles = readdirSync('src/lib/content').filter(f => f.endsWith('.js')).sort().map(f => `src/lib/content/${f}`);
+const sources = ['src/lib/plan-data.js', 'src/lib/engine.ts', ...contentFiles];
 const urls = [...new Set(sources.flatMap(f => readFileSync(f, 'utf8').match(/https?:\/\/[^\s'"`)<>\]]+/g) || []))]
   .map(u => u.replace(/[.,;]+$/, ''))
   .filter(u => !u.includes('${') && !u.includes('…'));

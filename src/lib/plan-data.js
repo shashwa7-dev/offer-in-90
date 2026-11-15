@@ -10,11 +10,16 @@ import { BEH as BEH_NEW, FDE as FDE_NEW, COMPANY_MAP } from './content/career.js
 import { AIB_MOVED } from './content/ai.js';
 
 // Adapter (Task 4a): the content files hold the new { id, text, ... } items; engine.ts still reads the old tuples until Task 8 rewrites it.
-// FDE: the Python and Stage-6 cloud items moved to ai.js, so they are appended at the end to stay visible to the old engine.
+// FDE: the Python and Stage-6 cloud items moved to ai.js; they are put back at their original positions so the old engine keeps its order.
+const aibById = id => AIB_MOVED.find(x => x.id === id);
+const FDE_BACK = {
+  'fde:decomposition-framework': ['aib:python-for-js', 'aib:pandas'].map(aibById),
+  'fde:reengineering-round': ['aib:aws', 'aib:terraform', 'aib:containers', 'aib:devops'].map(aibById),
+};
 const FE = FE_NEW.map(x => [x.text, x.practice, x.url]);
 const UX = UX_NEW.map(x => [x.text, x.url || '']);
 const BEH = BEH_NEW.map(x => [x.text, x.url || '']);
-const FDE = [...FDE_NEW, ...AIB_MOVED].map(x => [x.text, x.url || '']);
+const FDE = FDE_NEW.flatMap(x => [x, ...(FDE_BACK[x.id] || [])]).map(x => [x.text, x.url || '']);
 
 const LC = s => `https://leetcode.com/problems/${s}/`;
 const NC = s => `https://neetcode.io/problems/${s}`;
