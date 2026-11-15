@@ -402,6 +402,17 @@ Semester*, Chip Huyen's *AI Engineering* and mlabonne's llm-course.
 - The memo and open-source threads.
 - The 75-minute Saturday revision merge.
 
+## Mode indicators (owner, 2026-11-15)
+
+The current mode must be obvious without opening Setup:
+- **Today header badge:** a chip in Today's page header reading "Steady · week W of 17" or "Grind · week W of 13"
+  (W = the plan week of the day being viewed; before the start, "Steady · starts <date>"). Clicking it goes to Setup
+  and scrolls to the Mode setting.
+- **Sidebar and phone:** the current mode ("Steady mode" / "Grind mode") under "Offer in 90" in the desktop sidebar
+  (hidden when the sidebar is collapsed to icons), and in the phone layout's header area, so it is visible on every
+  page.
+- Both update immediately after a mode switch. The Setup toggle itself is unchanged.
+
 ## What stays exactly as built
 
 Steady/Grind (with the new pairing), Monday start, routine and wake-up, labels, the DSA page, Sundays (rest/revision,
