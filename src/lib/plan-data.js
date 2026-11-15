@@ -9,6 +9,8 @@ import { FE as FE_NEW } from './content/fe.js';
 import { UX as UX_NEW } from './content/ux.js';
 import { BEH as BEH_NEW, FDE as FDE_NEW, COMPANY_MAP } from './content/career.js';
 import { AIB_MOVED, AIB, AI_EVENING, AI_REVIEW as AI_REVIEW_NEW } from './content/ai.js';
+import { MC as MC_NEW, MC_TIMED as MC_TIMED_NEW, PROJECT as PROJECT_NEW, LLD as LLD_NEW } from './content/mc.js';
+import { SD as SD_NEW, SD_MOCKS as SD_MOCKS_NEW } from './content/sd.js';
 
 // Adapter (Task 4a): the content files hold the new { id, text, ... } items; engine.ts still reads the old tuples until Task 8 rewrites it.
 // FDE: the Python and Stage-6 cloud items moved to ai.js; they are put back at their original positions so the old engine keeps its order.
@@ -52,42 +54,13 @@ const DSA = [];
 DSA_TOPICS.forEach(([topic, list]) => list.forEach(([slug, d, nc]) => DSA.push({ slug, d, topic, name: prettify(slug), url: nc ? NC(nc) : LC(slug), premium: !!nc })));
 
 
-// Machine coding: frontend LLD round (Microsoft-style machine coding, Meta/Google UI rounds). 90 minutes each.
-const MC = [
-  'Todo list in vanilla JS (add, edit, delete, filter) — no framework', 'Accordion (single/multi open, keyboard accessible)', 'Tabs with correct ARIA roles', 'Modal dialog (focus trap, Esc, click outside)', 'Star rating (hover preview, half stars)',
-  'Debounced search input that cancels stale requests', 'Pagination component', 'Infinite scroll feed (IntersectionObserver)', 'Image carousel (autoplay, dots, swipe)', 'Toast notification system (stacking, auto-dismiss)',
-  'Autocomplete / typeahead (cache, keyboard nav, highlight)', 'Nested comments (reply, collapse, delete)', 'File explorer tree (expand, add, rename, delete)', 'Multi-step form wizard with validation', 'Tic-tac-toe N×N with winner check',
-  'Data table: sort, filter, paginate', 'Kanban board with drag and drop', 'Date picker / month calendar', 'OTP input (auto-advance, paste, backspace)', 'Tooltip / popover with smart positioning',
-  'useFetch hook with cache, retries + AbortController', 'Virtualized list of 10,000 rows', 'Accessible combobox / searchable select', 'Spreadsheet-lite (cells, A1 refs, simple formulas)', 'Text editor with undo / redo',
-  'Like button with optimistic UI and rollback', 'Email client UI (Outlook-style: folders, list, reading pane, keyboard shortcuts)', 'Chat UI (Teams-style: channels, messages, typing indicator, unread counts)',
-  'Mini React: createElement + render + useState', 'Event emitter (on, off, once, emit)', 'Promise pool / task scheduler with concurrency limit', 'Virtual DOM diff and patch', 'Redux createStore + middleware from scratch', 'Streaming AI chat UI (stop, regenerate, markdown, code blocks)',
-];
-const MC_TIMED = [11, 16, 17, 12, 13, 4, 24, 18, 27, 28, 31, 22];
-
-// Flagship product, built in the machine-coding block (weeks 7–11). One serious product beats ten toy apps.
-// You write the brief, the design doc and every review; AI coding tools write a lot of the code. That is the skill companies now hire for.
-const PROJECT = [
-  ['Product brief: target user, the problem, 3 core jobs, success metrics. Teardown of Notion, Linear docs and Slab.', ''],
-  ['Design doc (RFC): architecture, data model, API, real-time approach (CRDT), AI design (RAG), risks, milestones. This is the document you steer the AI with.', 'https://www.industrialempathy.com/posts/design-docs-at-google/'],
-  ['UX: wireframes, design tokens, component inventory in Figma', 'https://help.figma.com/hc/en-us/articles/360040451373'],
-  ['Setup: Next.js + TypeScript, lint, tests, CI, preview deploys. Write CONTRIBUTING rules for your AI coding agent.', 'https://nextjs.org/docs'],
-  ['Auth (OAuth/OIDC), workspaces, roles; Postgres schema with row-level security', 'https://supabase.com/docs/guides/database/postgres/row-level-security'],
-  ['Editor: rich text (Tiptap/ProseMirror), slash commands, keyboard-first', 'https://tiptap.dev/docs'],
-  ['Real-time collaboration: Yjs + WebSocket provider, live cursors and presence', 'https://docs.yjs.dev/'],
-  ['Offline-first: IndexedDB persistence, sync on reconnect, conflict and reconnect UX', 'https://docs.yjs.dev/getting-started/allowing-offline-editing'],
-  ['Search + command palette (⌘K) with virtualized results', ''],
-  ['Performance pass: Web Vitals budget, code splitting, React Profiler. Record before/after numbers.', 'https://web.dev/articles/vitals'],
-  ['Accessibility pass: keyboard, screen reader, contrast; axe in CI', 'https://github.com/dequelabs/axe-core'],
-  ['AI 1: ingestion pipeline: chunk + embed on save, pgvector, re-index on edit or model change', 'https://github.com/pgvector/pgvector'],
-  ['AI 2: "Ask your workspace": streaming answers with citations and permission-aware retrieval', ''],
-  ['AI 3: agent actions with tools (summarize, create tasks) with a human confirmation step', 'https://www.anthropic.com/engineering/building-effective-agents'],
-  ['Integrations (FDE muscle): import Markdown/CSV or a Notion/Drive export; outgoing webhooks', ''],
-  ['Evals: 50-question eval set, CI gate, cost + latency dashboard. Publish the numbers.', 'https://hamel.dev/blog/posts/evals/'],
-  ['Observability + security: tracing, rate limits, prompt-injection tests', 'https://langfuse.com/docs'],
-  ['Load + failure testing: k6 load test, kill the WebSocket server, fix what breaks', 'https://grafana.com/docs/k6/latest/'],
-  ['Launch: deploy, get 5–10 real users, collect feedback, ship one fix from it', ''],
-  ['Case study: README with architecture diagram, trade-offs, metrics, 3-min demo video. Practice the 15-min project deep dive.', ''],
-];
+// Adapter (Task 4c): machine coding, flagship and LLD live in content/mc.js. The old engine reads MC as build texts in the
+// old order, MC_TIMED as 1-based MC indexes, and PROJECT as 20 [text, url] steps: merged flagship steps are split back into
+// their `oldSteps` and every step is put back at its old 1-based position (`v1`), with its old text (`oldText`).
+const MC = MC_NEW.map(x => x.text);
+const MC_TIMED = MC_TIMED_NEW.map(id => MC_NEW.findIndex(x => x.id === id) + 1);
+const byV1 = (a, b) => a.v1 - b.v1;
+const PROJECT = PROJECT_NEW.flatMap(x => x.oldSteps ?? [{ v1: x.v1, text: x.oldText ?? x.text, url: x.url || '' }]).sort(byV1).map(x => [x.text, x.url]);
 
 // Product & UX (second task in the career block, weeks 1–5): understanding product, not just code.
 
@@ -108,80 +81,10 @@ const EXTENSION = [
   ['Any time', 'Kubernetes hands-on, Spark hands-on, more LLD from the question bank, a second cloud (GCP)'],
 ];
 
-// System design: HLD concepts → frontend system design → HLD problems → mocks.
-const SD = [
-  ['How the internet works: packets, IP, TCP/UDP, DNS resolution path, TLS handshake, HTTP/1.1 → 2 → 3, CDNs, what happens when you type a URL', 'https://github.com/alex/what-happens-when'],
-  ['Fundamentals: scalability, latency vs throughput, availability, consistency', 'https://github.com/donnemartin/system-design-primer'],
-  ['CAP & PACELC, SLO / SLA / SLI, latency budgets', 'https://github.com/donnemartin/system-design-primer#cap-theorem'],
-  ['Capacity estimation: back-of-envelope maths drills', 'https://www.hellointerview.com/learn/system-design/in-a-hurry/introduction'],
-  ['Storage: SQL vs NoSQL, indexing (B-tree, inverted index)', 'https://www.hellointerview.com/learn/system-design/in-a-hurry/core-concepts'],
-  ['Replication, primary–replica, sharding, consistent hashing', 'https://www.hellointerview.com/learn/system-design/core-concepts/consistent-hashing'],
-  ['Transactions & isolation levels, object storage (S3)', 'https://github.com/donnemartin/system-design-primer#database'],
-  ['Communication: DNS, HTTP, REST vs gRPC vs GraphQL, API gateway, proxies', 'https://github.com/donnemartin/system-design-primer#communication'],
-  ['Caching layers (TTL/LRU, write-through, write-back), CDN, load balancing', 'https://github.com/donnemartin/system-design-primer#cache'],
-  ['Messaging: queues vs streams, pub-sub, event-driven, backpressure', 'https://www.hellointerview.com/learn/system-design/deep-dives/kafka'],
-  ['Idempotency, saga pattern, CQRS, stream processing', 'https://microservices.io/patterns/data/saga.html'],
-  ['Reliability: leader election, Raft, multi-region, consistency models', 'https://raft.github.io/'],
-  ['Observability (SLIs, logs, traces, alerts) + security basics (authN/Z, TLS, secrets)', 'https://newsletter.systemdesign.one/'],
-  ['Concepts to master (from the board): multi-layer caching, read- vs write-heavy, hot keys, p99 tail latency, rate-limit strategies, storage tiering, cost-aware design. Plus the common mistakes list.', 'https://github.com/donnemartin/system-design-primer'],
-  ['HLD delivery framework: requirements → entities → API → data flow → high-level → deep dives. Learn the common mistakes.', 'https://www.hellointerview.com/learn/system-design/in-a-hurry/delivery'],
-  ['Frontend SD framework (RADIO): requirements, architecture, data model, interface, optimizations', 'https://www.greatfrontend.com/front-end-system-design-playbook'],
-  ['FE SD: rendering strategies (CSR, SSR, SSG, ISR, streaming, islands)', 'https://www.patterns.dev/react/'],
-  ['FE SD: network & data layer (REST/GraphQL, normalized cache, optimistic updates, offline)', 'https://namastedev.com/learn/namaste-frontend-system-design'],
-  ['FE SD: performance at scale (bundles, images, caching, Web Vitals budgets)', 'https://web.dev/learn/performance'],
-  ['FE SD: security, accessibility, i18n, logging & monitoring', 'https://namastedev.com/learn/namaste-frontend-system-design'],
-  ['FE SD: micro-frontends, monorepos, design systems at scale', 'https://martinfowler.com/articles/micro-frontends.html'],
-  ['Design a news feed (infinite scroll, real-time updates, composer)', 'https://www.greatfrontend.com/questions/system-design/news-feed-facebook'],
-  ['Design search autocomplete (frontend)', 'https://www.greatfrontend.com/questions/system-design/autocomplete'],
-  ['Design a chat app (web client, presence, offline, delivery receipts)', 'https://www.greatfrontend.com/questions/system-design/chat-application-messenger'],
-  ['Design a video streaming player (adaptive bitrate, buffering, captions)', 'https://www.greatfrontend.com/front-end-system-design-playbook'],
-  ['Design an e-commerce product page + checkout', 'https://www.greatfrontend.com/questions/system-design/e-commerce-amazon'],
-  ['Design a photo gallery / Pinterest masonry grid', 'https://www.greatfrontend.com/questions/system-design/image-carousel'],
-  ['Design a collaborative document editor (OT vs CRDT)', 'https://www.greatfrontend.com/front-end-system-design-playbook'],
-  ['Design a spreadsheet app (virtualized grid, formula engine)', 'https://www.greatfrontend.com/front-end-system-design-playbook'],
-  ['Design a calendar app (views, recurring events, time zones)', 'https://www.greatfrontend.com/front-end-system-design-playbook'],
-  ['Design a travel booking site (search, filters, maps, booking flow)', 'https://www.greatfrontend.com/questions/system-design/travel-booking-airbnb'],
-  ['Design a whiteboard / Figma-like canvas', 'https://www.figma.com/blog/how-figmas-multiplayer-technology-works/'],
-  ['Design an analytics dashboard (charts, real-time, large data)', 'https://www.greatfrontend.com/front-end-system-design-playbook'],
-  ['HLD: Design Bit.ly (URL shortener)', 'https://www.hellointerview.com/learn/system-design/problem-breakdowns/bitly'],
-  ['HLD: Design a rate limiter', 'https://www.hellointerview.com/learn/system-design/problem-breakdowns/distributed-rate-limiter'],
-  ['HLD: Design Dropbox / Google Drive', 'https://www.hellointerview.com/learn/system-design/problem-breakdowns/dropbox'],
-  ['HLD: Design a news aggregator', 'https://www.hellointerview.com/learn/system-design/problem-breakdowns/google-news'],
-  ['HLD: Design a local delivery service', 'https://www.hellointerview.com/learn/system-design/problem-breakdowns/gopuff'],
-  ['HLD: Design LeetCode (online judge)', 'https://www.hellointerview.com/learn/system-design/problem-breakdowns/leetcode'],
-  ['HLD: Design Ticketmaster (booking under contention)', 'https://www.hellointerview.com/learn/system-design/problem-breakdowns/ticketmaster'],
-  ['HLD: Design WhatsApp', 'https://www.hellointerview.com/learn/system-design/problem-breakdowns/whatsapp'],
-  ['HLD: Design YouTube live comments', 'https://www.hellointerview.com/learn/system-design/problem-breakdowns/fb-live-comments'],
-  ['HLD: Design Yelp (geo search)', 'https://www.hellointerview.com/learn/system-design/problem-breakdowns/yelp'],
-  ['HLD: Design the Facebook news feed', 'https://www.hellointerview.com/learn/system-design/problem-breakdowns/fb-news-feed'],
-  ['HLD: Design Tinder', 'https://www.hellointerview.com/learn/system-design/problem-breakdowns/tinder'],
-  ['HLD: Design Instagram post search', 'https://www.hellointerview.com/learn/system-design/problem-breakdowns/fb-post-search'],
-  ['HLD: Design a price tracking service', 'https://www.hellointerview.com/learn/system-design/problem-breakdowns/camelcamelcamel'],
-  ['HLD: Design an online auction', 'https://www.hellointerview.com/learn/system-design/problem-breakdowns/online-auction'],
-  ['HLD: Design a top-K leaderboard', 'https://www.hellointerview.com/learn/system-design/problem-breakdowns/top-k'],
-  ['HLD: Design search autocomplete (backend)', 'https://github.com/donnemartin/system-design-primer'],
-  ['HLD: Design a web crawler', 'https://www.hellointerview.com/learn/system-design/problem-breakdowns/web-crawler'],
-  ['HLD: Design a distributed cache (Redis)', 'https://www.hellointerview.com/learn/system-design/deep-dives/redis'],
-  ['HLD: Design a job scheduler', 'https://www.hellointerview.com/learn/system-design/problem-breakdowns/job-scheduler'],
-  ['HLD: Design an ad click aggregator', 'https://www.hellointerview.com/learn/system-design/problem-breakdowns/ad-click-aggregator'],
-  ['HLD: Design YouTube', 'https://www.hellointerview.com/learn/system-design/problem-breakdowns/youtube'],
-  ['HLD: Design a payment system', 'https://www.hellointerview.com/learn/system-design/problem-breakdowns/payment-system'],
-  ['AI design: an evaluation framework for an LLM customer-support assistant (the most common new prompt)', 'https://hamel.dev/blog/posts/evals/'],
-  ['AI design: ChatGPT-style product, frontend + backend (streaming, history, rate limits, LLM gateway, cost per user)', ''],
-  ['AI design: RAG search over company docs (ingestion, re-indexing when the embedding model changes, permissions, freshness)', 'https://www.anthropic.com/news/contextual-retrieval'],
-  ['AI design: an AI coding agent platform (sandboxes, tool permissions, long-running jobs, observability)', ''],
-];
-// Mock rounds (s55–s78): 45-minute timed, solo out loud or with a peer.
-const SD_MOCKS = [
-  'FE (Meta product architecture, diagram in Mermaid): Design a news feed', 'HLD: Design Robinhood (stock trading)', 'LLD: Design an online book management system',
-  'FE: Design a chat app', 'HLD: Design Instagram', 'LLD: Design Google Authenticator',
-  'FE: Design autocomplete', 'HLD: Design Google Docs', 'LLD: Design the Android unlock pattern',
-  'FE: Design an e-commerce site', 'HLD: Design a rate limiter', 'LLD: Design Tetris',
-  'FE (diagram in Mermaid): Design Google Sheets', 'HLD: Design WhatsApp', 'LLD: Design a JSON parser',
-  'FE: Design a video player', 'HLD: Design Ticketmaster', 'LLD: Design 2048',
-  'FE: Design a calendar', 'AI: Design an eval framework for an LLM support bot', 'LLD: Design Minesweeper',
-  'FE: Design a photo gallery', 'AI: Design ChatGPT, frontend + backend', 'LLD: Design Chess',
-];
+// Adapter (Task 4c): system design lives in content/sd.js in the §6 order. The old engine reads SD as [text, url] in the old
+// order (`v1`, old text in `oldText`; the new numbers card has no `v1` and is left out) and SD_MOCKS as texts.
+const SD = SD_NEW.filter(x => x.v1 !== undefined).sort(byV1).map(x => [x.oldText ?? x.text, x.url || '']);
+const SD_MOCKS = SD_MOCKS_NEW.map(x => x.text);
 
 // Career block after BEH runs out: a short application task + one FDE item each day.
 const APPLY = [
@@ -209,22 +112,7 @@ const FDE_PROMPTS = [
   'Client simulation: scope cut. The customer wants 10 features in 4 weeks',
 ];
 
-// LLD from the board: Saturdays in the machine-coding block.
-const LLD = [
-  ['LLD foundations: OOP principles + SOLID', 'https://www.baeldung.com/solid-principles'],
-  ['LLD foundations: design patterns, creational + structural (use the masterclass video)', 'https://refactoring.guru/design-patterns'],
-  ['LLD foundations: design patterns, behavioral (Observer, Strategy, Command, State)', 'https://youtu.be/vap9ACtc_tU'],
-  ['LLD foundations: multithreading & concurrency + design a multi-threaded task scheduler', 'https://akhiilgupta.medium.com/design-a-multi-threaded-task-scheduler-lld-multi-threaded-construct-eb090c5a8727'],
-  ['LLD: Design an online book management system', 'https://www.lldcoding.com/'],
-  ['LLD: Design Google Authenticator', 'https://www.lldcoding.com/'],
-  ['LLD: Design the Android unlock pattern', 'https://www.lldcoding.com/'],
-  ['LLD: Design a rate limiter', 'https://www.lldcoding.com/'],
-  ['LLD: Design the Google Calendar database model', 'https://www.lldcoding.com/'],
-  ['LLD: Design a coupon system (quick-commerce app)', 'https://www.lldcoding.com/'],
-  ['LLD: Design a thread pool', 'https://medium.com/@prashant558908/top-3-questions-to-practice-multi-threading-for-low-level-design-interviews-1cc4d6b5d00b'],
-  ['LLD: Design Tetris', 'https://www.lldcoding.com/'],
-  ['LLD: Design an alarm / alert service for AWS', 'https://www.lldcoding.com/'],
-];
+const LLD = LLD_NEW.map(x => [x.text, x.url]);
 
 // Adapter (Task 4b): the old engine reads AI_UNITS as [unit, [[text, url]]] in the old 61-day order.
 // The reading/course days live in AI_EVENING and the build days in AIB; both keep `unit` and `day` (and `oldText` where the text
