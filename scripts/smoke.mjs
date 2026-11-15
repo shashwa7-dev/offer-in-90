@@ -1394,7 +1394,11 @@ try {
         const nw = await logo.evaluate(e => e.complete ? e.naturalWidth : 0).catch(() => 0);
         if (nw > 0) ok(`frame ${width}: sidebar logo loads (${nw}px)`); else fail(`frame ${width}: sidebar logo missing or not loaded`);
         const alt = await logo.getAttribute('alt').catch(() => null);
-        if (alt === 'Offer in 90') ok(`frame ${width}: logo alt`); else fail(`frame ${width}: logo alt "${alt}"`);
+        if (alt === 'IDT') ok(`frame ${width}: logo alt`); else fail(`frame ${width}: logo alt "${alt}"`);
+        const ttl = await page.title().catch(() => '');
+        if (ttl === 'IDT') ok(`frame ${width}: page title IDT`); else fail(`frame ${width}: page title "${ttl}"`);
+        const sbName = await page.locator('[data-slot="sidebar"] img[data-logo] + div').first().innerText().catch(() => '');
+        if (sbName.split('\n')[0].trim() === 'IDT') ok(`frame ${width}: sidebar name IDT`); else fail(`frame ${width}: sidebar name "${sbName}"`);
         const icon = await page.request.get(`${URL}/icon.png`).then(r => r.status()).catch(() => 0);
         if (icon === 200) ok('/icon.png returns 200'); else fail(`/icon.png returns ${icon}`);
         await page.locator('[data-slot="sidebar"] [data-sidebar="trigger"], [data-sidebar="trigger"]').first().click().catch(() => {});

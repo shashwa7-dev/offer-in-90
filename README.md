@@ -1,4 +1,6 @@
-# Offer in 90
+# IDT
+
+IDT (formerly Offer in 90)
 
 A 90-day interview-prep dashboard for frontend and forward-deployed engineer roles. It has a daily checklist, per-task notes, a progress timeline, and a weekly engine that flags outdated material and adds new must-reads.
 

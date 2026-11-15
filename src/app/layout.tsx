@@ -5,7 +5,7 @@ import './globals.css';
 const sans = Inter({ variable: '--font-sans-inter', subsets: ['latin'], weight: ['400', '500', '600'] });
 
 export const metadata: Metadata = {
-  title: 'Offer in 90',
+  title: 'IDT',
   description: '90-day plan for frontend and forward-deployed engineer interviews: daily checklist, notes, progress and a weekly update feed.',
   robots: { index: false, follow: false },
 };

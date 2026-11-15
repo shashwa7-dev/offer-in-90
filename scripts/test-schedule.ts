@@ -52,4 +52,7 @@ assert.ok(ics91.includes('SUMMARY:') && ics91.includes('BYDAY=SU;UNTIL=20270214'
 const ics119 = buildICS('2026-11-16', 119);
 assert.ok(ics119.includes('UNTIL=20270314T235959'));
 assert.ok(buildICS('2026-11-16').includes('UNTIL=20270214'));
+assert.ok(ics91.includes('X-WR-CALNAME:IDT'));
+assert.ok(ics91.includes('PRODID:-//IDT//Interview Prep//EN'));
+assert.ok(ics91.includes('UID:wk-dsa-2026-11-16@faang-prep'), 'event UIDs unchanged');
 console.log('schedule ok');

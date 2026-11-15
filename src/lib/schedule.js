@@ -56,7 +56,7 @@ export function buildICS(startISO, totalDays = 91, routine = undefined) {
   const firstSunday = new Date(start);
   while (firstSunday.getDay() !== 0) firstSunday.setDate(firstSunday.getDate() + 1);
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//FAANG Prep//90 Day Plan//EN', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:Interview Prep 90'];
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//IDT//Interview Prep//EN', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:IDT'];
   const add = (b, day, byday, tag) => {
     const t = (hm) => hm.replace(':', '') + '00';
     lines.push(
