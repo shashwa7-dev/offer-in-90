@@ -3,7 +3,8 @@
 
 export const WEEKDAY_BLOCKS = [
   { s: '05:00', e: '05:15', k: 'wake',      title: 'Wake up, water, freshen up', kind: 'life' },
-  { s: '05:15', e: '07:15', k: 'dsa',       title: 'Deep work 1 · DSA, new problems', kind: 'study', remind: true },
+  { s: '05:15', e: '06:45', k: 'dsa',       title: 'Deep work 1 · DSA must-solve', kind: 'study', remind: true },
+  { s: '06:45', e: '07:15', k: 'aib',       title: 'Deep work 1 · AI build', kind: 'study', remind: true },
   { s: '07:15', e: '08:00', k: 'breakfast', title: 'Breakfast, get ready', kind: 'life', remind: true },
   { s: '08:00', e: '10:00', k: 'fe',        title: 'Deep work 2 · Frontend & CS core', kind: 'study', remind: true },
   { s: '10:00', e: '10:15', k: 'break1',    title: 'Break: walk, stretch, water', kind: 'life' },
@@ -11,7 +12,8 @@ export const WEEKDAY_BLOCKS = [
   { s: '11:45', e: '13:00', k: 'lunch',     title: 'Lunch + 20 min power nap', kind: 'life', remind: true },
   { s: '13:00', e: '14:30', k: 'sd',        title: 'Deep work 4 · System design', kind: 'study', remind: true },
   { s: '14:30', e: '14:45', k: 'break2',    title: 'Tea break, away from screen', kind: 'life' },
-  { s: '14:45', e: '16:00', k: 'rev',       title: 'DSA revision (spaced repetition)', kind: 'study', remind: true },
+  { s: '14:45', e: '15:15', k: 'rev',       title: 'DSA revision + recognition drill', kind: 'study', remind: true },
+  { s: '15:15', e: '16:00', k: 'jt',        title: 'Judgment thread', kind: 'study', remind: true },
   { s: '16:00', e: '17:00', k: 'beh',       title: 'Career · behavioral, forward-deployed, applications', kind: 'study', remind: true },
   { s: '17:00', e: '18:00', k: 'free',      title: 'Outdoor walk, sunlight, pre-gym snack', kind: 'life', remind: true },
   { s: '18:00', e: '19:00', k: 'workout',   title: 'Gym', kind: 'health', remind: true },
@@ -22,16 +24,18 @@ export const WEEKDAY_BLOCKS = [
   { s: '21:30', e: '22:00', k: 'wind',      title: 'Wind down, no screens · sleep at 22:00', kind: 'life', remind: true },
 ];
 
+// Steady mode: replaces a rotating block on a day that block doesn't run, at the same times.
+export const BUFFER_BLOCK = { k: 'buffer', title: 'Buffer: catch up, rest or explore', kind: 'life' };
+
 export const SUNDAY_BLOCKS = [
-  { s: '05:00', e: '05:15', k: 'wake',      title: 'Wake up, water, freshen up', kind: 'life' },
-  { s: '05:15', e: '06:15', k: 'workout',   title: 'Long walk or easy run', kind: 'health', remind: true },
-  { s: '06:30', e: '08:00', k: 'mock',      title: 'Weekly mock test (timed)', kind: 'study', remind: true },
-  { s: '08:00', e: '09:00', k: 'breakfast', title: 'Breakfast', kind: 'life' },
-  { s: '09:00', e: '11:00', k: 'catchup',   title: 'Catch-up: missed tasks + flagged problems', kind: 'study', remind: true },
-  { s: '11:00', e: '12:00', k: 'weekly',    title: 'Weekly reflection + next week preview', kind: 'study', remind: true },
-  { s: '12:00', e: '20:30', k: 'rest',      title: 'Rest day: family, friends, outside. No study.', kind: 'life', remind: true },
-  { s: '20:30', e: '21:00', k: 'review',    title: 'Prepare for Monday: bag, desk, sleep early', kind: 'study', remind: true },
-  { s: '21:30', e: '22:00', k: 'wind',      title: 'Wind down · sleep at 22:00', kind: 'life' },
+  { s: '05:00', e: '05:15', k: 'wake',    title: 'Wake up, water, freshen up', kind: 'life' },
+  { s: '05:15', e: '06:15', k: 'workout', title: 'Long walk or easy run', kind: 'health', remind: true },
+  { s: '09:00', e: '10:30', k: 'core',    title: 'Weekly core: self-check, reflection, listen-back, preview', kind: 'study', remind: true },
+  { s: '10:30', e: '11:30', k: 'read',    title: 'Sunday read', kind: 'study', remind: true },
+  { s: '11:30', e: '13:30', k: 'sunday',  title: 'Active rest or revision', kind: 'study', remind: true },
+  { s: '13:30', e: '20:30', k: 'rest',    title: 'Rest: family, friends, outside. No study.', kind: 'life', remind: true },
+  { s: '20:30', e: '21:00', k: 'review',  title: 'Prepare for Monday: bag, desk, sleep early', kind: 'study', remind: true },
+  { s: '21:30', e: '22:00', k: 'wind',    title: 'Wind down · sleep at 22:00', kind: 'life' },
 ];
 
 function pad(n) { return String(n).padStart(2, '0'); }
