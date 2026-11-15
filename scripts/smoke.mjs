@@ -1421,6 +1421,42 @@ try {
     try { hits = execSync(`grep -rnE "c-(dsa|fe|mc|sd|beh|ai|fde|proj|ux|review|update|health)|text-(good|warn|bad)|bg-(good|warn|bad)|font-display|font-mono|catColor" src --exclude-dir=ui`, { encoding: 'utf8' }); } catch { hits = ''; }
     if (!hits.trim()) ok('grep: no old design tokens'); else fail(`grep: old design tokens left:\n${hits}`);
   }
+  // ---------- a mode switch: superseded copies on past days are history, never "missed" ----------
+  {
+    const at = new Date(2026, 10, 12, 16, 10); // Thu 12 Nov; switched to Steady on Wed 11 Nov with every cursor at 0
+    const Z = { dsa: 0, aib: 0, fe: 0, mc: 0, sd: 0, jt: 0, beh: 0, ai: 0 };
+    const fx = { ...fixture, start: '2026-11-02', done: {}, status: {}, notes: {}, updatedAt: +at,
+      modes: { '2000-01-01': { mode: 'grind', cursors: Z }, '2026-11-11': { mode: 'steady', cursors: Z, basis: '2026-11-02' } } };
+    const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
+    await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
+    const page = await ctx.newPage();
+    await page.clock.install({ time: at });
+    const errors = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+    page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+    await page.goto(URL, { waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+    await page.waitForTimeout(500);
+    const W = 'switch 1100';
+    // Missed earlier lists no superseded copy
+    const link = page.getByRole('button', { name: /missed earlier/ });
+    if (await link.count()) { await link.first().click(); await page.waitForTimeout(400); }
+    const band = page.locator('[data-band="missed-earlier"]');
+    const movedInBand = await band.locator('[data-moved]').count();
+    if (movedInBand === 0) ok(`${W}: Missed earlier has no superseded copies`); else fail(`${W}: ${movedInBand} superseded copies in Missed earlier`);
+    // Tue 10 Nov (two days back): its track blocks are history, shown "moved to", never missed
+    for (let k = 0; k < 2; k++) { await page.getByRole('button', { name: 'Previous day' }).click(); await page.waitForTimeout(300); }
+    const dsaRow = page.locator('[data-block="dsa"]');
+    if (await dsaRow.count() && !(await dsaRow.getAttribute('data-missed'))) ok(`${W}: past DSA block of superseded copies not missed`); else fail(`${W}: past DSA block marked missed`);
+    await dsaRow.click(); await page.waitForTimeout(200);
+    const moved = page.locator('[data-task]:has([data-moved])');
+    const nMoved = await moved.count();
+    const stone = await moved.evaluateAll(els => els.filter(e => e.className.includes('bg-stone')).length);
+    if (nMoved > 0 && stone === 0 && /moved to/.test(await moved.first().innerText())) ok(`${W}: ${nMoved} "moved to" rows, none missed`); else fail(`${W}: moved rows ${nMoved}, ${stone} styled missed`);
+    await page.screenshot({ path: join(shots, 'switch-1100.png'), fullPage: true });
+    checkErrors(errors, W);
+    await ctx.close();
+  }
 } catch (e) {
   fail(`crashed: ${e.stack || e}`);
 } finally {

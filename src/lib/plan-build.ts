@@ -237,12 +237,12 @@ export function buildPlanFrom(state: PlanState, updates: UpdateItem[], custom: R
       for (const x of slot.items) {
         if (x.sundayCarry) carry.push(fromItem(x, moved));
         else by[t].push(fromItem(x, moved));
-        if (t === 'dsa' && x.pattern && !slot.superseded) covered.add(x.pattern);
       }
     }
     const k = (x: string) => `d:${L.date}:${x}`;
     if (!merge) {
       by.rev = [...(resolves.get(L.date) ?? [])];
+      // Only patterns from earlier days: the drill never draws from the pattern taught today.
       const picks = drillPicks(problems, covered, L.date);
       if (picks.length) {
         by.rev.push(T(k('drill'), `Recognition drill (10 min): name the pattern and why for each, no code. ${picks.map((p, j) => `${j + 1}) ${p.name} (${p.url})`).join('; ')}`, 'dsa', {
@@ -250,6 +250,7 @@ export function buildPlanFrom(state: PlanState, updates: UpdateItem[], custom: R
         }));
       }
     }
+    for (const x of live(L, 'dsa')?.items ?? []) if (x.pattern) covered.add(x.pattern);
     by.ai = [T(k('news'), NEWS_TASK, 'ai', { newsId: 'reads' }), ...(by.ai ?? [])];
     by.workout = [T(k('wo'), WORKOUTS[dowOf(L.date)] || 'Workout', 'health')];
     by.review = [T(k('log'), 'Tick off today, write a one-line log below, glance at tomorrow', 'review', { log: true })];

@@ -96,4 +96,14 @@ assert.deepEqual(search(many, 'graph')[0].hits.map(h => h.kind === 'task' && h.d
 // "Go to" comes first so Enter on a number goes to the day
 assert.equal(search(ix, '3')[0].group, 'Go to');
 
+// a superseded copy (R12) is not indexed; the live copy is
+{
+  const sx = buildIndex({ days: [
+    { i: 1, no: 1, tasks: [{ id: 'fe:closures', text: 'Closures quokka', cat: 'fe', superseded: true }] },
+    { i: 5, no: 5, tasks: [{ id: 'fe:closures', text: 'Closures quokka', cat: 'fe' }] },
+  ], pages: {}, tnotes: {}, posts: [], reads: [] });
+  const hits = search(sx, 'quokka').find((g) => g.group === 'Tasks')!.hits;
+  assert.deepEqual(hits.map((h) => h.kind === 'task' && h.dayIdx), [5]);
+}
+
 console.log('search: all tests passed');

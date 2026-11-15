@@ -15,7 +15,7 @@ export type SearchGroup = 'Tasks' | 'Notes' | 'Interviews' | 'Reads' | 'Go to';
 
 export interface SearchInput {
   /** Plan days; `track` is the task's track name (omitted when it has none). */
-  days: { i: number; no: number; date?: Date; tasks: { id: string; text: string; cat: string; own?: string; track?: string }[] }[];
+  days: { i: number; no: number; date?: Date; tasks: { id: string; text: string; cat: string; own?: string; track?: string; superseded?: true }[] }[];
   pages: Record<string, { title: string; body: string; upd?: number }>;
   tnotes: Record<string, { title: string; body: string; upd?: number }>;
   posts: { company: string; title: string; url: string }[];
@@ -41,6 +41,7 @@ export function buildIndex(input: SearchInput): SearchIndex {
   for (const d of input.days) {
     dayIdxOfNo[d.no] = d.i;
     for (const t of d.tasks) {
+      if (t.superseded) continue; // a past copy of a re-laid slot (R12): search finds the live one
       const meta = `Day ${d.no}${d.no === 0 ? ' · prep' : ''}${t.track ? ` · ${t.track}` : ''}`;
       tasks.push(put({ kind: 'task', id: t.id, dayIdx: d.i, title: t.text, meta }, '', n++));
     }

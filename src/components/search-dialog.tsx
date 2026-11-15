@@ -26,7 +26,7 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
 
   // Built only while the palette is open, so typing in Notes (pages/tnotes changes) never re-indexes ~1.8k tasks.
   const ix = useMemo(() => open ? buildIndex({
-    days: days.map(d => ({ i: d.i, no: d.no, date: d.date, tasks: d.tasks.map(t => ({ id: t.id, text: t.text, cat: t.cat, own: t.own, track: trackName(t.cat) })) })),
+    days: days.map(d => ({ i: d.i, no: d.no, date: d.date, tasks: d.tasks.map(t => ({ id: t.id, text: t.text, cat: t.cat, own: t.own, track: trackName(t.cat), ...(t.superseded ? { superseded: t.superseded } : {}) })) })),
     pages: state.pages,
     tnotes: state.tnotes,
     posts: flattenThreads(threads),

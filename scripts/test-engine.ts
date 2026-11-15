@@ -17,6 +17,7 @@ import { placeDay, resolveRoutine } from '../src/lib/routine.ts';
 import { WEEKDAY_BLOCKS, BUFFER_BLOCK, SUNDAY_BLOCKS } from '../src/lib/schedule.js';
 import { buildPlanFrom, cursorsNowFrom, drillPicks, isStudy } from '../src/lib/plan-build.ts';
 import { switchMode } from '../src/lib/modes.ts';
+import { counts } from '../src/lib/task-status.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
@@ -236,6 +237,21 @@ for (const [plan, name] of [[G, 'grind'], [S, 'steady']] as const) {
   const firstSun = U.find((d) => d.type === 'sun')!;
   assert.ok(ids(firstSun, 'sunday').includes('upd-u2'), 'must-read lands in the Sunday block');
   assert.ok(ids(U[1], 'dsa').includes('u-c1'));
+}
+
+// ---------- isStudy matches task-status `counts` (the rule today-view uses for "missed") ----------
+for (const d of [...G, ...S]) for (const t of d.tasks) assert.equal(isStudy(t), counts(t), t.id);
+
+// ---------- the drill never draws from a pattern first taught that day ----------
+for (const plan of [G, S]) {
+  const seen = new Set<string>();
+  for (const d of plan.filter((x) => x.type === 'study')) {
+    const today = new Set((block(d, 'dsa')?.tasks ?? []).filter((t: Any) => t.pattern && !t.superseded).map((t: Any) => t.pattern));
+    const drill = (block(d, 'rev')?.tasks ?? []).find((t: Any) => t.drill);
+    const byName = new Map(dsa.PATTERNS.map((p: Any) => [p.name, p.id]));
+    for (const p of drill?.drill ?? []) assert.ok(seen.has(byName.get(p.pattern) as string), `${isoOf(d.date)}: drill pattern ${p.pattern} covered on an earlier day`);
+    for (const p of today) seen.add(p as string);
+  }
 }
 
 console.log('test-engine: ok');

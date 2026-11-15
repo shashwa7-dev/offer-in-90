@@ -6,9 +6,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import { TRACKS, bandOf } from '@/lib/timeline';
-import { STATUS_LABEL, isSkipped, statusOf } from '@/lib/task-status';
+import { STATUS_LABEL, isSkipped, owes, settled, statusOf } from '@/lib/task-status';
 import { EMPTY_FILTER, isActive, matches, statusCounts, trackOfCat, type GroupBy } from '@/lib/task-filter';
-import { totalDays, type Block, type Day, type Task, dayStats, dayTitle, fmtDate, hrs, overall, parseISO, study, toMin } from '@/lib/engine';
+import { totalDays, type Block, type Day, type Task, dayStats, dayTitle, fmtDate, hrs, overall, parseISO, toMin } from '@/lib/engine';
 import { Band, Chip, PageFrame, PageHeader, Ring, Row, Surface, SummaryRow } from './shell/page';
 import { TaskRow } from './task-row';
 import { QuickAdd } from './own-task';
@@ -38,8 +38,11 @@ export function TodayView() {
   const st = dayStats(d, state.done, state.status), o = overall(days, state.done, todayIdx, state.status);
   const cur = isToday ? d.blocks.find(b => nm >= toMin(b.s) && nm < toMin(b.e)) : undefined;
   const next = isToday ? d.blocks.find(b => toMin(b.s) > nm) : undefined;
-  const resolved = (t: { id: string }) => !!state.done[t.id] || isSkipped(t.id, state.done, state.status);
-  const overdue = days.filter(x => x.i < todayIdx).flatMap(x => x.blocks.flatMap(b => b.tasks.filter(t => study(t) && !resolved(t) && !t.log).map(t => ({ t, day: x, bk: b.k }))));
+  // resolved: nothing left to do (a superseded copy is history). owed: counts and not done or skipped; only owed
+  // tasks make a block, a row or the day "missed" (never optional, health or superseded tasks).
+  const resolved = (t: Task) => settled(t, state.done, state.status);
+  const owed = (t: Task) => owes(t, state.done, state.status);
+  const overdue = days.filter(x => x.i < todayIdx).flatMap(x => x.blocks.flatMap(b => b.tasks.filter(t => owed(t) && !t.log).map(t => ({ t, day: x, bk: b.k }))));
   const unseen = updates.filter(u => !state.seenUpdates[u.id] && u.priority !== 'fyi').length;
   const firstOpen = isToday ? (cur?.tasks.length ? cur.k : next?.k) : d.blocks.find(b => b.tasks.some(t => !resolved(t)))?.k;
   const clamp = (i: number) => Math.max(0, Math.min(days.length - 1, i));
@@ -49,10 +52,10 @@ export function TodayView() {
     if (when === 'today' && nm >= toMin(b.s) && nm < toMin(b.e)) return 'now';
     if (b.tasks.length && b.tasks.every(resolved)) return b.tasks.some(t => state.done[t.id]) ? 'done' : 'past'; // done or skipped: nothing missed
     const ended = when === 'past' || (when === 'today' && nm >= toMin(b.e));
-    return ended ? (b.tasks.length ? 'missed' : 'past') : 'upcoming';
+    return ended ? (b.tasks.some(owed) ? 'missed' : 'past') : 'upcoming';
   };
   const pick = cur?.tasks.find(t => !resolved(t));
-  const missedHere = d.blocks.filter(b => blockStatus(b) === 'missed').reduce((a, b) => a + b.tasks.filter(t => !resolved(t)).length, 0);
+  const missedHere = d.blocks.filter(b => blockStatus(b) === 'missed').reduce((a, b) => a + b.tasks.filter(owed).length, 0);
 
   // Filter bar: counts follow every filter except status; blocks offered are this day's blocks with tasks.
   const { filter, groupBy } = fv;
@@ -69,7 +72,7 @@ export function TodayView() {
   const shownOverdue = active ? overdue.filter(x => hit(x.t, x.bk)) : overdue;
   const shownTasks = dayTasks.filter(x => hit(x.t, x.b.k));
   const empty = active && !shownTasks.length && !shownOverdue.length;
-  const rowStatus = (t: Task, b: Block) => blockStatus(b) === 'missed' && !resolved(t) ? 'missed' as const : t.id === pick?.id ? 'pick' as const : undefined;
+  const rowStatus = (t: Task, b: Block) => blockStatus(b) === 'missed' && owed(t) ? 'missed' as const : t.id === pick?.id ? 'pick' as const : undefined;
   const groups: { key: string; title: string; icon?: ReactNode; rows: typeof dayTasks }[] = groupBy === 'status'
     ? STATUS_ORDER.map(k => ({ key: `status-${k}`, title: STATUS_LABEL[k], icon: <StatusIcon status={k} size={14} />, rows: shownTasks.filter(x => statusOf(x.t.id, state.done, state.status) === k) }))
     : groupBy === 'track'
@@ -189,8 +192,8 @@ function BlockView({ d, b, bs, nm, pickId, shown, isOpen, toggle, log, setLog }:
         <ChevronRight className={cn('hidden size-3.5 shrink-0 text-faint sm:block transition-transform motion-reduce:transition-none', isOpen && 'rotate-90')} aria-hidden="true" />
       </Row>
       {isOpen && <>
-        {(shown ?? b.tasks).map(t => <TaskRow key={t.id} t={t} dayIdx={d.i} status={missed && !isSkipped(t.id, state.done, state.status) && !state.done[t.id] ? 'missed' : t.id === pickId ? 'pick' : undefined} />)}
-        {!shown && b.k === 'dsa' && d.type === 'study' && b.tasks.some(t => t.id.startsWith('p-')) && (
+        {(shown ?? b.tasks).map(t => <TaskRow key={t.id} t={t} dayIdx={d.i} status={missed && owes(t, state.done, state.status) ? 'missed' : t.id === pickId ? 'pick' : undefined} />)}
+        {!shown && b.k === 'dsa' && d.type === 'study' && b.tasks.some(t => t.id.startsWith('p-') || (!!t.slug && t.id.startsWith('dsa:timed-'))) && (
           <p className="border-t border-border py-2 pr-4 pl-11 text-[12px] text-muted-foreground">45 min max per problem. Stuck? Read the solution, understand it, flag it, write what you missed in its note.</p>
         )}
         {(shown ?? b.tasks).some(t => t.log) && (
