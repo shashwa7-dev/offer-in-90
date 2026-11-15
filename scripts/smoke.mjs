@@ -13,13 +13,19 @@ mkdirSync(shots, { recursive: true });
 
 const pad = n => String(n).padStart(2, '0');
 const isoDay = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const start = new Date(); start.setDate(start.getDate() - 9);
+// The plan starts on a Monday (the prep day is the Sunday before): the Monday on or before 9 days ago.
+const start = new Date(); start.setDate(start.getDate() - 9); start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
 const now = Date.now();
 const fixture = {
-  v: 5, start: isoDay(start), kickoff: true, targets: ['Google', 'Meta'],
-  done: { 'k-wo': now, 'k-pos': now, 'k-ai': now, 's1-wo': now, 'fe-1': now },
-  flags: {}, notes: { 0: 'Set up the plan.' }, tnotes: {}, seenUpdates: {}, bookmarks: {}, custom: {}, meta: {}, updatedAt: now,
+  v: 6, start: isoDay(start), kickoff: true, targets: ['Google', 'Meta'],
+  done: { 'k-wo': now, 'k-pos': now, 'k-news': now, [`d:${isoDay(start)}:wo`]: now, 'fe:execution-context': now },
+  status: {}, flags: {}, notes: { 0: 'Set up the plan.' }, tnotes: {}, seenUpdates: {}, bookmarks: {}, custom: {},
+  modes: {}, labels: {}, itemLabels: {}, own: {}, solves: {}, sundayMode: {}, scores: {}, routine: {}, meta: {}, updatedAt: now,
 };
+
+// Fixed-clock checks run in Grind (every track every study day, as the v1 plan did); the render checks use the
+// default (Steady) fixture.
+const GRIND = { '2000-01-01': { mode: 'grind', cursors: {} } };
 
 const failures = [];
 const fail = m => { failures.push(m); console.log(`FAIL ${m}`); };
@@ -156,11 +162,11 @@ try {
     checkErrors(errors, W);
     await ctx.close();
   }
-  // ---------- Today (clock fixed at 14:10 on a weekday, day 9 of the plan) ----------
+  // ---------- Today (clock fixed at 14:10 on a weekday, day 11 of the plan) ----------
   for (const [width, height] of [[1100, 900], [390, 844]]) {
     const at = new Date(2026, 10, 12, 14, 10); // Thu 12 Nov 2026, 14:10 local
-    const st = new Date(at); st.setDate(st.getDate() - 9);
-    const fx = { ...fixture, start: isoDay(st), done: { 'k-wo': +at, 'k-pos': +at, 'k-ai': +at }, notes: {}, updatedAt: +at };
+    const st = new Date(2026, 10, 2); // Mon 2 Nov: Thu 12 Nov is day 11, week 2
+    const fx = { ...fixture, modes: GRIND, start: isoDay(st), done: { 'k-wo': +at, 'k-pos': +at, 'k-news': +at }, notes: {}, updatedAt: +at };
     const ctx = await browser.newContext({ viewport: { width, height } });
     await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
     const page = await ctx.newPage();
@@ -222,7 +228,7 @@ try {
       await page.waitForTimeout(200);
       await page.getByPlaceholder('One line: how did today go?').fill('Smoke log line');
       await page.waitForTimeout(200);
-      if ((await saved()).notes?.[9] === 'Smoke log line') ok(`${W}: daily log saves`); else fail(`${W}: daily log not saved`);
+      if ((await saved()).notes?.[11] === 'Smoke log line') ok(`${W}: daily log saves`); else fail(`${W}: daily log not saved`);
       // notice: missed tasks link opens the Missed earlier band
       const link = page.getByRole('button', { name: /^\d+ missed earlier$/ });
       if (await link.count()) {
@@ -239,9 +245,9 @@ try {
   }
   // ---------- Today filter bar, Display and full width (same fixed clock) ----------
   for (const [width, height] of [[1100, 900], [390, 844]]) {
-    const at = new Date(2026, 10, 12, 14, 10);
-    const st = new Date(at); st.setDate(st.getDate() - 9);
-    const fx = { ...fixture, start: isoDay(st), done: { 'k-wo': +at }, notes: {}, updatedAt: +at };
+    const at = new Date(2026, 10, 12, 16, 10); // the career block (2 tasks) is current
+    const st = new Date(2026, 10, 2); // Mon 2 Nov: Thu 12 Nov is day 11, week 2
+    const fx = { ...fixture, modes: GRIND, start: isoDay(st), done: { 'k-wo': +at }, notes: {}, updatedAt: +at };
     const ctx = await browser.newContext({ viewport: { width, height } });
     await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
     const page = await ctx.newPage();
@@ -264,7 +270,7 @@ try {
     const bar = page.locator('[data-filter-bar]');
     if (await bar.isVisible().catch(() => false)) ok(`${W}: filter bar visible`); else fail(`${W}: no filter bar`);
     const hdrText = (await page.locator('header').first().innerText().catch(() => '')).replace(/\s+/g, ' ');
-    if (width === 1100 ? /Week 2 Day 9 of 91 Thu/.test(hdrText) : /^Day 9 Thu/.test(hdrText) && await page.locator('header').getByText('Week 2').count()) ok(`${W}: header crumbs ${hdrText}`); else fail(`${W}: header crumbs "${hdrText}"`);
+    if (width === 1100 ? /Week 2 Day 11 of 91 Thu/.test(hdrText) : /^Day 11 Thu/.test(hdrText) && await page.locator('header').getByText('Week 2').count()) ok(`${W}: header crumbs ${hdrText}`); else fail(`${W}: header crumbs "${hdrText}"`);
     const taskIds = () => page.locator('[data-task]').evaluateAll(els => els.filter(e => e.offsetParent).map(e => e.getAttribute('data-task')));
     const pill = k => bar.locator(`[data-pill="${k}"]`);
     if (width === 1100) await page.screenshot({ path: join(shots, `filters-${width}-none.png`), fullPage: true });
@@ -345,8 +351,8 @@ try {
   // ---------- New task dialog and task peek (same fixed clock) ----------
   for (const [width, height] of [[1100, 900], [390, 844]]) {
     const at = new Date(2026, 10, 12, 14, 10);
-    const st = new Date(at); st.setDate(st.getDate() - 9);
-    const fx = { ...fixture, start: isoDay(st), done: {}, notes: {}, updatedAt: +at };
+    const st = new Date(2026, 10, 2); // Mon 2 Nov: Thu 12 Nov is day 11, week 2
+    const fx = { ...fixture, modes: GRIND, start: isoDay(st), done: {}, notes: {}, updatedAt: +at };
     const ctx = await browser.newContext({ viewport: { width, height } });
     await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
     const page = await ctx.newPage();
@@ -392,7 +398,7 @@ try {
     // a plan task (a problem in the missed 05:15 block): read-only, no Delete
     await page.locator('[data-missed]').filter({ hasText: '05:15' }).click();
     await page.waitForTimeout(200);
-    await page.locator('[data-block="dsa"] ~ [data-task]:not([data-own]) [data-title]').first().click().catch(async () => {
+    await page.locator('[data-block="dsa"] ~ [data-task^="p-"]:not([data-own]) [data-title]').first().click().catch(async () => {
       await page.locator('[data-task]:not([data-own]) [data-title]').first().click();
     });
     await page.waitForTimeout(500);
@@ -458,9 +464,9 @@ try {
   }
   // ---------- Task statuses: icon, menu, right-click, keys, peek (same fixed clock) ----------
   for (const [width, height] of [[1100, 900], [390, 844]]) {
-    const at = new Date(2026, 10, 12, 14, 10);
-    const st = new Date(at); st.setDate(st.getDate() - 9);
-    const fx = { ...fixture, start: isoDay(st), done: {}, status: {}, notes: {}, updatedAt: +at };
+    const at = new Date(2026, 10, 12, 16, 10); // the career block (2 tasks) is current
+    const st = new Date(2026, 10, 2); // Mon 2 Nov: Thu 12 Nov is day 11, week 2
+    const fx = { ...fixture, modes: GRIND, start: isoDay(st), done: {}, status: {}, notes: {}, updatedAt: +at };
     const ctx = await browser.newContext({ viewport: { width, height }, hasTouch: width === 390 });
     await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
     const page = await ctx.newPage();
@@ -540,8 +546,8 @@ try {
   // ---------- Today rail (cycle column) and sidebar Cycles (same fixed clock) ----------
   for (const [width, height, scheme] of [[1100, 900, 'light'], [1440, 900, 'light'], [1440, 900, 'dark'], [390, 844, 'light'], [390, 844, 'dark']]) {
     const at = new Date(2026, 10, 12, 14, 10);
-    const st = new Date(at); st.setDate(st.getDate() - 9);
-    const fx = { ...fixture, start: isoDay(st), done: { 'k-wo': +at }, status: {}, notes: {}, updatedAt: +at };
+    const st = new Date(2026, 10, 2); // Mon 2 Nov: Thu 12 Nov is day 11, week 2
+    const fx = { ...fixture, modes: GRIND, start: isoDay(st), done: { 'k-wo': +at }, status: {}, notes: {}, updatedAt: +at };
     const ctx = await browser.newContext({ viewport: { width, height }, colorScheme: scheme });
     await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
     const page = await ctx.newPage();
@@ -571,9 +577,14 @@ try {
     if (width === 1100) {
       // Trailing counts only what is due by 14:10: with yesterday and today's ended blocks done, it's on track.
       const before = (await cyc.locator('[data-trailing]').innerText().catch(() => '')).trim();
-      await cyc.locator('[data-cycle-day]').first().click(); await page.waitForTimeout(300); // Wed, the first day of this cycle
+      // The cycle is the plan week (Mon–Sun): tick Mon, Tue and Wed in full, then today's ended blocks.
+      await cyc.locator('[data-cycle-day]').first().click(); await page.waitForTimeout(300); // Mon, the first day of this cycle
       await page.getByRole('button', { name: 'Display' }).click(); await page.getByRole('menuitemradio', { name: 'Status' }).click(); await page.waitForTimeout(300);
-      const wedIds = await page.locator('[data-task]').evaluateAll(els => els.map(e => e.getAttribute('data-task')));
+      const wedIds = [];
+      for (let k = 0; k < 3; k++) {
+        if (k) { await page.getByRole('button', { name: 'Next day' }).click(); await page.waitForTimeout(300); }
+        wedIds.push(...await page.locator('[data-task]').evaluateAll(els => els.map(e => e.getAttribute('data-task'))));
+      }
       await page.getByRole('button', { name: 'Display' }).click(); await page.getByRole('menuitemradio', { name: 'Time of day' }).click(); await page.waitForTimeout(200);
       await page.getByRole('button', { name: 'Next day' }).click(); await page.waitForTimeout(300);
       for (const m of await page.locator('[data-missed]').all()) if ((await m.getAttribute('aria-expanded')) !== 'true') { await m.click(); await page.waitForTimeout(100); }
@@ -655,7 +666,7 @@ try {
   for (const [width, height] of [[1100, 900], [390, 844]]) {
     for (const future of [false, true]) {
       const st = new Date(); st.setDate(st.getDate() + (future ? 5 : -9));
-      const fx = { ...fixture, start: isoDay(st) };
+      const fx = { ...fixture, modes: GRIND, start: isoDay(st) };
       const ctx = await browser.newContext({ viewport: { width, height } });
       await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
       const page = await ctx.newPage();
@@ -805,8 +816,8 @@ try {
   // ---------- "Open News" on the daily reads task lands on Reading and leaves the interviews visit alone ----------
   {
     const at = new Date(2026, 10, 12, 20, 10); // Thu 12 Nov 2026, 20:10: the AI block (news + papers) is current
-    const st = new Date(at); st.setDate(st.getDate() - 9);
-    const fx = { ...fixture, start: isoDay(st), done: {}, notes: {}, seenUpdates: { 'interviews-visit': 12345 }, updatedAt: +at };
+    const st = new Date(2026, 10, 2); // Mon 2 Nov: Thu 12 Nov is day 11, week 2
+    const fx = { ...fixture, modes: GRIND, start: isoDay(st), done: {}, notes: {}, seenUpdates: { 'interviews-visit': 12345 }, updatedAt: +at };
     const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
     await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
     const page = await ctx.newPage();
@@ -1009,7 +1020,7 @@ try {
     await page.getByRole('button', { name: 'View timetable' }).click();
     await page.waitForTimeout(400);
     const sheet = page.getByRole('dialog', { name: 'Daily timetable' });
-    if (await sheet.isVisible().catch(() => false) && await sheet.getByText('Mon–Sat').count() && await sheet.getByText('Sunday').count() && await sheet.getByText('05:15–07:15').count()) ok(`${W}: timetable sheet shows both tables`); else fail(`${W}: timetable sheet missing`);
+    if (await sheet.isVisible().catch(() => false) && await sheet.getByText('Mon–Sat').count() && await sheet.getByText('Sunday').count() && await sheet.getByText('05:15–06:45').count()) ok(`${W}: timetable sheet shows both tables`); else fail(`${W}: timetable sheet missing`);
     await page.screenshot({ path: join(shots, 'setup-1100-timetable.png') });
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
 
@@ -1149,8 +1160,8 @@ try {
   // ---------- ⌘K search: open anywhere, task → day + peek, number → day, note → Notes, Esc closes ----------
   for (const [width, height] of [[1100, 800], [390, 844]]) {
     const at = new Date(2026, 10, 12, 14, 10);
-    const st = new Date(at); st.setDate(st.getDate() - 9);
-    const fx = { ...fixture, start: isoDay(st), updatedAt: +at, tnotes: { 'p-two-sum': { title: 'Two Sum', body: 'Use a quokkahash map of value to index.', upd: +at - 3600e3 } } };
+    const st = new Date(2026, 10, 2); // Mon 2 Nov: Thu 12 Nov is day 11, week 2
+    const fx = { ...fixture, modes: GRIND, start: isoDay(st), updatedAt: +at, tnotes: { 'p-two-sum': { title: 'Two Sum', body: 'Use a quokkahash map of value to index.', upd: +at - 3600e3 } } };
     const ctx = await browser.newContext({ viewport: { width, height } });
     await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
     const page = await ctx.newPage();
