@@ -415,6 +415,15 @@ reads, scores, burnout guard), search, sync, the calendar file.
 
 ## Sources
 
+**Sourcing rule (owner, 2026-11-15):** each item has one primary link and at most one free secondary link. The
+System Design Primer (https://github.com/donnemartin/system-design-primer) and the Tech Interview Handbook
+(https://github.com/yangshun/tech-interview-handbook) are secondary links where they fit: the primer's latency and
+powers-of-two tables (Systems slot 1), its worked solutions as the "compare" link on matching HLD designs, "Scaling AWS
+to millions of users" (Platform AWS), its Anki decks as an optional recall source; the handbook's coding interview
+rubric as the self-scoring sheet for Saturday coding rounds and mock loops, and its behavioral question bank and
+"questions to ask" on the matching career items. No new slots; Grind 75 is not added.
+
+
 - Chip Huyen, *AI Engineering*, table of contents: https://github.com/chiphuyen/aie-book/blob/main/ToC.md
 - mlabonne/llm-course (LLM Engineer path): https://github.com/mlabonne/llm-course
 - MIT, *The Missing Semester*: https://missing.csail.mit.edu/
