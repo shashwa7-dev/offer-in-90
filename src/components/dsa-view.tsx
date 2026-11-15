@@ -41,10 +41,13 @@ export function DsaView() {
 
   const rows: Row[] = useMemo(() => [...PLAN, ...Object.values(state.own).map((o): Row => ({ slug: o.slug, name: o.name, d: o.diff, pattern: o.pattern, tier: 'optional', flags: [], url: o.url, own: true }))], [state.own]);
   const planDay = useMemo(() => planDayMap(days), [days]);
+  // Re-evaluated every minute so a solve dated "later today" or a 7-day gap is not frozen at first render.
+  const [tick, setTick] = useState(0);
+  useEffect(() => { const t = setInterval(() => setTick(n => n + 1), 60_000); return () => clearInterval(t); }, []);
   const dots = useMemo(() => {
-    const now = Date.now();
+    const now = Date.now(); void tick;
     return new Map(PATS.map(p => [p.id, readinessDot(greenStatus(p.id, PLAN, state.own, state.solves, now))]));
-  }, [state.own, state.solves]);
+  }, [state.own, state.solves, tick]);
   const pat = PATS.find(p => p.id === sel)!;
   const topics = [...new Set(PATS.map(p => p.topic))];
 
@@ -132,9 +135,13 @@ function ProblemRow({ r, day, labelIds, highlighted, rowRef }: { r: Row; day: nu
   const label = hidden ? 'Unseen problem' : r.name;
   const views = labelIds.filter(x => !x.startsWith('sys:')).map(x => viewOf(x, state.labels)).filter((v): v is NonNullable<ReturnType<typeof viewOf>> => !!v);
   const toggle = (labelId: string, on: boolean) => update(s => { const n = (on ? applyLabel : removeLabel)({ labels: s.labels, itemLabels: s.itemLabels }, id, labelId); return n.itemLabels === s.itemLabels ? s : { ...s, itemLabels: n.itemLabels }; });
-  const remove = () => update(s => { const own = { ...s.own }; delete own[r.slug]; return { ...s, own }; });
+  const remove = () => update(s => {
+    const own = { ...s.own }, solves = { ...s.solves }, itemLabels = { ...s.itemLabels };
+    delete own[r.slug]; delete solves[id]; delete itemLabels[id];
+    return { ...s, own, solves, itemLabels };
+  });
   return (
-    <div ref={rowRef} data-problem={r.slug} data-own={r.own ? '' : undefined} className={cn('group border-t border-border px-4 py-2 text-[13px]', highlighted && 'bg-hover shadow-[inset_2px_0_0_var(--ring)]')}>
+    <div ref={rowRef} data-problem={hidden ? undefined : r.slug} data-unseen-row={hidden ? '' : undefined} data-own={r.own ? '' : undefined} className={cn('group border-t border-border px-4 py-2 text-[13px]', highlighted && 'bg-hover shadow-[inset_2px_0_0_var(--ring)]')}>
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <StatusControl taskId={id} label={label} className="shrink-0" />
         <div className="min-w-0 flex-1 basis-40 break-words">

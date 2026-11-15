@@ -106,4 +106,14 @@ assert.equal(search(ix, '3')[0].group, 'Go to');
   assert.deepEqual(hits.map((h) => h.kind === 'task' && h.dayIdx), [5]);
 }
 
+// a hidden unseen check is indexed as the anonymous prompt, never its real name
+{
+  const hx = buildIndex({ days: [{ i: 0, no: 1, tasks: [{ id: 'p-secret-problem', text: 'Secret Problem', cat: 'dsa', hidden: true }, { id: 'p-open-one', text: 'Open One', cat: 'dsa' }] }], pages: {}, tnotes: {}, posts: [], reads: [] });
+  assert.equal(search(hx, 'secret').find((g) => g.group === 'Tasks'), undefined);
+  assert.equal(search(hx, 'open').find((g) => g.group === 'Tasks')!.hits.length, 1);
+  const anon = search(hx, 'unseen problem').find((g) => g.group === 'Tasks')!.hits;
+  assert.deepEqual(anon.map((h) => h.kind === 'task' && h.id), ['p-secret-problem']);
+  assert.equal(anon[0].title, 'Unseen problem · press Start');
+}
+
 console.log('search: all tests passed');

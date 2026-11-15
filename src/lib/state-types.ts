@@ -7,7 +7,7 @@ export type ModeEntry = { mode: 'steady' | 'grind'; cursors: Record<TrackId, num
 export type OwnerLabel = { id: string; name: string; color: string; group?: string; kind: 'label' | 'group'; single?: boolean };
 /** A problem the owner added that is not in the plan. `pattern` is a PatternId. */
 export type OwnProblem = { slug: string; url: string; name: string; diff: 'E' | 'M' | 'H'; pattern: string; at: number };
-export type SolveLog = { unseen: boolean; minutes?: number; at: number };
+export type SolveLog = { unseen: boolean; minutes?: number; at: number; /** Task id whose tick created this log (a Phase 3 timed item); un-ticking that task removes it. */ via?: string };
 
 export type RoutineKey = 'breakfast' | 'lunch' | 'dinner' | 'extra';
 /** One owner-editable weekday slot (meal or gym). `s` is 'HH:MM'. */

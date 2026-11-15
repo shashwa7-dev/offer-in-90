@@ -22,20 +22,32 @@ export function solveKeyOf(taskId: string): string | null {
 type Solves = Record<string, SolveLog>;
 
 /**
- * The solves map after a task's status changes. Ticking logs the problem (an unseen check defaults to unseen) unless it
- * is already logged; a re-solve tick always takes the new time. Un-ticking a problem removes its own log; a re-solve
- * or timed-set item leaves its log alone. Returns the same object when nothing changes.
+ * The solves map after a task's status changes (R14: a log exists only while the task that created it is done).
+ * Ticking a problem logs it (an unseen check defaults to unseen) unless already logged; a re-solve tick takes the new time;
+ * a timed-set tick creates `p-<slug>` with `via: <task id>` when none exists. Un-ticking `p-<slug>` removes its log; un-ticking
+ * `rs:<slug>:<k>` removes `rs:<slug>` unless another re-solve of that slug is still done; un-ticking a timed item removes the log
+ * only if it created it. `done` is the done map before the change. Returns the same object when nothing changes.
  */
-export function solveOnStatus(solves: Solves, taskId: string, next: string, now: number, unseenSlugs: ReadonlySet<string>): Solves {
+export function solveOnStatus(solves: Solves, taskId: string, next: string, now: number, unseenSlugs: ReadonlySet<string>, done: Record<string, number> = {}): Solves {
   const key = solveKeyOf(taskId);
   if (!key) return solves;
+  const own = taskId === key;
   if (next === 'done') {
     if (key.startsWith('rs:')) return { ...solves, [key]: { unseen: false, at: now } };
-    if (solves[key]) return solves;
-    return { ...solves, [key]: { unseen: unseenSlugs.has(key.slice(2)), at: now } };
+    const cur = solves[key];
+    if (cur) {
+      if (own && cur.via) { const { via: _v, ...rest } = cur; void _v; return { ...solves, [key]: rest }; } // the problem itself now owns the log
+      return solves;
+    }
+    return { ...solves, [key]: { unseen: unseenSlugs.has(key.slice(2)), at: now, ...(own ? {} : { via: taskId }) } };
   }
-  if (taskId === key && solves[key]) { const n = { ...solves }; delete n[key]; return n; }
-  return solves;
+  const cur = solves[key];
+  if (!cur) return solves;
+  if (key.startsWith('rs:')) {
+    const slug = key.slice(3);
+    if (Object.keys(done).some((id) => id !== taskId && done[id] && id.startsWith(`rs:${slug}:`))) return solves;
+  } else if (!own && cur.via !== taskId) return solves;
+  const n = { ...solves }; delete n[key]; return n;
 }
 
 /** Edit a solve log from the "solved without seeing it" box or the Minutes field. Keeps `at`; null minutes clears them. */

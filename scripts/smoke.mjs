@@ -1554,7 +1554,7 @@ try {
     if (await page.locator('[data-pattern="hash-map"]').getAttribute('data-dot') === 'none') ok(`${W}: dot starts at ○`); else fail(`${W}: dot did not start at none`);
     // optional problems show here as Pool; the unseen check keeps its name back
     if (await page.locator('[data-problem="contains-duplicate"] [data-plan-day]').textContent() === 'Pool') ok(`${W}: optional problem is Pool`); else fail(`${W}: optional problem not Pool`);
-    if (await page.locator('[data-problem="longest-consecutive-sequence"] [data-unseen-hidden]').count()) ok(`${W}: unseen check is anonymous before Start`); else fail(`${W}: unseen check shows its name`);
+    if (await page.locator('[data-unseen-row] [data-unseen-hidden]').count() === 1 && !(await page.locator('[data-problem="longest-consecutive-sequence"]').count()) && !(await page.locator('[data-patterns] ~ * [data-unseen-row]').evaluateAll(els => els.some(e => /consecutive/i.test(e.outerHTML))))) ok(`${W}: unseen check is anonymous before Start`); else fail(`${W}: unseen check shows its name`);
     // add a problem that is already in the plan
     await page.locator('[data-add-problem]').click();
     await page.getByLabel('LeetCode URL').fill('https://leetcode.com/problems/two-sum/');
@@ -1578,9 +1578,9 @@ try {
     st = await page.evaluate(() => JSON.parse(localStorage.getItem('offer90.v1') || '{}'));
     if (st.own['smoke-own-problem']?.diff === 'H' && st.own['smoke-own-problem']?.pattern === 'hash-map') ok(`${W}: own problem saved with pattern and difficulty`); else fail(`${W}: own problem not saved right`);
     // tick the unseen check with 20 minutes: the dot turns ◐
-    const row = page.locator('[data-problem="longest-consecutive-sequence"]');
-    await row.locator('[data-status-icon]').click();
+    await page.locator('[data-unseen-row] [data-status-icon]').click();
     await page.waitForTimeout(300);
+    const row = page.locator('[data-problem="longest-consecutive-sequence"]');
     await row.locator('[data-solve-minutes]').fill('20');
     await row.locator('[data-solve-minutes]').blur();
     await page.waitForTimeout(300);

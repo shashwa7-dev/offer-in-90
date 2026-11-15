@@ -223,10 +223,10 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
             </div>
           )}
 
-          <div className="border-t border-border pt-4">
+          {!hidden && <div className="border-t border-border pt-4">
             <h3 className="mb-2 text-[13px] font-medium text-foreground">Note</h3>
             <NoteEditor key={noteKey(t)} target={{ kind: 'task', key: noteKey(t), title: t.text.replace(/^Re-solve without looking: /, ''), url: t.url }} compact />
-          </div>
+          </div>}
         </div>
       </div>
     </div>

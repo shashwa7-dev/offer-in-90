@@ -15,7 +15,7 @@ export type SearchGroup = 'Tasks' | 'Notes' | 'Interviews' | 'Reads' | 'Go to';
 
 export interface SearchInput {
   /** Plan days; `track` is the task's track name (omitted when it has none). */
-  days: { i: number; no: number; date?: Date; tasks: { id: string; text: string; cat: string; own?: string; track?: string; superseded?: true }[] }[];
+  days: { i: number; no: number; date?: Date; tasks: { id: string; text: string; cat: string; own?: string; track?: string; superseded?: true; /** An unstarted unseen check: indexed under the anonymous prompt, never its real name. */ hidden?: true }[] }[];
   pages: Record<string, { title: string; body: string; upd?: number }>;
   tnotes: Record<string, { title: string; body: string; upd?: number }>;
   posts: { company: string; title: string; url: string }[];
@@ -33,6 +33,9 @@ const ago = (ts: number, now: number) => { const m = Math.round((now - ts) / 6e4
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+/** Same text as namePrompt in dsa-page.ts (this module takes no runtime imports). */
+const HIDDEN_TITLE = 'Unseen problem · press Start';
+
 export function buildIndex(input: SearchInput): SearchIndex {
   const now = input.now ?? Date.now();
   const tasks: Hit[] = [];
@@ -43,7 +46,7 @@ export function buildIndex(input: SearchInput): SearchIndex {
     for (const t of d.tasks) {
       if (t.superseded) continue; // a past copy of a re-laid slot (R12): search finds the live one
       const meta = `Day ${d.no}${d.no === 0 ? ' · prep' : ''}${t.track ? ` · ${t.track}` : ''}`;
-      tasks.push(put({ kind: 'task', id: t.id, dayIdx: d.i, title: t.text, meta }, '', n++));
+      tasks.push(put({ kind: 'task', id: t.id, dayIdx: d.i, title: t.hidden ? HIDDEN_TITLE : t.text, meta }, '', n++));
     }
   }
   const notes: Hit[] = [];

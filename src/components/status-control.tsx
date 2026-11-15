@@ -52,7 +52,7 @@ export function useTaskStatus(taskId: string): [TaskStatus, (next: TaskStatus) =
   const set = useCallback((next: TaskStatus) => {
     const now = Date.now();
     update(s => {
-      const solves = solveOnStatus(s.solves, taskId, next, now, UNSEEN_SLUGS);
+      const solves = solveOnStatus(s.solves, taskId, next, now, UNSEEN_SLUGS, s.done);
       return { ...s, ...applyStatus({ done: s.done, status: s.status }, taskId, next, now), ...(solves === s.solves ? {} : { solves }) };
     });
   }, [update, taskId]);
