@@ -12,8 +12,12 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useStore, type State } from '@/lib/store';
 import { buildICS, WEEKDAY_BLOCKS, SUNDAY_BLOCKS } from '@/lib/schedule';
-import { fmtDate, iso, parseISO, totalDays } from '@/lib/engine';
-import { resolveRoutine } from '@/lib/routine';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { cursorsNow, fmtDate, iso, parseISO, totalDays } from '@/lib/engine';
+import { DEFAULT_ROUTINE, ROUTINE_KEYS, placeDay, resolveRoutine, validateRoutine } from '@/lib/routine';
+import { modeOn, switchMode, type Mode } from '@/lib/modes';
+import { nextMonday, overflowMessage, parseRoutineForm, toDraft, type RoutineDraft } from '@/lib/setup-helpers';
+import type { RoutineKey } from '@/lib/state-types';
 import { companyCounts, flattenThreads } from '@/lib/interview-feed';
 import { useUI } from './ui-state';
 import { Band, Chip, PageFrame, PageHeader, Surface } from './shell/page';
@@ -52,6 +56,57 @@ function Timetable({ title, blocks }: { title: string; blocks: { s: string; e: s
   );
 }
 
+const ROUTINE_ROW: Record<RoutineKey, string> = { breakfast: 'Breakfast', lunch: 'Lunch', extra: 'Fourth slot', dinner: 'Dinner' };
+
+/** The "My routine" form. Remounted (by key) whenever the saved routine changes, so the fields always match it. */
+function RoutineForm() {
+  const { state, update } = useStore();
+  const { toast } = useUI();
+  const [form, setForm] = useState<Record<RoutineKey, RoutineDraft>>(() => {
+    const r = resolveRoutine(state.routine);
+    return { breakfast: toDraft(r.breakfast), lunch: toDraft(r.lunch), extra: toDraft(r.extra), dinner: toDraft(r.dinner) };
+  });
+  const [error, setError] = useState('');
+  const edit = (k: RoutineKey, patch: Partial<RoutineDraft>) => { setError(''); setForm(f => ({ ...f, [k]: { ...f[k], ...patch } })); };
+
+  const save = () => {
+    const slots = parseRoutineForm(form);
+    const v = validateRoutine(slots);
+    if (!v.ok) { setError(v.error); return; }
+    const p = placeDay(WEEKDAY_BLOCKS, slots);
+    if (!p.ok) { setError(overflowMessage(p.block.title, p.overMin)); return; }
+    // Only slots that differ from the defaults are stored; the rest are removed so sync records the deletion.
+    const next: Partial<Record<RoutineKey, (typeof slots)[RoutineKey]>> = {};
+    for (const k of ROUTINE_KEYS) if (JSON.stringify(slots[k]) !== JSON.stringify(DEFAULT_ROUTINE[k])) next[k] = slots[k];
+    update(s => ({ ...s, routine: next }));
+    toast('Routine saved. Download the calendar again.');
+  };
+  const reset = () => { update(s => ({ ...s, routine: {} })); setError(''); toast('Routine reset to defaults. Download the calendar again.'); };
+
+  return (
+    <div data-routine>
+      {ROUTINE_KEYS.map(k => {
+        const x = form[k];
+        return (
+          <div key={k} className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-2.5 first:border-t-0">
+            <Switch aria-label={`${ROUTINE_ROW[k]} on`} checked={x.on} onCheckedChange={v => edit(k, { on: v })} />
+            <Input aria-label={`${ROUTINE_ROW[k]} name`} value={x.title} onChange={e => edit(k, { title: e.target.value })} className="h-8 min-w-40 flex-1 text-[13px]" />
+            <Input type="time" aria-label={`${ROUTINE_ROW[k]} start`} value={x.s} onChange={e => edit(k, { s: e.target.value })} className="h-8 w-28 text-[13px] tabular-nums" />
+            <Input inputMode="numeric" aria-label={`${ROUTINE_ROW[k]} minutes`} value={x.min} onChange={e => edit(k, { min: e.target.value })} className="h-8 w-16 text-[13px] tabular-nums" />
+            <span className="text-[13px] text-muted-foreground">min</span>
+          </div>
+        );
+      })}
+      <div className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-3">
+        <Button variant="outline" size="sm" onClick={save}>Save</Button>
+        <Button variant="ghost" size="sm" onClick={reset}>Reset to defaults</Button>
+        {error && <p data-routine-error role="alert" className="min-w-0 basis-full text-[13px] text-foreground">{error}</p>}
+      </div>
+      <p className="border-t border-border px-4 py-2.5 text-[13px] leading-snug text-muted-foreground">The routine applies Mon–Sat. A calendar file you have already downloaded must be downloaded again after any change.</p>
+    </div>
+  );
+}
+
 export function SetupView() {
   const { state, days, update, replace, threads, sync, syncConfigured, connectSync, disconnectSync, syncNow } = useStore();
   const { toast } = useUI();
@@ -69,6 +124,13 @@ export function SetupView() {
   const removeTarget = (c: string) => update(s => ({ ...s, targets: s.targets.filter(t => t !== c) }));
 
   const start = parseISO(state.start);
+  const mode = modeOn(state.modes, iso(new Date())).mode;
+  const switchTo = (m: Mode) => {
+    if (m === mode) return;
+    const today = iso(new Date());
+    update(s => ({ ...s, modes: switchMode(s.modes, today, m, cursorsNow(s, today), s.start) }));
+    toast(`Switched to ${m === 'grind' ? 'Grind' : 'Steady'} from today. Done work stays done.`);
+  };
   const wake = WEEKDAY_BLOCKS.find(b => b.k === 'wake')?.s ?? WEEKDAY_BLOCKS[0].s;
   const gym = WEEKDAY_BLOCKS.find(b => b.k === 'workout')?.s;
   const sleep = WEEKDAY_BLOCKS[WEEKDAY_BLOCKS.length - 1].e;
@@ -78,23 +140,34 @@ export function SetupView() {
     <PageFrame header={<PageHeader crumbs={['Setup']} />}>
       <Surface>
         <Band id="plan" title="Your plan">
-          <Setting label="Start date" help="The first day of your plan. Sundays become review days. Your ticks and notes stay.">
+          <Setting label="Mode" help={<><span className="block">Steady: 17 weeks · about 8.5 h a day</span><span className="block">Grind: 13 weeks · about 10.75 h a day</span></>}>
+            <ToggleGroup type="single" variant="outline" size="sm" value={mode} aria-label="Mode"
+              onValueChange={v => { if (v === 'steady' || v === 'grind') switchTo(v); }}>
+              <ToggleGroupItem value="steady" className="px-3 text-[13px]">Steady</ToggleGroupItem>
+              <ToggleGroupItem value="grind" className="px-3 text-[13px]">Grind</ToggleGroupItem>
+            </ToggleGroup>
+          </Setting>
+          <Setting label="Start date" help="A Monday: the first day of your plan. Sundays become review days. Your ticks and notes stay.">
             <Popover open={dateOpen} onOpenChange={setDateOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" data-start-date className="font-normal tabular-nums"><CalendarDays className="text-muted-foreground" />{fmtDate(start)}</Button>
               </PopoverTrigger>
               <PopoverContent align="end" className={`w-auto p-0 ${popup}`}>
-                <Calendar mode="single" selected={start} defaultMonth={start} required
+                <Calendar mode="single" selected={start} defaultMonth={start} required disabled={d => d.getDay() !== 1}
                   onSelect={d => { if (!d) return; const v = iso(d); setDateOpen(false); if (v === state.start) return; update(s => ({ ...s, start: v })); toast('Start date saved. Download the calendar again.'); }} />
               </PopoverContent>
             </Popover>
           </Setting>
-          <Setting label="Start with a prep day" htmlFor="prep-day" help="Day 0 is a half prep day from 15:30. Off: Day 1 starts on the start date.">
+          <Setting label="Start with a prep day" htmlFor="prep-day" help="Day 0 is the Sunday before the start date, a half prep day from 15:30. Off: Day 1 starts on the start date.">
             <Switch id="prep-day" aria-label="Start with a prep day" checked={state.kickoff} onCheckedChange={v => update(s => ({ ...s, kickoff: v }))} />
           </Setting>
           <Setting label="Daily timetable" help={<span className="tabular-nums">Wake {wake}{gym ? ` · gym ${gym}` : ''} · sleep {sleep}</span>}>
             <Button variant="outline" size="sm" onClick={() => setSheet(true)} aria-label="View timetable">View</Button>
           </Setting>
+        </Band>
+
+        <Band id="routine" title="My routine">
+          <RoutineForm key={JSON.stringify(state.routine)} />
         </Band>
 
         <Band id="interviews" title="Interviews" count={state.targets.length || undefined}>
@@ -174,26 +247,26 @@ export function SetupView() {
         </Band>
 
         <Band id="reminders" title="Reminders">
-          <Setting label="Calendar reminders" help="Every block as a repeating event with an alert 2 minutes before, for 13 weeks. Import into Google Calendar for phone alerts.">
+          <Setting label="Calendar reminders" help="Every block as a repeating event with an alert 2 minutes before, for the whole plan. Import into Google Calendar for phone alerts.">
             <Button size="sm" onClick={() => download('reminders.ics', buildICS(state.start, totalDays(days), resolveRoutine(state.routine)), 'text/calendar')}>Download reminders.ics</Button>
           </Setting>
         </Band>
 
         <Band id="again" title="Start again">
-          <Setting label="Start over from today" help="Today becomes the first day and every tick, flag and daily log is cleared, here and in the Gist. Notes pages, bookmarks and your own tasks stay.">
+          <Setting label="Start over from today" help="The next Monday (today, if it is Monday) becomes the start date and every tick, flag and daily log is cleared, here and in the Gist. Notes pages, bookmarks and your own tasks stay.">
             <AlertDialog>
               <AlertDialogTrigger asChild><Button variant="outline" size="sm" className={stoneBtn}>Start over…</Button></AlertDialogTrigger>
               <AlertDialogContent className={popup}>
                 <AlertDialogHeader>
                   <AlertDialogTitle className="text-[16px]">Start over from today?</AlertDialogTitle>
-                  <AlertDialogDescription>Makes today the first day (Day 0 if the prep day is on, otherwise Day 1) and clears every tick, flag and daily log, here and in the Gist. Your notes pages, bookmarks and your own tasks stay.</AlertDialogDescription>
+                  <AlertDialogDescription>Makes the next Monday (today, if it is Monday) the start date, with the prep day the Sunday before if it is on, and clears every tick, flag and daily log, here and in the Gist. Your notes pages, bookmarks and your own tasks stay.</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction onClick={() => {
-                    const today = iso(new Date());
+                    const today = nextMonday(iso(new Date()));
                     update(s => ({ ...s, start: today, done: {}, flags: {}, notes: {} }));
-                    toast(`${state.kickoff ? 'Day 0' : 'Day 1'} is today. Download the calendar again.`);
+                    toast('Start date moved to the next Monday. Download the calendar again.');
                   }}>Start over</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

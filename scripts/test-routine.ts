@@ -48,6 +48,7 @@ assert.ok((late as any).overMin > 0 && (late as any).block.k === 'ai');
 assert.deepEqual(validateRoutine(DEFAULT_ROUTINE), { ok: true });
 const bad = (r: any) => { const v = validateRoutine({ ...DEFAULT_ROUTINE, ...r }); assert.equal(v.ok, false); return (v as any).error as string; };
 assert.match(bad({ lunch: { on: true, title: 'Lunch', s: '17:30', min: 60 } }), /overlaps/);
+assert.equal(bad({ lunch: { on: true, title: 'Lunch', s: '17:30', min: 60 }, extra: { on: true, title: 'Yoga', s: '18:00', min: 60 } }), 'Lunch overlaps Yoga.');
 assert.equal(bad({ lunch: { on: true, title: 'Lunch', s: '12:00', min: 0 } }).length > 0, true);
 bad({ lunch: { on: true, title: 'Lunch', s: '25:00', min: 60 } });
 bad({ breakfast: { on: true, title: 'B', s: '05:00', min: 15 } });

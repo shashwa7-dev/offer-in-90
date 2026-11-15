@@ -29,10 +29,11 @@ export function resolveRoutine(stored?: Partial<Record<RoutineKey, RoutineSlot>>
 
 export function validateRoutine(r: Partial<Record<RoutineKey, RoutineSlot>>): { ok: true } | { ok: false; error: string } {
   const full = resolveRoutine(r);
-  const spans: { k: RoutineKey; a: number; b: number }[] = [];
+  const spans: { k: RoutineKey; a: number; b: number; name: string }[] = [];
   for (const k of ROUTINE_KEYS) {
-    const x = full[k], name = LABEL[k];
+    const x = full[k];
     const t = typeof x.title === 'string' ? x.title.trim() : '';
+    const name = t.length >= 1 && t.length <= 40 ? t : LABEL[k];
     if (t.length < 1 || t.length > 40) return { ok: false, error: `${name} needs a title of 1 to 40 characters.` };
     if (!Number.isInteger(x.min) || x.min < 5 || x.min > 180) return { ok: false, error: `${name} must last 5 to 180 minutes.` };
     if (!validHM(x.s)) return { ok: false, error: `${name} needs a valid start time.` };
@@ -40,10 +41,10 @@ export function validateRoutine(r: Partial<Record<RoutineKey, RoutineSlot>>): { 
     const a = toMin(x.s), b = a + x.min;
     if (a < WAKE_END) return { ok: false, error: `${name} starts before 05:15, when wake-up ends.` };
     if (b > WIND_START) return { ok: false, error: `${name} runs past 21:30, when wind-down starts.` };
-    spans.push({ k, a, b });
+    spans.push({ k, a, b, name });
   }
   for (let i = 0; i < spans.length; i++) for (let j = i + 1; j < spans.length; j++) {
-    if (spans[i].a < spans[j].b && spans[j].a < spans[i].b) return { ok: false, error: `${LABEL[spans[i].k]} overlaps ${LABEL[spans[j].k]}.` };
+    if (spans[i].a < spans[j].b && spans[j].a < spans[i].b) return { ok: false, error: `${spans[i].name} overlaps ${spans[j].name}.` };
   }
   return { ok: true };
 }

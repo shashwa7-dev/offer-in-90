@@ -15,6 +15,7 @@ const pad = n => String(n).padStart(2, '0');
 const isoDay = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 // The plan starts on a Monday (the prep day is the Sunday before): the Monday on or before 9 days ago.
 const start = new Date(); start.setDate(start.getDate() - 9); start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+const nextMondayOf = d => { const x = new Date(d); x.setDate(x.getDate() + ((8 - x.getDay()) % 7)); return isoDay(x); };
 const now = Date.now();
 const fixture = {
   v: 6, start: isoDay(start), kickoff: true, targets: ['Google', 'Meta'],
@@ -998,6 +999,24 @@ try {
     if ((await saved()).kickoff === !k0) ok(`${W}: prep-day switch toggles kickoff`); else fail(`${W}: prep-day switch did nothing`);
     await sw.click(); await page.waitForTimeout(200);
 
+    // mode switch, twice
+    const modeToday = async () => { const m = (await saved()).modes || {}; const k = Object.keys(m).sort().at(-1); return k ? m[k].mode : 'steady'; };
+    await page.getByRole('radio', { name: 'Grind' }).click(); await page.waitForTimeout(300);
+    if (await modeToday() === 'grind' && await toastSeen(/Switched to Grind from today/)) ok(`${W}: switch to Grind saved and toasted`); else fail(`${W}: Grind switch failed`);
+    await page.getByRole('radio', { name: 'Steady' }).click(); await page.waitForTimeout(300);
+    if (await modeToday() === 'steady') ok(`${W}: switch back to Steady`); else fail(`${W}: Steady switch failed`);
+
+    // routine: a change that fits saves, one that does not is refused with a line
+    const lunchStart = page.getByLabel('Lunch start');
+    const lunchMin = page.getByLabel('Lunch minutes');
+    await lunchMin.fill('60'); await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(300);
+    if ((await saved()).routine?.lunch?.min === 60) ok(`${W}: shorter lunch saves`); else fail(`${W}: shorter lunch not saved`);
+    await lunchMin.fill('120'); await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(300);
+    const refusal = await page.locator('[data-routine-error]').innerText().catch(() => '');
+    if (/^Doesn't fit: '.+' would run \d+ min past 21:30\. Move a slot or shorten it\.$/.test(refusal) && (await saved()).routine?.lunch?.min === 60) ok(`${W}: overflowing routine refused with a line`); else fail(`${W}: no refusal (${refusal})`);
+    await page.getByRole('button', { name: 'Reset to defaults' }).click(); await page.waitForTimeout(300);
+    if (!Object.keys((await saved()).routine || {}).length) ok(`${W}: routine reset clears the map`); else fail(`${W}: routine reset left entries`);
+
     // start date picker saves immediately
     const s0 = (await saved()).start;
     await page.locator('[data-start-date]').click();
@@ -1005,7 +1024,7 @@ try {
     const day = page.locator('[data-slot="popover-content"] button[data-day]:not([disabled])').filter({ hasNotText: /^$/ });
     const pickN = await day.count();
     let picked = null;
-    for (let i = 0; i < pickN; i++) { const d = day.nth(i); const v = await d.getAttribute('data-day'); if (v && !(await d.getAttribute('aria-selected'))) { picked = d; break; } }
+    for (let i = pickN - 1; i >= 0; i--) { const d = day.nth(i); const v = await d.getAttribute('data-day'); if (v && !(await d.getAttribute('aria-selected'))) { picked = d; break; } }
     if (picked) { await picked.click(); await page.waitForTimeout(300); }
     const s1 = (await saved()).start;
     if (s1 && s1 !== s0 && /^\d{4}-\d{2}-\d{2}$/.test(s1)) ok(`${W}: picking a date saves start (${s0} → ${s1})`); else fail(`${W}: start date not saved (${s0} → ${s1})`);
@@ -1086,13 +1105,13 @@ try {
     const icsText = readFileSync(await ical.path(), 'utf8');
     if (ical.suggestedFilename() === 'reminders.ics' && icsText.startsWith('BEGIN:VCALENDAR') && /BEGIN:VEVENT/.test(icsText)) ok(`${W}: reminders.ics downloads`); else fail(`${W}: reminders.ics wrong`);
 
-    // Start over → confirm: today is the start; ticks, flags and logs cleared; pages, bookmarks and own tasks kept
+    // Start over → confirm: the next Monday (today, if Monday) is the start; ticks, flags and logs cleared; pages, bookmarks and own tasks kept
     await page.getByRole('button', { name: 'Start over…' }).click();
     await page.waitForTimeout(300);
     await alert.getByRole('button', { name: 'Start over' }).click();
     await page.waitForTimeout(400);
     let st = await saved();
-    if (st.start === isoDay(new Date()) && !Object.keys(st.done).length && !Object.keys(st.flags).length && !Object.keys(st.notes).length && st.pages?.pgkeep && st.bookmarks?.['n-keep'] && st.custom?.ckeep) ok(`${W}: Start over resets the plan and keeps pages, bookmarks, own tasks`); else fail(`${W}: Start over wrong (${JSON.stringify({ start: st.start, done: Object.keys(st.done).length, flags: Object.keys(st.flags).length, notes: Object.keys(st.notes).length })})`);
+    if (st.start === nextMondayOf(new Date()) && !Object.keys(st.done).length && !Object.keys(st.flags).length && !Object.keys(st.notes).length && st.pages?.pgkeep && st.bookmarks?.['n-keep'] && st.custom?.ckeep) ok(`${W}: Start over resets the plan and keeps pages, bookmarks, own tasks`); else fail(`${W}: Start over wrong (${JSON.stringify({ start: st.start, done: Object.keys(st.done).length, flags: Object.keys(st.flags).length, notes: Object.keys(st.notes).length })})`);
     // Erase → confirm
     await page.getByRole('button', { name: 'Erase…' }).click();
     await page.waitForTimeout(300);
