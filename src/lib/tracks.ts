@@ -100,9 +100,6 @@ function toSlots(track: string, slots: SlotItem[][]): Slot[] {
 }
 
 // ---------- dsa (v3 §1): 2 foundations, 27 patterns x 2 days, 22 Phase 3 slots ----------
-const AI_DRILL = 'AI-enabled coding drill (Meta-style, 60 min): read a small multi-file repo for 5 min, fix one bug without AI, add a feature using AI chat only (no autocomplete), then optimize for a 10× input. Narrate everything.';
-const AI_DRILL_URL = 'https://www.hellointerview.com/blog/meta-ai-enabled-coding';
-
 /** The hardest patterns first (the same order the Steady revisit days use). */
 const HARD_PATTERNS = ['dp', 'graph-traversal', 'topo-sort', 'union-find', 'shortest-path-mst', 'backtracking', 'tree-dfs', 'tree-bfs', 'top-k', 'two-heaps', 'k-way-merge', 'intervals', 'sliding-window', 'binary-search'];
 /** Phase 3 (slots 57–78), in order. */
@@ -231,74 +228,30 @@ function sdTrack(c: TrackContent): Slot[] {
   return toSlots('sd', (c.SYSTEMS as Row[]).flatMap((r) => expandRow(r, 'sd')));
 }
 
-// ---------- jt (§4): the judgment thread, Mon–Sat ----------
-const PEER_URL = 'https://www.tryexponent.com/practice';
-const PEER_ROUNDS: [string, Cat][] = [['coding', 'dsa'], ['frontend system design', 'sd'], ['behavioral', 'beh'], ['decomposition', 'fde']];
-// Full mock loops (Phase 3): 3 rounds of 45 min each. Round 1 runs in the Saturday slot; rounds 2–3 carry to Sunday (R9).
-const LOOPS: { name: string; peer: boolean; rounds: string[] }[] = [
-  { name: 'forward-deployed', peer: true, rounds: ['decomposition', 'practical coding', 'system design'] },
-  { name: 'frontend SDE-2', peer: false, rounds: ['DSA coding', 'frontend coding', 'frontend system design'] },
-  { name: 'product engineer', peer: true, rounds: ['coding (DSA)', 'machine coding', 'product/system design'] },
-  { name: "your top target company's loop, from the company map", peer: false, rounds: ['coding', 'system design', 'behavioral'] },
-];
-const SAT_CAP = 75; // the v2 Saturday slot (min); interim text until Task 5 replaces these items
-
-function jtSaturday(w: number): SlotItem[] {
-  const carry = (x: SlotItem): SlotItem => ({ ...x, sundayCarry: true });
-  // Odd weeks 1–9: the 60-min AI drill.
-  if (w % 2 === 1 && w <= 9) return [{ id: `jt:ai-drill-${(w + 1) / 2}`, cat: 'dsa', url: AI_DRILL_URL, text: AI_DRILL, mins: 60 }];
-  if (w >= 10) {
-    const n = w - 9, loop = LOOPS[n - 1];
-    return loop.rounds.map((round, k) => {
-      const it: SlotItem = { id: `jt:mock-loop-${n}-round-${k + 1}`, cat: 'dsa', url: PEER_URL, mins: 45,
-        text: `Full mock loop ${n} of 4 (${loop.name}), round ${k + 1} of ${loop.rounds.length}: ${round}, 45 min, ${loop.peer ? 'with a peer on Pramp/Exponent' : 'with a peer or recorded solo'}, timed and out loud.` };
-      return k === 0 ? it : carry(it);
-    });
-  }
-  const items: SlotItem[] = [];
-  if (w >= 4) {
-    const n = (w - 4) / 2, [round, cat] = PEER_ROUNDS[n % PEER_ROUNDS.length];
-    items.push({ id: `jt:peer-mock-${n + 1}`, cat, url: PEER_URL, mins: SAT_CAP,
-      text: `Peer mock with a real person (Pramp or Exponent, 45 min): ${round} round. This is the week's timed mock; use the rest of the 75-min slot to write down the feedback and redo what you missed.` });
-  } else {
-    items.push({ id: `jt:mock-${w / 2}`, cat: 'dsa', mins: SAT_CAP,
-      text: 'Weekly timed mock (75 min, out loud; uses the whole revision + judgment slot): 2 problems you haven\'t seen, from the optional pools of patterns you\'ve covered. Log each as unseen with your minutes.' });
-  }
-  // From week 5: the speed pair. The mock fills the 75-min slot, so it carries to Sunday (R9).
-  if (w >= 5) items.push(carry({ id: `jt:speed-pair-${(w - 4) / 2}`, cat: 'dsa', mins: 35, text: 'Speed pair (35 min): re-solve 2 must-solve problems you\'ve already done, from a blank file, talking out loud.' }));
-  return items;
-}
-
-function jtTrack(c: TrackContent): Slot[] {
-  const sys = systemsIds(c);
-  const hiw = queue((c.HOW_IT_WORKS as Row[]).filter((x) => !sys.has(x.id))), memos = queue(c.MEMOS as Row[]), practical = queue(c.PRACTICAL as Row[]), decomp = queue(c.DECOMP as Row[]);
-  const fixes = queue(c.OSS_FIXES as Row[]);
-  const reviews: Row[] = c.CODE_REVIEWS; // each carries its Grind week (Ruling R4: weeks 5, 8, 11, 13)
-  // SRE ch. 12 must come before the first OSS fix (week 3 Fri). Week 3 Mon–Thu are full and a 45-min read doesn't fit
-  // beside a 45-min rep, and the week-3 Saturday is after that Friday, so it takes the free week-2 Friday.
-  const sre: Row = (c.JT_DEPTH_READS as Row[]).find((x) => x.before === 'jt:oss-fix-1');
-  const repo = (id: string) => (c.OSS_REPOS as Row[]).find((r) => r.id === id);
-  const rep = fillers();
+// ---------- jt (v3 §4): Platform, data and DevOps ----------
+/** Platform's practical coding reps go at slots 23, 28, …, 78 (0-based index 22 + 5k). */
+const isPracticalSlot = (i: number) => i >= 22 && (i - 22) % 5 === 0;
+/** The depth items in row order with the 12 practical reps (`jt:practical-*`) at 23 + 5k. A 2-slot row never straddles
+ * a practical slot: when it would, the practical goes first and the pair after it, and the next free 23 + 5k slot is a
+ * practical again. */
+function platformTrack(c: TrackContent): Slot[] {
+  const rows: Row[] = c.PLATFORM;
+  const isPractical = (r: Row) => r.id.startsWith('jt:practical-');
+  const practicals = queue(rows.filter(isPractical)), rest = queue(rows.filter((r) => !isPractical(r)));
   const slots: SlotItem[][] = [];
-  for (let i = 0; i < SLOTS; i++) {
-    const w = weekOf(i), d = GRIND_DOW[i];
-    if (d === 1) slots.push(hiw.left ? [item(hiw.next(), 'sd')] : [rep('jt:hiw-repeat', 'How it really works, repeat: pick the case study from the Systems track you understood least, redraw the system from memory, then compare and name 3 trade-offs.', 'sd')]);
-    else if (d === 2) slots.push(memos.left ? [item(memos.next(), 'sd')] : [rep('jt:memo-repeat', 'Decision memo, repeat: rewrite your weakest memo with what you know now.', 'sd')]);
-    else if (d === 3) slots.push(practical.left ? [item(practical.next(), 'mc')] : [rep('jt:practical-repeat', 'Practical coding, repeat (45 min timed): redo the practical you found hardest, in the other language.', 'mc')]);
-    else if (d === 4) {
-      if (w === 1) slots.push([filler('jt:oss-setup-excalidraw', 'Set up Excalidraw locally before the first open-source fix (week 3): clone, install, run the app and the tests, read CONTRIBUTING.md. Note what blocked you.', 'mc', `https://github.com/${repo('oss:excalidraw').repo}`)]);
-      else slots.push(decomp.left ? [item(decomp.next(), 'fde')] : [rep('jt:decomp-repeat', 'Decomposition, repeat (45 min, out loud): redo one earlier prompt with a new constraint.', 'fde')]);
-    } else if (d === 5) {
-      const review = reviews.find((r) => r.week === w);
-      if (w === 1) slots.push([filler('jt:oss-setup-posthog-calcom', 'Set up PostHog and Cal.com locally as far as 45 min allows (their fixes are in weeks 4 and 6): clone, follow each local-dev guide, note the blockers.', 'mc', `https://github.com/${repo('oss:posthog').repo}`)]);
-      else if (w === 2) slots.push([item(sre, 'sd')]);
-      else if (review) slots.push([item(review, 'mc')]);
-      else slots.push(fixes.left ? [item(fixes.next(), 'mc')] : [rep('jt:oss-repeat', 'Code you didn\'t write: finish or follow up on your open PRs.', 'mc')]);
-    } else slots.push(jtSaturday(w));
+  const put = (r: Row) => slots.push(...expandRow(r, 'platform'));
+  while (rest.left || practicals.left) {
+    const i = slots.length, next = rest.peek();
+    if (practicals.left && (!next || isPracticalSlot(i))) put(practicals.next());
+    else {
+      if (next.parts === 2 && isPracticalSlot(i + 1) && practicals.left) put(practicals.next());
+      put(rest.next());
+    }
   }
-  mustFit('jt', hiw.left + memos.left + practical.left + decomp.left + fixes.left);
   return toSlots('jt', slots);
 }
+/** Interim (until Task 7 replaces the v2 beh track): the ids Platform lays out or absorbs. */
+const platformIds = (c: TrackContent) => rowIds(c.PLATFORM);
 
 // ---------- beh (§8): career block ----------
 function behTrack(c: TrackContent): Slot[] {
@@ -307,8 +260,8 @@ function behTrack(c: TrackContent): Slot[] {
     'beh:deep-dive-1': at(2, 6), 'beh:deep-dive-2': at(3, 6), 'beh:deep-dive-3': at(4, 6),
     'beh:negotiation-1': at(12, 1), 'beh:negotiation-2': at(12, 2),
   };
-  // FDE items that moved to the judgment thread (DECOMP `from`) or duplicate a jt rep are skipped here.
-  const skip = new Set<string>([...(c.DECOMP as Row[]).filter((x) => x.from).map((x) => x.from), 'fde:practical-coding-log', 'fde:reengineering-round', ...aiCoreIds(c)]);
+  // FDE items that moved to the v2 judgment thread (DECOMP `from`, Career from Task 7), the AI core or Platform are skipped here.
+  const skip = new Set<string>([...(c.DECOMP as Row[]).filter((x) => x.from).map((x) => x.from), ...aiCoreIds(c), ...platformIds(c)]);
   const fde: Row[] = (c.FDE as Row[]).filter((x) => !skip.has(x.id));
   const teardowns = queue(c.TEARDOWNS as Row[]);
   const TEARDOWN_EVERY = Math.floor(fde.length / (teardowns.left || 1)) || 1;
@@ -394,6 +347,6 @@ export function buildTracks(content: TrackContent): Record<TrackId, Slot[]> {
   if (WEEKS * 6 !== SLOTS) throw new Error('Grind has 13 weeks of 6 study days');
   return {
     dsa: dsaTrack(content), fe: aiCoreTrack(content), mc: mcTrack(content),
-    sd: sdTrack(content), jt: jtTrack(content), beh: behTrack(content), ai: aiTrack(content),
+    sd: sdTrack(content), jt: platformTrack(content), beh: behTrack(content), ai: aiTrack(content),
   };
 }

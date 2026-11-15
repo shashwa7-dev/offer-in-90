@@ -8,6 +8,7 @@ import * as career from '../src/lib/content/career.js';
 import * as ai from '../src/lib/content/ai.js';
 import * as aiCore from '../src/lib/content/ai-core.js';
 import * as systems from '../src/lib/content/systems.js';
+import * as platform from '../src/lib/content/platform.js';
 import * as mc from '../src/lib/content/mc.js';
 import * as sd from '../src/lib/content/sd.js';
 import * as judgment from '../src/lib/content/judgment.js';
@@ -23,7 +24,7 @@ import { counts } from '../src/lib/task-status.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
-const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...aiCore, ...mc, ...sd, ...systems, ...judgment, ...reference, ...sundays };
+const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...aiCore, ...mc, ...sd, ...systems, ...platform, ...judgment, ...reference, ...sundays };
 const tracks: Any = buildTracks(content);
 const lib: Any = { content, tracks, layoutDays, cursorsAt, placeDay, resolveRoutine, WEEKDAY_BLOCKS, BUFFER_BLOCK, SUNDAY_BLOCKS };
 const START = '2026-11-16'; // a Monday
@@ -124,21 +125,33 @@ sun.forEach((d, n) => assert.equal(d.tasks.some((t) => t.id.endsWith(':apply')),
 for (const t of sun.flatMap((d) => d.tasks).filter((t) => t.id.endsWith(':apply'))) assert.ok(t.cat === 'health' && !isStudy(t));
 
 // ---------- sundayCarry items land on their week's Sunday (R9) ----------
-for (const [plan, name] of [[G, 'grind'], [S, 'steady']] as const) {
-  const carried = new Set<string>();
-  plan.forEach((d, i) => {
-    if (d.type !== 'study') return;
-    for (const x of d.blocks.flatMap((b) => b.tasks)) assert.ok(!tracks.jt.some((s: Any) => s.items.some((y: Any) => y.id === x.id && y.sundayCarry)), `${name}: carry item ${x.id} not on a study day`);
-    const slot = layoutDays({ start: START, kickoff: true, modes: plan === G ? GRIND : {}, tracks, done: {} } as Any)[i].slots.jt;
-    for (const x of slot?.items ?? []) if (x.sundayCarry) {
-      const next = plan.slice(i).find((y) => y.type === 'sun')!;
-      assert.ok(ids(next, 'sunday').includes(x.id), `${name}: ${x.id} on the next Sunday`);
-      assert.ok(isStudy(block(next, 'sunday').tasks.find((t: Any) => t.id === x.id)), 'carried items are not optional');
-      carried.add(x.id);
-    }
-  });
-  const all = tracks.jt.flatMap((s: Any) => s.items).filter((x: Any) => x.sundayCarry);
-  assert.equal(carried.size, all.length, `${name}: every carry item placed`);
+// No v3 track carries items yet (Career's Saturday rounds come back in Task 7), so a synthetic carry item rides on the
+// jt slots of Grind weeks 1, 4 and 9's Saturdays; the mechanism is tested on its own.
+{
+  const CARRY_AT = [5, 23, 53];
+  const carryTracks: Any = { ...tracks, jt: tracks.jt.map((s: Any, i: number) => (CARRY_AT.includes(i)
+    ? { items: [...s.items, { id: `test:carry-${i}`, text: 'Carried round (45 min)', cat: 'platform', mins: 45, sundayCarry: true }] } : s)) };
+  const carryLib: Any = { ...lib, tracks: carryTracks };
+  for (const [modes, name] of [[GRIND, 'grind'], [{}, 'steady']] as const) {
+    const plan = buildPlanFrom({ ...base, modes }, [], {}, carryLib);
+    const layout = layoutDays({ start: START, kickoff: true, modes, tracks: carryTracks, done: {} } as Any);
+    const carried = new Set<string>();
+    plan.forEach((d, i) => {
+      if (d.type !== 'study') return;
+      for (const t of d.blocks.flatMap((b) => b.tasks)) assert.ok(!t.id.startsWith('test:carry-'), `${name}: carry item ${t.id} not on a study day`);
+      const jtBlock = ids(d, 'jt'), slot = layout[i].slots.jt;
+      for (const x of slot?.items ?? []) {
+        if (!x.sundayCarry) { assert.ok(jtBlock.includes(x.id), `${name}: ${x.id} stays in its slot`); continue; }
+        const next = plan.slice(i).find((y) => y.type === 'sun')!;
+        assert.ok(ids(next, 'sunday').includes(x.id), `${name}: ${x.id} on the next Sunday`);
+        assert.ok(isStudy(block(next, 'sunday').tasks.find((t: Any) => t.id === x.id)), 'carried items are not optional');
+        carried.add(x.id);
+      }
+    });
+    assert.equal(carried.size, CARRY_AT.length, `${name}: every carry item placed`);
+  }
+  // The real tracks carry nothing until Task 7.
+  assert.ok(!Object.values(tracks).some((t: Any) => t.some((s: Any) => s.items.some((x: Any) => x.sundayCarry))), 'no v3 track carries items yet');
 }
 
 // ---------- revision block: ≤ 3 re-solves + 1 drill; the drill never picks an unseen check ----------

@@ -11,12 +11,13 @@ import * as mc from '../src/lib/content/mc.js';
 import * as sd from '../src/lib/content/sd.js';
 import * as judgment from '../src/lib/content/judgment.js';
 import * as systems from '../src/lib/content/systems.js';
+import * as platform from '../src/lib/content/platform.js';
 import * as reference from '../src/lib/content/reference.js';
 import { buildTracks, expandRow, GRIND_DOW, SLOTS } from '../src/lib/tracks.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
-const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...aiCore, ...mc, ...sd, ...systems, ...judgment, ...reference };
+const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...aiCore, ...mc, ...sd, ...systems, ...platform, ...judgment, ...reference };
 // AI core (v3) absorbs v2 ids: each row's primary id is laid out in the AI core track; its `covers` ids are not laid out anywhere.
 const CORE: Any[] = aiCore.AI_CORE as Any[];
 const CORE_PLACED = new Set<string>(CORE.map((r) => r.id));
@@ -24,12 +25,15 @@ const CORE_COVERS = new Set<string>(CORE.flatMap((r) => r.covers ?? []));
 // Systems (v3) likewise: primary ids laid out in the sd track; `covers` ids are not laid out anywhere.
 const SYS: Any[] = (systems.SYSTEMS ?? []) as Any[];
 const SYS_COVERS = new Set<string>(SYS.flatMap((r) => r.covers ?? []));
+// Platform (v3) likewise, in the jt track. A `parts: 2` row is laid out as `${id}#1` and `${id}#2` (see `seen` below).
+const PF: Any[] = ((platform as Any).PLATFORM ?? []) as Any[];
+const PF_PLACED = new Set<string>(PF.map((r) => r.id));
+const PF_COVERS = new Set<string>(PF.flatMap((r) => r.covers ?? []));
 const T: Any = buildTracks(content);
 const TRACKS = ['dsa', 'fe', 'mc', 'sd', 'jt', 'beh', 'ai'];
 const idx = (w: number, d: number) => (w - 1) * 6 + (d - 1);
 const ids = (track: string, i: number): string[] => T[track][i].items.map((x: Any) => x.id);
 const slotOf = (track: string, id: string) => T[track].findIndex((s: Any) => s.items.some((x: Any) => x.id === id));
-const has = (track: string, i: number, re: RegExp) => ids(track, i).some((id) => re.test(id));
 const CATS = ['dsa', 'fe', 'mc', 'proj', 'sd', 'ux', 'beh', 'fde', 'ai', 'platform', 'review', 'health', 'update'];
 
 // ---------- shape ----------
@@ -59,8 +63,7 @@ assert.equal(GRIND_DOW[6], 1);
 GRIND_DOW.forEach((d: number, i: number) => assert.equal(d, (i % 6) + 1));
 
 // ---------- every content item exactly once (fillers excepted) ----------
-const PRIMARY = (judgment.JT_DEPTH_READS as Any[]).slice(1); // [0] is the Stripe how-it-works item itself
-const SKIP_FDE = new Set([...(judgment.DECOMP as Any[]).filter((x) => x.from).map((x) => x.from), 'fde:practical-coding-log', 'fde:reengineering-round', ...CORE_PLACED, ...CORE_COVERS]);
+const SKIP_FDE = new Set([...(judgment.DECOMP as Any[]).filter((x) => x.from).map((x) => x.from), 'fde:practical-coding-log', 'fde:reengineering-round', ...CORE_PLACED, ...CORE_COVERS, ...PF_PLACED, ...PF_COVERS]);
 const expected: string[] = [
   ...(dsa.PROBLEMS as Any[]).filter((p) => p.tier === 'must').map((p) => `p-${p.slug}`),
   // v2 FE (fe.js) is not laid out until Task 8 moves it into Frontend.
@@ -72,20 +75,23 @@ const expected: string[] = [
   ...(mc.PROJECT as Any[]), ...(mc.PROJECT_DEPTH_READS as Any[]), ...(mc.LLD as Any[]),
   // v2 SD / SD_MOCKS / HOW_IT_WORKS are laid out through SYSTEMS (the sd:fe-* items wait for Task 8).
   ...SYS.map((r) => r.id),
-  ...(judgment.MEMOS as Any[]), ...(judgment.PRACTICAL as Any[]), ...(judgment.DECOMP as Any[]),
-  ...(judgment.OSS_FIXES as Any[]), ...(judgment.CODE_REVIEWS as Any[]), ...PRIMARY, ...(judgment.INTERVIEW_ENV as Any[]),
+  // v2 PRACTICAL, CODE_REVIEWS and the SRE read are laid out through PLATFORM. MEMOS and OSS_FIXES are dropped (spec);
+  // DECOMP waits for Career (Task 7).
+  ...PF.flatMap((r) => (r.parts === 2 ? [`${r.id}#1`, `${r.id}#2`] : [r.id])), ...(judgment.INTERVIEW_ENV as Any[]),
 ].map((x: Any) => (typeof x === 'string' ? x : x.id));
 // Items that take 2 slots appear once per part, keyed by id + part.
 const seen = all.filter((x) => !x.filler).map((x) => (x.part ? `${x.id.replace(/:part-\d$/, '')}#${x.part[0]}` : x.id));
 for (const id of expected) assert.equal(seen.filter((s) => s === id).length, 1, `${id} appears exactly once`);
 for (const id of CORE_COVERS) assert.equal(seen.filter((s) => s === id).length, 0, `${id} (absorbed by AI core) is not laid out`);
 for (const id of SYS_COVERS) assert.equal(seen.filter((s) => s === id).length, 0, `${id} (absorbed by Systems) is not laid out`);
+for (const id of PF_COVERS) assert.equal(seen.filter((s) => s === id).length, 0, `${id} (absorbed by Platform) is not laid out`);
 for (const id of (mc.MC_TIMED as string[])) assert.equal(allIds.filter((x) => x === `${id}:timed`).length, 1, `${id} timed pass once`);
 assert.equal(all.filter((x) => /^adv:[a-z-]+$/.test(x.id)).length, 3, 'ADV_DSA x3');
-const known = new Set([...expected, ...[...CORE, ...SYS].filter((r) => !r.kind).flatMap((r) => [`${r.id}:do`, `${r.id}:explain`]), ...(dsa.FOUNDATIONS as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`]), ...(dsa.ADV_DSA as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`]), ...(mc.MC_TIMED as string[]).map((id) => `${id}:timed`)]);
+const pfParts = PF.filter((r) => r.parts === 2).flatMap((r) => [1, 2].flatMap((k) => [`${r.id}:part-${k}:do#${k}`, `${r.id}:part-${k}:explain#${k}`]));
+const known = new Set([...expected, ...pfParts, ...[...CORE, ...SYS, ...PF.filter((r) => r.parts !== 2)].filter((r) => !r.kind).flatMap((r) => [`${r.id}:do`, `${r.id}:explain`]), ...(dsa.FOUNDATIONS as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`]), ...(dsa.ADV_DSA as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`]), ...(mc.MC_TIMED as string[]).map((id) => `${id}:timed`)]);
 const extras = all.filter((x) => !x.filler && !known.has(x.part ? `${x.id.replace(/:part-\d$/, '')}#${x.part[0]}` : x.id));
-// Non-content items the builder adds on purpose: pattern cards, explain-backs, foundations, ADV_DSA, Phase 3 sets, FE revision, SD mocks, jt Saturdays.
-for (const x of extras) assert.match(x.id, /^(dsa:(card|explain-back|oa|google|meta|revisit)-|fe:revise-|fe:bfe-|sdm:|jt:(ai-drill|mock|peer-mock|speed-pair|mock-loop)-)/, `unexpected item ${x.id}`);
+// Non-content items the builder adds on purpose: pattern cards, explain-backs, foundations, ADV_DSA, Phase 3 sets, FE revision, SD mocks.
+for (const x of extras) assert.match(x.id, /^(dsa:(card|explain-back|oa|google|meta|revisit)-|fe:revise-|fe:bfe-|sdm:)/, `unexpected item ${x.id}`);
 
 // ---------- dsa ----------
 const HARD = ['dp', 'graph-traversal', 'topo-sort', 'union-find', 'shortest-path-mst', 'backtracking', 'tree-dfs', 'tree-bfs', 'top-k', 'two-heaps', 'k-way-merge', 'intervals', 'sliding-window', 'binary-search'];
@@ -387,49 +393,115 @@ for (const x of T.mc.flatMap((s: Any) => s.items)) {
   else assert.equal(x.cat, 'mc');
 }
 
-// ---------- jt ----------
-assert.ok(has('jt', 6, /^jt:hiw-/), 'week 2 Mon how-it-works');
-assert.ok(has('jt', 7, /^jt:memo-/), 'week 2 Tue memo');
-const fridays = Array.from({ length: 13 }, (_, w) => idx(w + 1, 5));
-assert.ok(!fridays.slice(0, 2).some((i) => has('jt', i, /^jt:(oss-fix|code-review)-/)), 'no OSS before week 3');
-assert.equal(slotOf('jt', 'jt:oss-fix-1'), 16);
-assert.ok(has('jt', 28, /^jt:code-review-/), 'week 5 Fri code review');
-// R4: Fridays weeks 3–13 = 7 fixes + 4 reviews, reviews on Fridays #3, #6, #9, #11 (weeks 5, 8, 11, 13)
-const friIds = fridays.slice(2).map((i) => ids('jt', i)[0]);
-assert.deepEqual(friIds, ['jt:oss-fix-1', 'jt:oss-fix-2', 'jt:code-review-1', 'jt:oss-fix-3', 'jt:oss-fix-4', 'jt:code-review-2', 'jt:oss-fix-5', 'jt:oss-fix-6', 'jt:code-review-3', 'jt:oss-fix-7', 'jt:code-review-4']);
-for (const x of judgment.CODE_REVIEWS as Any[]) assert.equal(Math.floor(slotOf('jt', x.id) / 6) + 1, x.week, `${x.id} week`);
-// SRE read before the first OSS fix, and not a second Stripe slot
-const sre = slotOf('jt', 'jt:depth-sre-troubleshooting');
-assert.ok(sre >= 0 && sre < slotOf('jt', 'jt:oss-fix-1'), 'SRE read before oss-fix-1');
-assert.equal(allIds.filter((id) => id === 'jt:hiw-stripe-idempotency').length, 1);
-for (let w = 1; w <= 13; w++) {
-  // Interim until Task 5: Systems lays out the how-it-works case studies, so the jt Mondays are repeat fillers.
-  assert.ok(ids('jt', idx(w, 1)).every((id) => id.startsWith('jt:hiw-repeat-')), `Mon wk${w} how-it-works repeat`);
-  assert.equal(ids('jt', idx(w, 2))[0], (judgment.MEMOS as Any[])[w - 1].id, `Tue wk${w}`);
-  if (w <= 12) assert.equal(ids('jt', idx(w, 3))[0], (judgment.PRACTICAL as Any[])[w - 1].id, `Wed wk${w}`);
-  if (w >= 2) assert.equal(ids('jt', idx(w, 4))[0], (judgment.DECOMP as Any[])[w - 2].id, `Thu wk${w}`);
-  const sat = T.jt[idx(w, 6)].items;
-  if (w % 2 === 1 && w <= 9) assert.ok(sat.every((x: Any) => x.id.startsWith('jt:ai-drill-')), `Sat wk${w} AI drill`);
-  // R9: the slot holds ≤ 75 min (interim v2 text; Task 5 replaces these), the rest carries to Sunday. v3 has no
-  // revision merge, so nothing takes the revision time.
-  const kept = sat.filter((x: Any) => !x.sundayCarry);
-  assert.ok(kept.length && sat.every((x: Any) => !('takesRevision' in x)), `Sat wk${w} no takesRevision`);
-  assert.ok(sat.every((x: Any) => typeof x.mins === 'number' && x.mins > 0), `Sat wk${w} every item has mins`);
-  assert.ok(kept.reduce((m: number, x: Any) => m + x.mins, 0) <= 75, `Sat wk${w} ≤ 75 min in the slot`);
-  if (w >= 10) {
-    const rounds = sat.filter((x: Any) => x.id.startsWith('jt:mock-loop-'));
-    assert.equal(rounds.length, 3, `Sat wk${w} loop has 3 rounds`);
-    assert.ok(rounds.every((x: Any) => x.mins === 45), 'no round shortened');
+// ---------- jt: Platform, data and DevOps (v3 §4) ----------
+{
+  assert.equal(PF.reduce((n: number, r: Any) => n + (r.parts === 2 ? 2 : 1), 0), 78, 'PLATFORM rows total 78 slots');
+  assert.equal(T.jt.length, 78);
+  for (const x of T.jt.flatMap((s: Any) => s.items)) assert.equal(x.cat, 'platform', `${x.id} cat platform`);
+  // Slots 1–18: the DevOps basics, in the spec's order.
+  const BASICS = ['pf:shell', 'pf:shell-tools', 'pf:git-workflows', 'pf:git-internals', 'pf:debugging', 'pf:environments', 'pf:deploy', 'pf:dns-https',
+    'pf:postgres-backups', 'pf:ci-basics', 'pf:feature-flags', 'pf:logs-alert', 'pf:uptime-errors', 'pf:costs', 'pf:oauth-oidc', 'pf:sso-saml', 'pf:secrets', 'pf:hashing-owasp'];
+  assert.deepEqual(T.jt.slice(0, 18).map((s: Any) => s.items[0].id), BASICS, 'slots 1–18');
+  // Only slot 6 has an `after`: the first item of product slot 1 (Task 6 creates it).
+  assert.equal(T.jt[5].items[0].after, 'proj:pick-scaffold');
+  assert.deepEqual(T.jt.flatMap((s: Any, i: number) => s.items.filter((x: Any) => x.after).map((x: Any) => [i + 1, x.id, x.after])), [[6, 'pf:environments', 'proj:pick-scaffold']], 'only slot 6 has after');
+  // Slots 19–78: the depth items in the spec's order, the 12 practicals at 23 + 5k. The re-engineering round would straddle
+  // slot 68, so the 10th practical takes 67 and the pair 68–69; the next 23 + 5k slot (73) is a practical again.
+  const DEPTH = ['fe:sql', 'fe:use-the-index-luke-1', 'fe:use-the-index-luke-2', 'pf:explain-analyze', 'jt:practical-rate-limiter',
+    'fde:sql-analysis', 'pf:postgres-in-practice', 'fe:nosql', 'fe:redis', 'jt:practical-retry-backoff',
+    'fe:queues', 'pf:background-job', 'fe:node-runtime', 'aib:containers', 'jt:practical-ttl-cache-swr',
+    'pf:docker-compose', 'pf:k8s-deployments', 'pf:k8s-services', 'pf:k8s-scaling', 'jt:practical-debounced-fetcher',
+    'aib:terraform', 'pf:terraform-state-modules', 'aib:devops', 'pf:canary', 'jt:practical-merge-csvs',
+    'pf:blue-green', 'fe:docker-ci', 'pf:otel-metrics', 'pf:slos', 'jt:practical-parse-log',
+    'jt:depth-sre-troubleshooting', 'aib:aws', 'pf:aws-vpc-compute', 'pf:aws-storage-lambda', 'jt:practical-streaming-backpressure',
+    'pf:finops', 'fde:data-pipelines', 'fde:data-warehouses', 'fde:data-audit-modeling', 'jt:practical-rag-pipeline',
+    'pf:customer-apis-webhooks', 'fde:integration-engineering', 'pf:privacy-residency', 'jt:code-review-1', 'jt:practical-cli-tool',
+    'jt:code-review-2', 'jt:code-review-3', 'jt:code-review-4', 'jt:practical-lru-cache',
+    'fde:reengineering-round:part-1', 'fde:reengineering-round:part-2', 'fde:learning-round:part-1', 'fde:learning-round:part-2', 'pf:dr-drill',
+    'jt:practical-promise-pool', 'pf:nginx', 'pf:network-debugging', 'pf:grpc', 'pf:multi-tenancy', 'jt:practical-webhook-idempotency'];
+  assert.equal(DEPTH.length, 60);
+  assert.deepEqual(T.jt.slice(18).map((s: Any) => s.items[0].id), DEPTH, 'slots 19–78');
+  // The 12 practical coding reps: v2 ids, one 45-min TypeScript task each, no Python.
+  const prac = T.jt.map((s: Any, i: number) => [i + 1, s] as [number, Any]).filter(([, s]) => s.items[0].id.startsWith('jt:practical-'));
+  assert.deepEqual(prac.map(([n]) => n), [23, 28, 33, 38, 43, 48, 53, 58, 63, 67, 73, 78], 'practicals at 23 + 5k (67 before the pair)');
+  assert.deepEqual(prac.map(([, s]) => s.items[0].id).sort(), (judgment.PRACTICAL as Any[]).map((x) => x.id).sort(), 'the 12 v2 practical ids');
+  assert.equal(T.jt.flatMap((s: Any) => s.items).filter((x: Any) => x.id.startsWith('jt:practical-')).length, 12, 'exactly 12 practicals');
+  for (const [n, s] of prac) {
+    const r = PF.find((x) => x.id === s.items[0].id);
+    assert.equal(r.kind, 'rep', `${r.id} kind rep`);
+    assert.equal(s.items.length, 1, `slot ${n} one task`);
+    assert.equal(s.items[0].mins, 45, `${r.id} 45 min`);
+    assert.match(s.items[0].text, /TypeScript/, `${r.id} TypeScript`);
+    assert.match(s.items[0].text, /45 min/, `${r.id} timed`);
+    assert.ok(!/python/i.test(s.items[0].text), `${r.id} no Python`);
   }
-  if ([6, 8].includes(w)) assert.ok(sat.find((x: Any) => x.id.startsWith('jt:speed-pair-')).sundayCarry, `wk${w} speed pair carried`);
-  if (w >= 10) assert.ok(sat.some((x: Any) => x.id.startsWith('jt:mock-loop-')), `Sat wk${w} full mock loop`);
-  const speed = sat.some((x: Any) => x.id.startsWith('jt:speed-pair-'));
-  assert.equal(speed, [6, 8].includes(w), `speed pair wk${w}`);
+  assert.ok(PF.find((r) => r.id === 'jt:practical-parse-log').covers.includes('fde:practical-coding-log'), 'parse-log covers the FDE log rep');
+  // Every 2-slot item sits on consecutive slots; the two FDE rounds are 2-slot items.
+  const pairs = PF.filter((r) => r.parts === 2);
+  assert.deepEqual(pairs.map((r) => r.id).sort(), ['fde:learning-round', 'fde:reengineering-round']);
+  for (const r of pairs) assert.equal(slotOf('jt', `${r.id}:part-2`), slotOf('jt', `${r.id}:part-1`) + 1, `${r.id} on consecutive slots`);
+  // The 4 code-review reps keep their v2 ids and urls.
+  for (const v of judgment.CODE_REVIEWS as Any[]) {
+    const i = slotOf('jt', v.id), r = PF.find((x) => x.id === v.id);
+    assert.ok(i >= 0, `${v.id} placed`);
+    assert.equal(r.kind, 'rep');
+    assert.equal(T.jt[i].items[0].url, v.url, `${v.id} keeps its v2 url`);
+  }
+  // Auth and secrets (week 3) before Kubernetes and Terraform (from week 5).
+  const firstInfra = Math.min(...T.jt.map((s: Any, i: number) => (s.items.some((x: Any) => /^(aib:containers|aib:terraform|pf:k8s-|pf:terraform-)/.test(x.id)) ? i : 99)));
+  for (const id of ['pf:oauth-oidc', 'pf:secrets']) assert.ok(slotOf('jt', id) < firstInfra, `${id} before containers/terraform`);
+  assert.ok(firstInfra >= 24, 'containers and terraform from week 5');
+  // Sourcing rule: the primer's "Scaling AWS to millions of users" on the AWS slot.
+  assert.equal(T.jt[slotOf('jt', 'aib:aws')].items[0].url2, 'https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/scaling_aws/README.md');
+  // SRE ch. 12 lives here, with its v2 url.
+  assert.equal(T.jt[slotOf('jt', 'jt:depth-sre-troubleshooting')].items[0].url, (judgment.JT_DEPTH_READS as Any[])[1].url);
+  // No memo, OSS, how-it-works, decomposition or v2 Saturday mock item in this track.
+  for (const x of T.jt.flatMap((s: Any) => s.items)) {
+    assert.ok(!/^jt:(memo|oss|hiw|decomp|client-sim|ai-drill|mock|peer-mock|speed-pair|mock-loop)-/.test(x.id), `${x.id} not in Platform`);
+    assert.ok(!x.sundayCarry && !x.filler, `${x.id} is plain content`);
+  }
+  // covers, as the brief names them
+  const COVERS: Record<string, string[]> = {
+    'pf:shell': ['fde:linux-shell'], 'pf:git-workflows': ['fde:git-beyond-basics'], 'pf:sso-saml': ['fde:security'], 'jt:practical-parse-log': ['fde:practical-coding-log'],
+  };
+  for (const r of PF) assert.deepEqual([...(r.covers ?? [])].sort(), [...(COVERS[r.id] ?? [])].sort(), `${r.id} covers`);
+  // Every v2 id the spec sends here is laid out once (primary id or covers).
+  const V2_HERE = ['fde:linux-shell', 'fde:git-beyond-basics', 'fde:security', 'fe:sql', 'fe:use-the-index-luke-1', 'fe:use-the-index-luke-2', 'fde:sql-analysis',
+    'fe:nosql', 'fe:redis', 'fe:queues', 'fe:node-runtime', 'aib:containers', 'aib:terraform', 'aib:devops', 'fe:docker-ci', 'jt:depth-sre-troubleshooting', 'aib:aws',
+    'fde:data-pipelines', 'fde:data-warehouses', 'fde:data-audit-modeling', 'fde:integration-engineering', 'fde:reengineering-round', 'fde:learning-round',
+    'fde:practical-coding-log', ...(judgment.PRACTICAL as Any[]).map((x) => x.id), ...(judgment.CODE_REVIEWS as Any[]).map((x) => x.id)];
+  const named = PF.flatMap((r) => [r.id, ...(r.covers ?? [])]);
+  for (const id of V2_HERE) assert.equal(named.filter((x) => x === id).length, 1, `${id} named once in Platform`);
+  assert.equal(new Set(named).size, named.length, 'no id named twice in Platform');
+  // Row shape and copy rules.
+  PF.forEach((r) => {
+    if (r.url) assert.match(r.url, /^https:\/\//, `${r.id} url`);
+    if (r.url2) { assert.match(r.url2, /^https:\/\//, `${r.id} url2`); assert.notEqual(r.url2, r.url, `${r.id} url2 differs`); }
+    if (r.kind) {
+      assert.equal(r.kind, 'rep', `${r.id} kind`);
+      assert.equal(r.mins, 45, `${r.id} 45 min`);
+    } else {
+      assert.ok(r.understand && r.do && r.explain, `${r.id} Understand, Do, Explain`);
+      assert.match(r.url, /^https:\/\//, `${r.id} Understand has a link`);
+      assert.match(r.explain, /Deep enough when you can/, `${r.id} explain`);
+    }
+    const text = [r.understand, r.do, r.explain, r.text].filter(Boolean).join(' ');
+    assert.ok(!/python|pandas|notebook/i.test(text), `${r.id} no Python/pandas/notebook`);
+    assert.ok(!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(text), `${r.id} no emoji`);
+  });
+  // Learning slots: 3 tasks each; every Do from slot 6 on works on the flagship.
+  T.jt.forEach((s: Any, i: number) => {
+    if (s.items[0].id.startsWith('jt:') && !s.items[0].id.startsWith('jt:depth-')) return;
+    assert.equal(s.items.length, 3, `jt slot ${i + 1} has 3 tasks`);
+    // The two FDE rounds work on an unfamiliar repo or API on purpose.
+    if (i >= 5 && !s.items[0].id.startsWith('fde:reengineering-round') && !s.items[0].id.startsWith('fde:learning-round')) assert.match(s.items[1].text, /flagship/i, `jt slot ${i + 1} Do is on the flagship`);
+  });
+  for (const id of ['pf:k8s-deployments', 'pf:k8s-services', 'pf:k8s-scaling']) assert.match(T.jt[slotOf('jt', id)].items.map((x: Any) => x.text).join(' '), /\bkind\b/, `${id} uses kind`);
+  for (const id of ['aib:aws', 'pf:aws-vpc-compute', 'pf:aws-storage-lambda']) assert.match(T.jt[slotOf('jt', id)].items.map((x: Any) => x.text).join(' '), /free tier/i, `${id} on the free tier`);
+  assert.match(T.jt[slotOf('jt', 'aib:aws')].items.map((x: Any) => x.text).join(' '), /budget alarm/i, 'AWS budget alarm');
+  // The v2 beh builder skips every FDE id Platform now places.
+  for (const id of named.filter((x) => x.startsWith('fde:'))) assert.equal(slotOf('beh', id), -1, `${id} not in beh`);
 }
-const peers = [4, 6, 8, 10, 12].map((w) => T.jt[idx(w, 6)].items.find((x: Any) => /peer/i.test(x.text)));
-assert.ok(peers.every(Boolean), 'peer mock in weeks 4, 6, 8, 10, 12');
-assert.ok(![2].some((w) => T.jt[idx(w, 6)].items.some((x: Any) => /peer/i.test(x.text))), 'no peer mock in week 2');
-['coding', 'frontend system design', 'behavioral', 'decomposition', 'coding'].forEach((r, n) => assert.match(peers[n].text, new RegExp(r, 'i'), `peer rotation ${n}`));
 
 // ---------- beh ----------
 assert.deepEqual([1, 2, 3].map((n) => slotOf('beh', `beh:deep-dive-${n}`)), [idx(2, 6), idx(3, 6), idx(4, 6)], 'deep dives Sat wk2–4');
@@ -445,7 +517,7 @@ T.beh.forEach((s: Any, i: number) => {
   if (u.length) assert.ok(!s.items[0].id.startsWith('ux:') && s.items.indexOf(u[0]) === 1, `beh[${i}] UX is the second task`);
 });
 assert.equal(ids('beh', 0)[1], 'ux:laws-of-ux', 'UX from week 1');
-for (const id of SKIP_FDE) assert.equal(slotOf('beh', id), -1, `${id} not in beh (lives in jt)`);
+for (const id of SKIP_FDE) assert.equal(slotOf('beh', id), -1, `${id} not in beh (lives in Platform, the AI core or DECOMP)`);
 const fdeOrder = T.beh.flatMap((s: Any) => s.items).filter((x: Any) => !x.filler && x.id.startsWith('fde:')).map((x: Any) => x.id);
 assert.deepEqual(fdeOrder, (career.FDE as Any[]).map((x) => x.id).filter((id) => !SKIP_FDE.has(id)), 'FDE in order');
 const lastBeh = Math.max(...(career.BEH as Any[]).filter((x) => !x.id.startsWith('beh:negotiation')).map((x) => slotOf('beh', x.id)));

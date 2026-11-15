@@ -7,6 +7,7 @@ import * as career from '../src/lib/content/career.js';
 import * as ai from '../src/lib/content/ai.js';
 import * as aiCore from '../src/lib/content/ai-core.js';
 import * as systems from '../src/lib/content/systems.js';
+import * as platform from '../src/lib/content/platform.js';
 import * as mc from '../src/lib/content/mc.js';
 import * as sd from '../src/lib/content/sd.js';
 import * as judgment from '../src/lib/content/judgment.js';
@@ -17,7 +18,7 @@ import { steadyRuns, layoutDays, cursorsAt, WEEKS } from '../src/lib/layout.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
-const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...aiCore, ...mc, ...sd, ...systems, ...judgment, ...reference };
+const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...aiCore, ...mc, ...sd, ...systems, ...platform, ...judgment, ...reference };
 const tracks: Any = buildTracks(content);
 const TRACKS = ['dsa', 'fe', 'mc', 'sd', 'jt', 'beh', 'ai'];
 const ZERO: Any = Object.fromEntries(TRACKS.map((t) => [t, 0]));
@@ -157,7 +158,11 @@ assert.equal(steady.filter((d) => d.kind === 'study').length, 102);
 /** Every laid-out item with an `after` (the aib track is no longer laid out, so its content is not checked). */
 const afterItems = (ts: Any) => TRACKS.flatMap((t) => ts[t].flatMap((s: Any) => s.items)).filter((x: Any) => typeof x.after === 'string')
   .map((x: Any) => ({ id: x.id.replace(/:part-\d+$/, ''), after: x.after }));
-const withAfter: Any[] = afterItems(tracks);
+// Interim until Task 6: Platform slot 6 waits for `proj:pick-scaffold`, which Product creates. The layout treats an
+// unknown target as ready, so only prerequisites that are laid out are checked here; the waiting one is listed.
+const laidOut = new Set<string>(TRACKS.flatMap((t) => tracks[t].flatMap((s: Any) => s.items.map((x: Any) => x.id.replace(/:part-\d+$/, '')))));
+const withAfter: Any[] = afterItems(tracks).filter((x: Any) => laidOut.has(x.after));
+assert.deepEqual(afterItems(tracks).filter((x: Any) => !laidOut.has(x.after)).filter((x: Any) => x.after !== 'proj:pick-scaffold'), [], 'only proj:pick-scaffold may be missing');
 function checkAfter(days: Any[], label: string, items: Any[] = withAfter) {
   const first = new Map<string, number>(), last = new Map<string, number>();
   for (const d of days) for (const t of TRACKS) for (const x of live(d, t)?.items ?? []) {
@@ -255,7 +260,7 @@ function checkOnce(days: Any[], label: string, items: Any[] = withAfter) {
 // ---------- uneven progress at a switch: prerequisites still on an earlier day (fix I1) ----------
 // Synthetic fixture: the real tracks, with product slot 31 `after` AI-core slot 30 (the v3 product → AI-core link).
 const fx: Any = { ...tracks, mc: tracks.mc.map((s: Any, i: number) => (i === 31 ? { items: s.items.map((x: Any, j: number) => (j === 0 ? { ...x, after: tracks.fe[30].items[0].id } : x)) } : s)) };
-const fxAfter = afterItems(fx);
+const fxAfter = afterItems(fx).filter((x: Any) => laidOut.has(x.after));
 assert.ok(fxAfter.some((x: Any) => x.after === tracks.fe[30].items[0].id), 'fixture has the mc → fe prerequisite');
 const fxPlan = (modes: Any = {}, done: Any = {}) => layoutDays({ start: START, kickoff: true, modes, tracks: fx, done });
 {
