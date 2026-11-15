@@ -40,7 +40,7 @@
 - **Tests import `.ts` files by explicit path** (e.g. `../src/lib/labels.ts`). Pure modules must have **no extensionless runtime imports** (see the comment in `task-filter.ts`). Shared types are written as local `string` aliases, or as `import type` (erased at runtime).
 - **Content files are ESM `.js`** (like today's `plan-data.js`). Node 22.7+ detects ESM syntax, so tests can import them directly. Local Node is 24, and CI uses 22.
 - **Commits and the PR** end with the attribution line from the session's system reminder.
-- **The rebrand is pending.** Don't rename the app or logos in this plan until the owner confirms the name and the logo file. See `docs/superpowers/HANDOFF-roadmap-v2.md`.
+- **No rebrand in R1.** The owner dropped it for now (2026-11-15). Don't rename the app or logos.
 
 ## Review Focus
 
@@ -362,6 +362,55 @@ Split into 4a–4d so each part can be reviewed alone. Each sub-task appends ass
 - [ ] **Step 2: Run** `npm test && npm run build`. Expected: PASS. (The engine still compiles because Task 8 lands next. If it doesn't, merge 7 and 8 into one commit.)
 - [ ] **Step 3: Commit** `feat(schedule): v2 weekday split, buffer block, new sundays`.
 
+### Task 7b: Routine slots (owner-editable meals and gym)
+
+Added 2026-11-15 with the owner's agreement. Not in the spec; this task text is the authority for it.
+
+**Files:**
+- Create: `src/lib/routine.ts` (pure, no runtime imports).
+- Modify: `src/lib/state-types.ts` (types), `src/lib/store.tsx` (`routine` in `State`, `fresh`, `normalize`), `src/lib/sync-merge.ts` (`'routine'` in `MAPS`).
+- Modify: `src/lib/schedule.js` (`buildICS` takes the routine).
+- Test: `scripts/test-routine.ts`.
+
+**Interfaces:**
+- **Types** (`state-types.ts`):
+  - `RoutineKey = 'breakfast' | 'lunch' | 'dinner' | 'extra'`;
+  - `RoutineSlot = { on: boolean; title: string; s: string /*'HH:MM'*/; min: number }`.
+- **State:** `routine: Partial<Record<RoutineKey, RoutineSlot>>`, a synced map (per-slot last write wins). A missing key means "use the default".
+- **`routine.ts` exports:**
+  - `DEFAULT_ROUTINE: Record<RoutineKey, RoutineSlot>`, which matches today's `WEEKDAY_BLOCKS` exactly:
+    - `breakfast`: on, "Breakfast, get ready", 07:15, 45 min;
+    - `lunch`: on, "Lunch + 20 min power nap", 11:45, 75 min;
+    - `extra`: on, "Gym", 18:00, 60 min (block `k: 'workout'`, `kind: 'health'`);
+    - `dinner`: on, "Dinner + family time", 19:15, 45 min.
+  - `ROUTINE_BLOCK_KEY = { breakfast: 'breakfast', lunch: 'lunch', dinner: 'dinner', extra: 'workout' }`: the template block each slot replaces.
+  - `resolveRoutine(stored): Record<RoutineKey, RoutineSlot>`: defaults overlaid with the stored slots.
+  - `validateRoutine(r): { ok: true } | { ok: false; error: string }`. Rules: title 1–40 chars after trim; `min` is an integer 5–180; `s` is a valid `HH:MM`; an enabled slot must start at or after the end of the `wake` block and end at or before the start of the `wind` block; two enabled slots may not overlap. The error is a short sentence for the UI, e.g. "Lunch overlaps Gym."
+  - `placeDay(template: Block[], routine): { ok: true; blocks: Block[] } | { ok: false; block: { k: string; title: string }; overMin: number }`, where `Block` is the `schedule.js` block shape `{ s, e, k, title, kind, remind? }`.
+- **Placement rules (`placeDay`):**
+  1. Remove the template blocks named in `ROUTINE_BLOCK_KEY`.
+  2. **Anchors** are fixed in time: `wake` (its template time), every enabled routine slot (its own time and title, `kind: 'life'`, except `extra`, which is `'health'`, all `remind: true`), and `wind` (its template time).
+  3. Every other block **flows**, in template order, keeping its **full template duration**. A flowing block starts at the later of (the end of the previous placed block) and (its own template start). If that would overlap an anchor, it moves to start at that anchor's end. Repeat until it fits. Blocks are **never split or shortened**.
+  4. If a flowing block would end after the start of `wind`, return `{ ok: false, block, overMin }`, where `overMin` is how many minutes past `wind`'s start it would end. No block is ever silently dropped.
+  5. The output is sorted by start time. Gaps stay empty (no filler block).
+  6. With `DEFAULT_ROUTINE` and `WEEKDAY_BLOCKS`, the output equals `WEEKDAY_BLOCKS` exactly (same order, times, keys and titles).
+- **Scope:** the routine applies to **Mon–Sat study days** (both modes). **Sundays and the prep day keep their own fixed timetables in R1.** Steady days place their template after the `BUFFER_BLOCK` substitution, so a buffer flows like the block it replaced.
+- **`schedule.js`:** change the `free` block title to "Outdoor walk, sunlight, snack" (it no longer assumes gym). `buildICS(startISO, totalDays, routine)` places `WEEKDAY_BLOCKS` with the routine before writing weekday events. If placement fails, it falls back to `WEEKDAY_BLOCKS` unchanged (Setup prevents saving such a routine anyway).
+
+- [ ] **Step 1: Write the failing tests** in `scripts/test-routine.ts`:
+  - defaults reproduce `WEEKDAY_BLOCKS` exactly;
+  - lunch moved to 12:30 for 60 min: `sd` (90 min) can't fit before it, so it starts at 13:30, every later study block keeps its duration, and the result is either a valid day or `ok: false` with a positive `overMin`; assert the actual result;
+  - breakfast turned off: no `breakfast` block, no other block moves earlier than its template start;
+  - `extra` renamed "Yoga" at 17:00 for 30 min: a block titled "Yoga" with `kind: 'health'` at 17:00–17:30 and no "Gym" block;
+  - a routine that pushes study past `wind` returns `ok: false` naming the first block that doesn't fit;
+  - `validateRoutine`: overlapping lunch and gym → error; `min: 0` → error; `s: '25:00'` → error; a slot before 05:15 → error; the defaults → `ok: true`;
+  - `resolveRoutine({ lunch: { on: false, title: 'Lunch', s: '12:00', min: 60 } })` overrides only lunch;
+  - a v5/v6 state without `routine` normalizes to `routine: {}`, and `merge` keeps `routine` slots from both sides (append to `scripts/test-sync-merge.ts`).
+- [ ] **Step 2: Run** `npm test`. Expected: FAIL.
+- [ ] **Step 3: Implement** the types, state field, `routine.ts` and the `buildICS` change.
+- [ ] **Step 4: Run** `npm test && npm run build`. Expected: PASS.
+- [ ] **Step 5: Commit** `feat(routine): owner-editable meal and gym slots with block placement`.
+
 ### Task 8: Engine glue: layout → Day[]
 
 **Files:**
@@ -372,11 +421,12 @@ Split into 4a–4d so each part can be reviewed alone. Each sub-task appends ass
 
 **Interfaces:**
 - Produces:
-  - `buildPlan(state: Pick<State, 'start' | 'kickoff' | 'modes' | 'done' | 'sundayMode'>, updates, custom): Day[]`;
+  - `buildPlan(state: Pick<State, 'start' | 'kickoff' | 'modes' | 'done' | 'sundayMode' | 'routine'>, updates, custom): Day[]`;
   - `totalDays(days: Day[]): number`;
   - `cursorsNow(state, today: string): Record<TrackId, number>`, which wraps `cursorsAt` over the current layout;
   - `Day` keeps `i, no, date, week, phase, type, blocks, tasks`, plus `s` (the 1-based study-day counter) and `n` (the Sunday number). Drop `lld`, `mc` and `studyBefore`.
   - `Task` gains `pattern?`, `tier?`, `flags?`, `role?`, `depth?`, `hiddenUntilStart?`, `labels?: never` (labels are looked up via `labelsOf`, not stored on tasks).
+- **Block times:** every Mon–Sat study day's blocks come from `placeDay(template, resolveRoutine(state.routine))` (Task 7b), so `buildPlan` also takes `routine` in its `state` pick. Sundays and the prep day use their fixed templates.
 - **Block contents:**
   - **Revision block:** at most 3 re-solve tasks (`rs:<slug>`, the teaching problems at +3/+7/+21 days) plus one drill task `d:<date>:drill`.
     - The drill's text lists 3 problems (name + LeetCode link) chosen by a seeded shuffle of the date. They come from patterns already covered, never `role: 'unseen'`, and optional-pool problems are preferred.
@@ -409,7 +459,8 @@ Split into 4a–4d so each part can be reviewed alone. Each sub-task appends ass
 - **Switching** calls `switchMode(state.modes, today, mode, cursorsAt(days, today, done))`, then toasts "Switched to Grind from today. Done work stays done."
 - **Start date picker:** only Mondays can be picked. "Start over from today" snaps to the next Monday.
 - **The prep-day toggle stays.**
-- **Calendar download** uses `buildICS(start, totalDays(days))`.
+- **Calendar download** uses `buildICS(start, totalDays(days), resolveRoutine(state.routine))`.
+- **"My routine" section** (Task 7b): one row per slot (Breakfast, Lunch, Dinner, and the 4th slot, which starts as "Gym"). Each row has an on/off switch, a name field, a start time and a duration in minutes. "Save" runs `validateRoutine`, then `placeDay(WEEKDAY_BLOCKS, routine)`. If either fails, nothing is saved and one line explains why, e.g. "Doesn't fit: 'Deep work 3 · Machine coding' would run 40 min past 21:30. Move a slot or shorten it." "Reset to defaults" clears `state.routine`. A note under the section says the routine applies Mon–Sat, and that a downloaded calendar file must be downloaded again after changes.
 - [ ] **Step 1: Implement.**
 - [ ] **Step 2: Check manually** in the dev server: switch modes twice, and Today and the Roadmap timeline still render.
 - [ ] **Step 3: Commit** `feat(setup): steady/grind mode, monday start`.
