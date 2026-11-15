@@ -27,12 +27,11 @@ Written 2026-11-15 at the end of the Release 1 build session. Supersedes `HANDOF
    Either `git stash pop` and finish/verify it, or drop it and redo the three fixes. It was unfinished.
 2. **Roadmap v3 content redesign** (approved by the owner 2026-11-15):
    `docs/superpowers/specs/2026-11-15-roadmap-v3-ai-systems-design.md`.
-   - An independent spec review was dispatched at handoff time; its result may not be folded in.
-     **Re-run a thorough spec review first** (coverage vs teachyourselfcs's 9 subjects, MIT Missing
-     Semester, Chip Huyen's *AI Engineering*, mlabonne llm-course, roadmap.sh FDE, v1 BOARD_MAP;
-     slot budgets per 78-slot track; Steady feasibility of "DSA every study day"; sequencing such as
-     platform labs "against your flagship" before the flagship exists; Saturday allocation). Fix the
-     spec, show the owner the changes in plain words, then:
+   - **The independent spec review is done:** `docs/superpowers/specs/2026-11-15-roadmap-v3-spec-review.md`
+     (verdict: not ready yet; 13 must-fix items, all spec-text changes; three tracks overflow 78 slots).
+     Apply every must-fix and the should-fixes, recount each track to ≤ 78, and ask the owner the three
+     "Risks to raise" (DSA depth for Google/Meta, frontend-specialist loops, advanced DSA 8→3). Show the
+     owner the spec changes in plain words. A short re-review of the revised spec, then:
    - write the implementation plan (superpowers:writing-plans), then build it subagent-driven
      (superpowers:subagent-driven-development) with per-task reviews and one final whole-branch review.
    - The v3 change is content + track builders + block titles/times + readiness/assessment text + tests.
