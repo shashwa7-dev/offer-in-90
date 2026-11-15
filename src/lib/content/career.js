@@ -358,7 +358,7 @@ export const CAREER = [
 
 // MOCK_DAY: the 13 Saturdays (v3 §6). `row` is the Saturday career slot (60 min); `carry` rows go to that week's Sunday
 // (45 min each). Coding rounds name an OA post by its index in reference.js OA_LINKS (`oa`: 8..15; DSA uses 0..7) and cite
-// the coding rubric as `url2`, as do the AI drills and every mock-loop round.
+// the coding rubric as `url2`, as do the AI drills and round 1 of each mock loop (rounds 2 and 3 score on that rubric too).
 const AI_DRILL_URL = 'https://www.hellointerview.com/blog/meta-ai-enabled-coding';
 const HLD_FRAMEWORK = 'https://www.hellointerview.com/learn/system-design/in-a-hurry/delivery';
 const drill = (n, feature, extra = {}) => ({

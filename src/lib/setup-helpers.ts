@@ -89,7 +89,7 @@ export function startOver<S extends { start: string; modes: Record<string, ModeE
 } {
   const since = Object.keys(s.modes).filter((d) => d <= start).sort().at(-1);
   const mode = since ? s.modes[since].mode : 'steady';
-  const cursors = { dsa: 0, aib: 0, fe: 0, mc: 0, sd: 0, jt: 0, beh: 0, ai: 0 };
+  const cursors = { dsa: 0, fe: 0, mc: 0, sd: 0, jt: 0, beh: 0, ai: 0 };
   const modes: Record<string, ModeEntry> = mode === 'steady' ? {} : { [start]: { mode, cursors, basis: start } };
   return { ...s, start, modes, done: {}, status: {}, flags: {}, notes: {}, solves: {}, scores: {}, sundayMode: {} };
 }

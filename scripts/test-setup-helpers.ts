@@ -83,7 +83,8 @@ assert.equal(bedtimeMessage('22:40'), 'Bedtime moves to 22:40 on study days to f
   assert.equal(r.start, '2026-11-16');
   for (const k of ['done', 'status', 'flags', 'notes', 'solves', 'scores', 'sundayMode'] as const) assert.deepEqual(r[k], {}, `${k} cleared`);
   for (const k of ['labels', 'itemLabels', 'own', 'routine', 'custom', 'pages', 'bookmarks', 'tnotes'] as const) assert.deepEqual(r[k], s[k], `${k} kept`);
-  assert.deepEqual(r.modes, { '2026-11-16': { mode: 'grind', cursors: { dsa: 0, aib: 0, fe: 0, mc: 0, sd: 0, jt: 0, beh: 0, ai: 0 }, basis: '2026-11-16' } }, 'Grind kept, from the new start');
+  assert.deepEqual(r.modes, { '2026-11-16': { mode: 'grind', cursors: { dsa: 0, fe: 0, mc: 0, sd: 0, jt: 0, beh: 0, ai: 0 }, basis: '2026-11-16' } }, 'Grind kept, from the new start');
+  assert.ok(!('aib' in r.modes['2026-11-16'].cursors), 'no aib cursor: aib is not a track');
   assert.deepEqual(startOver({ ...s, modes: { '2026-10-05': { mode: 'steady' as const, cursors: z } } }, '2026-11-16').modes, {}, 'Steady → the fresh default');
   assert.deepEqual(startOver({ ...s, modes: {} }, '2026-11-16').modes, {});
 }
