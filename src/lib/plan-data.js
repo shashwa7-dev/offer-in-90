@@ -4,6 +4,17 @@
 // extended for frontend / full-stack loops at Google, Meta, Microsoft, Amazon.
 
 import { ADV_DSA } from './content/dsa.js';
+import { FE as FE_NEW } from './content/fe.js';
+import { UX as UX_NEW } from './content/ux.js';
+import { BEH as BEH_NEW, FDE as FDE_NEW, COMPANY_MAP } from './content/career.js';
+import { AIB_MOVED } from './content/ai.js';
+
+// Adapter (Task 4a): the content files hold the new { id, text, ... } items; engine.ts still reads the old tuples until Task 8 rewrites it.
+// FDE: the Python and Stage-6 cloud items moved to ai.js, so they are appended at the end to stay visible to the old engine.
+const FE = FE_NEW.map(x => [x.text, x.practice, x.url]);
+const UX = UX_NEW.map(x => [x.text, x.url || '']);
+const BEH = BEH_NEW.map(x => [x.text, x.url || '']);
+const FDE = [...FDE_NEW, ...AIB_MOVED].map(x => [x.text, x.url || '']);
 
 const LC = s => `https://leetcode.com/problems/${s}/`;
 const NC = s => `https://neetcode.io/problems/${s}`;
@@ -34,57 +45,6 @@ const prettify = s => NAME_FIX[s] || s.split('-').map(w => w[0].toUpperCase() + 
 const DSA = [];
 DSA_TOPICS.forEach(([topic, list]) => list.forEach(([slug, d, nc]) => DSA.push({ slug, d, topic, name: prettify(slug), url: nc ? NC(nc) : LC(slug), premium: !!nc })));
 
-// Frontend & CS core, one topic per study day (s1–s48). [topic, practice, link]
-const FE = [
-  ['Execution context, hoisting, scope chain, TDZ', 'Predict output of 10 hoisting/scope snippets', 'https://javascript.info/closure'],
-  ['Closures, IIFE, module pattern', 'Build a private counter + once() using closures', 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Closures'],
-  ['this, call / apply / bind', 'Write a polyfill for Function.prototype.bind', 'https://javascript.info/call-apply-decorators'],
-  ['Prototypes, inheritance, classes, new', 'Implement myNew() and Object.create()', 'https://javascript.info/prototype-inheritance'],
-  ['Event loop: call stack, microtasks, macrotasks', 'Predict output of 10 setTimeout / Promise ordering puzzles', 'https://www.youtube.com/watch?v=cCOL7MC4Pl0'],
-  ['Promises in depth', 'Implement Promise.all, allSettled, race, any', 'https://javascript.info/promise-api'],
-  ['async/await, error handling, generators, iterators', 'Write retry(fn, n) with backoff + an async iterator', 'https://javascript.info/async-iterators-generators'],
-  ['Array polyfills, deep clone, deep equal', 'Implement map, filter, reduce, flat, deepClone, isEqual', 'https://bigfrontend.dev/problem'],
-  ['Debounce, throttle, memoize, curry, compose', 'Implement all five with leading/trailing options', 'https://bigfrontend.dev/problem/implement-basic-debounce'],
-  ['Types, coercion, equality, WeakMap, GC, memory leaks', 'Find 3 leak patterns in DevTools Memory tab', 'https://javascript.info/garbage-collection'],
-  ['ES6+, Proxy/Reflect, ESM vs CommonJS', 'Build a reactive object with Proxy', 'https://javascript.info/proxy'],
-  ['TypeScript essentials: generics, narrowing, utility & mapped types', 'Re-implement Pick, Omit, Partial, ReturnType', 'https://www.typescriptlang.org/docs/handbook/2/types-from-types.html'],
-  ['DOM & events: bubbling, capturing, delegation', 'Implement event delegation for a dynamic list', 'https://javascript.info/event-delegation'],
-  ['Critical rendering path, reflow, repaint, compositing', 'Profile a page in Performance tab; find layout thrash', 'https://web.dev/articles/critical-rendering-path'],
-  ['Accessibility: semantics, ARIA, focus, keyboard', 'Audit a page with axe + keyboard-only navigation', 'https://www.w3.org/WAI/ARIA/apg/patterns/'],
-  ['CSS: box model, specificity, stacking context, positioning', 'Explain 5 z-index bugs and fix them', 'https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_positioned_layout/Understanding_z-index/Stacking_context'],
-  ['CSS layout: Flexbox, Grid, responsive, container queries', 'Build holy-grail layout with Grid, then Flexbox', 'https://css-tricks.com/snippets/css/complete-guide-grid/'],
-  ['Storage, Web Workers, Service Workers', 'Cache API responses offline with a service worker', 'https://web.dev/learn/pwa/service-workers'],
-  ['HTTP/1.1 vs 2 vs 3, caching headers, ETag, CDN', 'Explain Cache-Control for HTML vs hashed assets', 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Caching'],
-  ['REST vs GraphQL vs gRPC, fetch, AbortController', 'Write fetchWithTimeout + cancel stale requests', 'https://developer.mozilla.org/en-US/docs/Web/API/AbortController'],
-  ['WebSockets, SSE, long polling', 'Compare the three in a table: latency, scale, fallbacks', 'https://javascript.info/websocket'],
-  ['Web security: XSS, CSRF, CSP, CORS, clickjacking', 'Write a CSP header for a React app', 'https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html'],
-  ['Auth: cookies vs JWT, sessions, OAuth2/OIDC', 'Draw the OAuth2 PKCE flow from memory', 'https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce'],
-  ['Web performance: Core Web Vitals (LCP, INP, CLS)', 'Run Lighthouse on your project; fix top 3 issues', 'https://web.dev/articles/vitals'],
-  ['React rendering, reconciliation, keys, Fiber', 'Explain why index keys break a reorderable list', 'https://react.dev/learn/preserving-and-resetting-state'],
-  ['Hooks in depth: effects, refs, stale closures', 'Fix 3 stale-closure bugs in useEffect/setInterval', 'https://react.dev/learn/synchronizing-with-effects'],
-  ['memo, useMemo, useCallback: when React re-renders', 'Use React Profiler to remove wasted renders', 'https://react.dev/reference/react/memo'],
-  ['Custom hooks', 'Write useDebounce, usePrevious, useLocalStorage, useOnClickOutside', 'https://react.dev/learn/reusing-logic-with-custom-hooks'],
-  ['State management: Context, Redux Toolkit, Zustand, React Query', 'Same feature in Context vs Zustand vs React Query', 'https://tanstack.com/query/latest/docs/framework/react/overview'],
-  ['Forms, error boundaries, portals, Suspense', 'Build an error boundary + portal-based modal', 'https://react.dev/reference/react/Component#catching-rendering-errors-with-an-error-boundary'],
-  ['Concurrent React: transitions, useDeferredValue, React 19 actions', 'Make a slow filter list responsive with useTransition', 'https://react.dev/reference/react/useTransition'],
-  ['SSR, SSG, ISR, streaming, Server Components, hydration', 'Explain RSC vs SSR in 2 minutes, out loud', 'https://nextjs.org/docs/app/getting-started/server-and-client-components'],
-  ['React performance at scale: virtualization, code splitting', 'Lazy-load a route and measure bundle drop', 'https://web.dev/articles/virtualize-long-lists-react-window'],
-  ['Testing: Vitest/Jest, React Testing Library, Playwright', 'Write tests for your autocomplete component', 'https://testing-library.com/docs/react-testing-library/intro/'],
-  ['Build tooling: Vite, webpack, tree-shaking, module federation', 'Explain how tree-shaking decides dead code', 'https://webpack.js.org/guides/tree-shaking/'],
-  ['Component API design: compound, headless, render props, design systems', 'Design a headless <Select> API on paper', 'https://www.patterns.dev/react/compound-pattern'],
-  ['Node.js: event loop phases, streams, worker threads, cluster', 'Stream a 1 GB file without loading it into memory', 'https://nodejs.org/en/learn/asynchronous-work/event-loop-timers-and-nexttick'],
-  ['API design: REST, versioning, pagination, errors, idempotency keys', 'Design the API for a todo app with cursor pagination', 'https://cloud.google.com/apis/design'],
-  ['SQL: joins, indexes, transactions, isolation levels', 'Solve 5 SQL problems (LeetCode SQL 50)', 'https://leetcode.com/studyplan/top-sql-50/'],
-  ['NoSQL data modeling (MongoDB/DynamoDB); SQL vs NoSQL', 'Model a chat app in both SQL and DynamoDB', 'https://www.mongodb.com/docs/manual/data-modeling/'],
-  ['Redis: caching strategies, TTL/LRU, rate limiting', 'Implement a token-bucket limiter with Redis', 'https://redis.io/docs/latest/develop/'],
-  ['Queues & streams: Kafka, SQS, background jobs, retries', 'Explain at-least-once vs exactly-once delivery', 'https://kafka.apache.org/intro'],
-  ['Web Components: custom elements, Shadow DOM, slots', 'Build a <star-rating> web component', 'https://developer.mozilla.org/en-US/docs/Web/API/Web_components'],
-  ['Animation & rendering performance: requestAnimationFrame, FLIP, compositor-only properties', 'Animate a list reorder with FLIP at 60 fps', 'https://web.dev/articles/animations-guide'],
-  ['Canvas, SVG and data visualization basics', 'Draw a responsive bar chart in SVG without a library', 'https://developer.mozilla.org/en-US/docs/Web/API/Canvas_API/Tutorial'],
-  ['Concurrency in JS: workers, SharedArrayBuffer, race conditions in async code', 'Fix a race between two fetches updating the same state', 'https://developer.mozilla.org/en-US/docs/Web/API/Web_Workers_API'],
-  ['OS & networking: processes, threads, TCP/UDP, DNS, TLS', 'Answer "what happens when you type a URL" in 5 minutes', 'https://github.com/alex/what-happens-when'],
-  ['Docker, CI/CD, observability (logs, metrics, traces)', 'Dockerize a small Node app and add a GitHub Actions pipeline', 'https://docs.docker.com/get-started/'],
-];
 
 // Machine coding: frontend LLD round (Microsoft-style machine coding, Meta/Google UI rounds). 90 minutes each.
 const MC = [
@@ -124,54 +84,7 @@ const PROJECT = [
 ];
 
 // Product & UX (second task in the career block, weeks 1–5): understanding product, not just code.
-const UX = [
-  ['Laws of UX: Fitts, Hick, Jakob, Miller, Doherty threshold', 'https://lawsofux.com/'],
-  ['Nielsen\'s 10 usability heuristics. Audit an app you use daily against them.', 'https://www.nngroup.com/articles/ten-usability-heuristics/'],
-  ['Visual hierarchy, spacing and the 4/8-pt grid', 'https://web.dev/learn/design/macro-layouts'],
-  ['Typography: type scale, line length, hierarchy', 'https://m3.material.io/styles/typography/overview'],
-  ['Color: contrast (WCAG), palettes, dark mode', 'https://webaim.org/resources/contrastchecker/'],
-  ['Layout, responsive and mobile-first design', 'https://web.dev/learn/design'],
-  ['Gestalt principles in interfaces', 'https://www.nngroup.com/articles/gestalt-proximity/'],
-  ['Forms UX: labels, validation timing, error messages', 'https://www.nngroup.com/articles/errors-forms-design-guidelines/'],
-  ['Every state: empty, loading, error, partial, success', ''],
-  ['Perceived performance: skeletons, optimistic UI, progress', 'https://web.dev/learn/performance'],
-  ['Motion and microinteractions: purpose, timing, reduced motion', 'https://m3.material.io/styles/motion/overview'],
-  ['Design systems and tokens', 'https://m3.material.io/foundations'],
-  ['Apple Human Interface Guidelines: platform conventions, navigation', 'https://developer.apple.com/design/human-interface-guidelines'],
-  ['Figma for engineers: auto layout, components, inspect', 'https://help.figma.com/hc/en-us'],
-  ['Accessible design patterns (GOV.UK design system)', 'https://design-system.service.gov.uk/patterns/'],
-  ['Teardown: Linear. Why it feels fast (keyboard-first, optimistic, local-first).', 'https://linear.app/'],
-  ['Teardown: Stripe Checkout. Trust, errors, forms.', 'https://stripe.com/payments/checkout'],
-  ['Teardown: Airbnb search. Filters, map, results.', 'https://www.airbnb.com/'],
-  ['Teardown: Figma / Notion. Collaboration UX.', 'https://www.figma.com/blog/how-figmas-multiplayer-technology-works/'],
-  ['Product thinking: users, jobs-to-be-done, problem statements', ''],
-  ['Write a one-page PRD for a feature you would add to an app you use', ''],
-  ['Metrics: north star, activation, retention, funnels, guardrails', ''],
-  ['Experimentation: A/B tests, sample size intuition, common pitfalls', 'https://www.optimizely.com/optimization-glossary/ab-testing/'],
-  ['Feature flags, staged rollouts, kill switches', 'https://martinfowler.com/articles/feature-toggles.html'],
-  ['Analytics instrumentation: event design and privacy', ''],
-  ['Prioritization: RICE, impact vs effort, saying no', ''],
-  ['AI product UX: trust, latency, uncertainty, human-in-the-loop, recovering from errors', 'https://pair.withgoogle.com/guidebook/'],
-  ['Product sense out loud: "How would you improve Google Maps?" (10 min)', ''],
-  ['Product sense out loud: "Design a product for first-time remote managers"', ''],
-  ['Engineering judgment: build vs buy, tech debt, when to ship', ''],
-  ['UX writing: microcopy, empty states, error messages', 'https://www.nngroup.com/articles/error-message-guidelines/'],
-  ['Dashboards and data-viz UX', ''],
-  ['Onboarding and activation UX', ''],
-  ['Internationalization UX: dates, plurals, RTL, text expansion', ''],
-  ['Flagship prep: pick your target user and problem; write it in Notes for project day 1', ''],
-];
 
-// What each company actually tests (2025–26 candidate reports + prep guides) and where the plan covers it.
-const COMPANY_MAP = [
-  ['Google (frontend SWE)', 'Phone screen: DSA. Onsite 4–5 rounds: mostly LeetCode medium–hard DSA, one frontend round (JS/async/DOM/React; large-scale frontend design at senior), Googleyness. Hiring committee + team match. At least one in-person round.', 'Daily DSA + timed sets typed in a plain doc; frontend block; frontend system design; Googleyness stories'],
-  ['Meta (front-end / product)', 'Screen: 2 problems in ~35–45 min (vanilla JS for front-end). Loop: 2 coding (one may be AI-enabled), product architecture (user-facing product, sometimes diagrammed in Mermaid), behavioral.', 'Speed sets (2 in 40 min), JS/DOM utilities, weekly AI-enabled coding drills, product-architecture mocks in Mermaid'],
-  ['Meta AI-enabled round', '60 min, multi-file codebase in CoderPad: fix a bug → implement a feature (harder than medium) with an AI chat → optimize for bigger inputs. Graded on understanding, verification, communication.', 'AI-enabled drills (Sundays in Phase 2, Phase 3 DSA rotation), re-engineering reps, BFS/backtracking/trie/bitmask practice'],
-  ['Microsoft', '3–6 rounds: long machine-coding rounds (e.g. an Outlook or Teams-style UI), advanced JS, LLD, DSA, browser internals; growth mindset. Some teams add an AI-assisted round.', 'Machine coding (incl. email + chat clients), LLD Saturdays, growth-mindset stories'],
-  ['Amazon', 'OA (coding 70 min + work simulation + work style), DSA + Leadership Principles every round, LLD/HLD at SDE-2, bar raiser.', 'The Whimsical board track (see table above)'],
-  ['Forward-deployed (AI labs, Palantir, Databricks, startups)', 'Practical coding (often Python), system design with LLM/RAG/evals, decomposition, client simulation, behavioral, sometimes a 4–8 h take-home. Posts ask for Python/TS, SQL, cloud, containers, RAG/evals/agents, discovery skills.', 'FDE track (roadmap.sh stages + reps), AI block, flagship project'],
-  ['System design in 2026 (all companies)', 'LLM parts (gateways, vector stores, evals, agent sandboxes) are now normal design material; cost and latency reasoning is graded; "design an eval framework" is a common prompt.', 'AI system design days in the system design block + AI mocks'],
-];
 
 const FOCUS_RULES = [
   'Only use the links in this plan. If you find something new online, put it in the Parking lot page and look at it on Sunday, or in Month 4.',
@@ -264,98 +177,13 @@ const SD_MOCKS = [
   'FE: Design a photo gallery', 'AI: Design ChatGPT, frontend + backend', 'LLD: Design Chess',
 ];
 
-// Career block: behavioral, resume, applications. One task per study day.
-const BEH = [
-  ['Resume: rewrite every bullet as impact (did X, measured by Y, by doing Z). One page.', 'https://www.techinterviewhandbook.org/resume/'],
-  ['LinkedIn headline + About; GitHub: pin 3 best repos with READMEs', 'https://www.techinterviewhandbook.org/resume/'],
-  ['Story bank: list 12 projects/situations from your work (wins, failures, conflicts)', 'https://in.indeed.com/career-advice/interviewing/how-to-use-the-star-interview-response-technique'],
-  ['Positioning: pick your pitch (frontend engineer who ships AI features / full-stack / forward-deployed) and 3 target role titles', 'https://www.linkedin.com/jobs/'],
-  ['Market scan: save 10 job posts (frontend, full-stack, FDE, AI product engineer); copy required skills into Notes', 'https://www.linkedin.com/jobs/'],
-  ['Amazon interview structure (SDE-1: 2 DSA+LP rounds, bar raiser, HR; SDE-2 adds LLD and an HLD round) + all 16 Leadership Principles', 'https://www.tryexponent.com/blog/what-are-the-amazon-leadership-principles'],
-  ['STAR stories: Customer Obsession + Ownership', 'https://leetcode.com/discuss/post/437082/amazon-behavioral-questions-leadership-p-kvhl/'],
-  ['STAR stories: Invent and Simplify + Are Right, A Lot', 'https://igotanoffer.com/blogs/tech/amazon-behavioral-interview'],
-  ['STAR stories: Learn and Be Curious + Hire and Develop the Best', 'https://igotanoffer.com/blogs/tech/amazon-behavioral-interview'],
-  ['STAR stories: Insist on the Highest Standards + Think Big', 'https://igotanoffer.com/blogs/tech/amazon-behavioral-interview'],
-  ['STAR stories: Bias for Action + Frugality', 'https://igotanoffer.com/blogs/tech/amazon-behavioral-interview'],
-  ['STAR stories: Earn Trust + Dive Deep', 'https://igotanoffer.com/blogs/tech/amazon-behavioral-interview'],
-  ['STAR stories: Have Backbone; Disagree and Commit + Deliver Results', 'https://www.tryexponent.com/blog/how-to-nail-amazons-behavioral-interview-questions'],
-  ['STAR stories: Earth\'s Best Employer + Success and Scale Bring Broad Responsibility', 'https://www.tryexponent.com/blog/how-to-nail-amazons-behavioral-interview-questions'],
-  ['Google: Googleyness & leadership questions; map your stories to them', 'https://igotanoffer.com/blogs/tech/google-behavioral-interview'],
-  ['Meta & Microsoft behavioral: conflict, growth, impact, ambiguity', 'https://www.techinterviewhandbook.org/behavioral-interview/'],
-  ['"Tell me about yourself": write a 90-second pitch and record it', 'https://www.techinterviewhandbook.org/behavioral-interview/'],
-  ['Project deep dive: your best project — architecture, trade-offs, numbers', 'https://www.techinterviewhandbook.org/behavioral-interview/'],
-  ['Stories: 2 failures / mistakes and what you changed', 'https://www.techinterviewhandbook.org/behavioral-interview-questions/'],
-  ['Stories: 2 conflicts (teammate, manager) and the outcome', 'https://www.techinterviewhandbook.org/behavioral-interview-questions/'],
-  ['Stories: working with a customer or non-technical stakeholder (key for FDE roles)', ''],
-  ['Write 10 good questions to ask interviewers', 'https://www.techinterviewhandbook.org/final-questions/'],
-  ['Amazon OA: learn the format (coding 70 min, work simulation, work-style MCQs)', 'https://www.youtube.com/watch?v=56PjX-j0Nt4'],
-  ['Amazon work simulation practice: email modules, prioritizing under ambiguity, debugging a product page, customer replies', 'https://www.youtube.com/watch?v=56PjX-j0Nt4'],
-  ['Amazon work-style assessment: most/least-likely MCQs. Answer 20 sample items the LP way.', 'https://www.youtube.com/watch?v=56PjX-j0Nt4'],
-  ['Microsoft: growth mindset stories (learning from failure, feedback, collaboration)', 'https://prepare.sh/articles/microsoft-interview-process-2026'],
-  ['AI usage story: how you use AI tools day to day and how you review their output (asked at every company now)', ''],
-  ['Target list: 40 companies in 3 tiers (big tech, AI companies with FDE roles, practice companies)', 'https://www.levels.fyi/'],
-  ['Referrals: find 2 engineers per target company on LinkedIn', 'https://www.linkedin.com/'],
-  ['Write your referral message template; send the first 10', ''],
-  ['Practice aloud: 2 LP stories with a timer, get feedback from a friend', ''],
-  ['Update resume with new skills; add a "Building now" line for your flagship project', 'https://www.techinterviewhandbook.org/resume/'],
-  ['Practice aloud: "Why this company?" for your top 5', ''],
-  ['Send 10 more referral requests', ''],
-  ['Practice aloud: 2 stories you have not said out loud yet', ''],
-];
 // Career block after BEH runs out: a short application task + one FDE item each day.
 const APPLY = [
   ['Apply / ask for referrals: 3–5 roles today, follow up on last week. Log them in Job tracker.', 'https://www.linkedin.com/jobs/'],
   ['Apply / ask for referrals: 3–5 roles today (mix big tech, AI companies, practice companies).', 'https://www.linkedin.com/jobs/'],
 ];
 
-// Forward-deployed engineer track (career block, weeks 6–13), following roadmap.sh/forward-deployed-engineer stage by stage.
-// Full stack, DSA, system design and most AI engineering are already covered by the daily blocks; these sessions fill the rest.
-// "Rep" items are interview practice: decomposition, client simulation, practical coding, re-engineering, learning round, take-home.
 const RM = 'https://roadmap.sh/forward-deployed-engineer';
-const FDE = [
-  ['Stage 1 · Intro: roles & responsibilities, FDE tiers, "from X to FDE". Read 5 real FDE postings; write your skills gap in Notes.', RM],
-  ['Stage 1 · Glossary: Delta, UAT, last-mile integration, Day 2 operations, productized consulting, embedded engineering. Plus the interview loop.', 'https://careerservices.fas.harvard.edu/blog/2026/08/01/forward-deployed-engineer-interview-the-definitive-2026-guide-fde/'],
-  ['Rep · Decomposition framework (use your template page), then rep 1, 45 min out loud: "Reduce traffic congestion in a city"', 'https://a10x.dev/blog/forward-deployed-engineer-interview-questions'],
-  ['Stage 2 · Python for JS devs (the go-to FDE language): dicts, comprehensions, classes, files, JSON, CSV', 'https://docs.python.org/3/tutorial/'],
-  ['Stage 2 · Python for data: pandas (load, filter, group, join)', 'https://pandas.pydata.org/docs/user_guide/10min.html'],
-  ['Stage 2 · Git beyond basics: rebase, bisect, cherry-pick, conflicts in someone else\'s repo', 'https://roadmap.sh/git-github'],
-  ['Stage 2 · Linux & shell: processes, permissions, ssh, grep/awk/jq, cron, logs. Debug a service on a VM.', 'https://roadmap.sh/shell-bash'],
-  ['Rep · Practical coding (Python, 45 min): parse a log file and answer 5 questions about it', ''],
-  ['Stage 4 · Data audit + data modeling: draw the schema of a messy sample database and spot the problems', 'https://roadmap.sh/data-engineer'],
-  ['Stage 4 · SQL for analysis: CTEs + window functions (5 problems)', 'https://leetcode.com/studyplan/top-sql-50/'],
-  ['Stage 4 · Data pipelines: ETL vs ELT, batch vs streaming, idempotent jobs, data quality checks', 'https://roadmap.sh/data-engineer'],
-  ['Stage 4 · Data warehouses (BigQuery / Snowflake), star schema; Spark and Airflow at concept level (write one Airflow DAG)', 'https://airflow.apache.org/docs/apache-airflow/stable/tutorial/fundamentals.html'],
-  ['Rep · Decomposition 2: "Let several teams query shared data without exposing raw records"', ''],
-  ['Stage 5 · Context engineering + prompt management (templates, versioning, testing prompts)', 'https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents'],
-  ['Stage 5 · Choosing model providers: price, latency, quality, data policy. Build a wrapper that can switch providers.', 'https://artificialanalysis.ai/'],
-  ['Stage 5 · Agents: memory & state, multi-agent patterns, when one agent is enough', 'https://roadmap.sh/ai-agents'],
-  ['Stage 5 · Integration engineering: legacy systems (SOAP/XML, batch files, SFTP, webhooks, old auth). Wrap one in a clean REST API.', ''],
-  ['Rep · Re-engineering round: clone an unfamiliar repo, find and fix a bug in 60 min (try with and without an AI coding tool)', 'https://github.com/topics/good-first-issue'],
-  ['Stage 6 · AWS essentials: IAM, EC2, S3, Lambda, VPC basics', 'https://roadmap.sh/aws'],
-  ['Stage 6 · Terraform: deploy a small app as infrastructure as code', 'https://developer.hashicorp.com/terraform/tutorials/aws-get-started'],
-  ['Stage 6 · Containers: Dockerize your flagship project; Kubernetes pods, deployments, services', 'https://kubernetes.io/docs/tutorials/kubernetes-basics/'],
-  ['Stage 6 · DevOps: CI/CD, environments, secrets, rollbacks. Add a deploy pipeline to your flagship project.', 'https://roadmap.sh/devops'],
-  ['Rep · Client simulation 1: explain a delayed launch and a trade-off to a non-technical executive (record 5 min)', ''],
-  ['Stage 7 · Eval pipelines: run evals in CI and block deploys when quality drops', 'https://hamel.dev/blog/posts/evals/'],
-  ['Stage 7 · Debugging agent logic: traces, replaying runs, a failure taxonomy', 'https://langfuse.com/docs'],
-  ['Stage 7 · Inference optimization: caching, batching, smaller models, streaming, latency budgets', ''],
-  ['Stage 7 · Security: DevSecOps, API security, enterprise auth (SSO, SAML, OIDC)', 'https://owasp.org/www-project-api-security/'],
-  ['Stage 7 · AI governance, data privacy & compliance: PII/PHI, GDPR/HIPAA basics, audit logs, data residency', 'https://owasp.org/www-project-top-10-for-large-language-model-applications/'],
-  ['Stage 7 · MLOps basics: model and prompt versioning, drift monitoring, staged rollouts', 'https://roadmap.sh/mlops'],
-  ['Rep · Learning round: learn an API you have never used in 30 min, then build with it', ''],
-  ['Stage 8 · Discovery: requirements gathering. Write 10 scoping questions for an AI support assistant, run a mock discovery call.', ''],
-  ['Stage 8 · Scoping & sequencing; scope vs speed vs quality. Write a phased plan: pilot → UAT → rollout → Day 2.', ''],
-  ['Stage 8 · Business acumen: enterprise workflows, ROI & AI impact. Build an ROI estimate for an AI assistant.', ''],
-  ['Stage 8 · Stakeholder management + the product feedback loop (field → product team)', ''],
-  ['Stage 8 · Communication: technical writing, executive reporting, time-to-value. Write a 1-page solution doc + a weekly status update.', ''],
-  ['Rep · Decomposition 3: "Help a clinic reduce missed appointments using AI"', ''],
-  ['Rep · Client simulation 2: the customer says your AI tool gave a wrong answer to their CEO', ''],
-  ['Rep · Take-home day 1: scope an LLM workflow for a fake customer (invoice extraction)', ''],
-  ['Rep · Take-home day 2: build it end to end (Python or TypeScript), deployed', ''],
-  ['Rep · Take-home day 3: evals, failure handling, a customer-facing README and a 3-min demo', ''],
-  ['Rep · Decomposition 4: "An insurer wants to cut claims processing from 10 days to 2"', ''],
-  ['Rep · Mock FDE loop with a peer: decomposition + client simulation', 'https://www.tryexponent.com/practice'],
-];
 const FDE_STAGES = [
   ['1 · Introduction', 'Roles, tiers, glossary (Delta, UAT, last-mile integration, Day 2 ops)', 'FDE sessions 1–2'],
   ['2 · CS basics', 'Python, DSA & system design, Git, Linux', 'Daily DSA + system design blocks; FDE sessions on Python, Git, Linux'],
