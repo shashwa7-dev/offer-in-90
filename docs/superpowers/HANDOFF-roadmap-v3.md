@@ -29,8 +29,12 @@ Written 2026-11-15 at the end of the Release 1 build session. Supersedes `HANDOF
    `docs/superpowers/specs/2026-11-15-roadmap-v3-ai-systems-design.md`.
    - **The independent spec review is done:** `docs/superpowers/specs/2026-11-15-roadmap-v3-spec-review.md`
      (verdict: not ready yet; 13 must-fix items, all spec-text changes; three tracks overflow 78 slots).
-     Apply every must-fix and the should-fixes, recount each track to ≤ 78, and ask the owner the three
-     "Risks to raise" (DSA depth for Google/Meta, frontend-specialist loops, advanced DSA 8→3). Show the
+     Apply every must-fix and the should-fixes and recount each track to ≤ 78. The owner already
+     answered the three "Risks to raise" (2026-11-15): **(a)** DSA revisit days (Steady rest days and
+     Phase 3 revisits) use the extra var problems of the hardest patterns (DP, graphs, backtracking,
+     trees, heaps, intervals, sliding window, binary search); **(b)** not targeting frontend-specialist
+     loops — say so in the spec and drop the frontend padding rather than filling it; **(c)** 3 advanced
+     DSA awareness slots is fine. Show the
      owner the spec changes in plain words. A short re-review of the revised spec, then:
    - write the implementation plan (superpowers:writing-plans), then build it subagent-driven
      (superpowers:subagent-driven-development) with per-task reviews and one final whole-branch review.
