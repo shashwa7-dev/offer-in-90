@@ -1,6 +1,85 @@
 {
- "generatedAt": "2026-11-14T02:45:58.753Z",
+ "generatedAt": "2026-11-15T02:12:51.032Z",
  "days": {
+  "2026-11-15": [
+   {
+    "id": "2026-11-15-1",
+    "title": "Nvidia allegedly engineered scarcity by funding AI startups to buy its GPUs",
+    "url": "https://www.techpowerup.com/354814/nvidia-allegedly-engineered-scarcity-by-funding-ai-startups-to-buy-its-gpus",
+    "discussUrl": "https://news.ycombinator.com/item?id=50493251",
+    "source": "Hacker News",
+    "points": 1036,
+    "comments": 621,
+    "publishedAt": "2026-11-14T02:52:59Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-15-2",
+    "title": "Ggml v1.0.0",
+    "url": "https://github.com/ggml-org/ggml/releases/tag/v1.0.0",
+    "discussUrl": "https://news.ycombinator.com/item?id=50493062",
+    "source": "Hacker News",
+    "points": 399,
+    "comments": 67,
+    "publishedAt": "2026-11-14T02:28:29Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-15-3",
+    "title": "Nvidia director sold nearly $1B in stock weeks before the Jensen Huang scandal",
+    "url": "https://finance.yahoo.com/markets/stocks/articles/nvidia-director-sold-nearly-1b-160000846.html",
+    "discussUrl": "https://news.ycombinator.com/item?id=50492993",
+    "source": "Hacker News",
+    "points": 215,
+    "comments": 52,
+    "publishedAt": "2026-11-14T02:21:36Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-15-4",
+    "title": "PyPI's redesigned project pages with clearer security signals are now live",
+    "url": "https://blog.pypi.org/posts/2026-11-06-ui-updates-complete/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50497892",
+    "source": "Hacker News",
+    "points": 206,
+    "comments": 93,
+    "publishedAt": "2026-11-14T15:40:52Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-15-5",
+    "title": "Nvidia deliberately kept GPU prices high through circular financing deals",
+    "url": "https://www.techspot.com/news/114558-nvidia-deliberately-kept-gpu-prices-high-through-circular.html",
+    "discussUrl": "https://news.ycombinator.com/item?id=50501631",
+    "source": "Hacker News",
+    "points": 200,
+    "comments": 113,
+    "publishedAt": "2026-11-14T22:26:30Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-15-7",
+    "title": "Show HN: DeepSeek V3 in ~200 lines of pure Jax",
+    "url": "https://github.com/Vaibhaav-Tiwari/deepseek-v3-jax",
+    "discussUrl": "https://news.ycombinator.com/item?id=50497589",
+    "source": "Hacker News",
+    "points": 179,
+    "comments": 9,
+    "publishedAt": "2026-11-14T15:04:15Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-15-9",
+    "title": "Congrats to the Hacktoberfest Open-Source AI Challenge Week 4: Ghost in the Machine Winners!",
+    "url": "https://dev.to/devteam/congrats-to-the-hacktoberfest-open-source-ai-challenge-week-4-ghost-in-the-machine-winners-nok",
+    "discussUrl": "https://dev.to/devteam/congrats-to-the-hacktoberfest-open-source-ai-challenge-week-4-ghost-in-the-machine-winners-nok",
+    "source": "dev.to",
+    "points": 84,
+    "comments": 36,
+    "publishedAt": "2026-11-13T15:56:26Z",
+    "category": "ai"
+   }
+  ],
   "2026-11-14": [
    {
     "id": "2026-11-14-1",
