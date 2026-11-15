@@ -6,6 +6,9 @@ import { cn } from '@/lib/utils';
 import { domainOf } from '@/lib/interview-feed';
 import { Breadcrumb, BreadcrumbItem, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useStore } from '@/lib/store';
+import { iso } from '@/lib/engine';
+import { modeLine } from '@/lib/modes';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
@@ -31,11 +34,19 @@ export function PageFrame({ header, children }: { header: ReactNode; children: R
   );
 }
 
+/** "Steady mode" / "Grind mode" for today's date (sidebar and phone header); updates the moment Setup switches. */
+export function ModeLine({ className }: { className?: string }) {
+  const { state } = useStore();
+  return <div data-mode-line className={className}>{modeLine(state.modes, iso(new Date()))}</div>;
+}
+
 /** Page title line: sidebar toggle (desktop), breadcrumb, optional count, actions on the right. */
 export function PageHeader({ crumbs, count, actions, keepLast }: { crumbs: Crumb[]; count?: string; actions?: ReactNode; /** Keep the last crumb whole; earlier crumbs truncate first. */ keepLast?: boolean }) {
   return (
     <header className="flex h-11 min-w-0 items-center gap-2 md:h-12">
       <SidebarTrigger className="-ml-1.5 hidden text-muted-foreground md:inline-flex" />
+      {/* On phones (no sidebar) the mode sits under the crumbs, inside the same 44px bar. */}
+      <div className="flex min-w-0 flex-col justify-center md:contents">
       <Breadcrumb className="min-w-0">
         <BreadcrumbList className="flex-nowrap text-[14px] sm:gap-1.5">
           {crumbs.map((c, i) => {
@@ -55,6 +66,8 @@ export function PageHeader({ crumbs, count, actions, keepLast }: { crumbs: Crumb
           })}
         </BreadcrumbList>
       </Breadcrumb>
+      <ModeLine className="truncate text-[12px] leading-none text-muted-foreground md:hidden" />
+      </div>
       {count && <span className="shrink-0 text-[13px] text-faint tabular-nums">{count}</span>}
       {actions && <div className="ml-auto flex shrink-0 items-center gap-1.5">{actions}</div>}
     </header>

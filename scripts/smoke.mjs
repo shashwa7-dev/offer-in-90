@@ -1885,6 +1885,37 @@ try {
     checkErrors(errors, W);
     await ctx.close();
   }
+  // ---------- mode indicators: Today badge, sidebar line, phone line ----------
+  for (const [width, height] of [[1100, 800], [375, 812]]) {
+    const W = `mode indicators ${width}`;
+    const { ctx, page, errors } = await open(width, height);
+    const line = page.locator('[data-mode-line]:visible');
+    if (width >= 768) {
+      const badge = page.locator('[data-mode-badge]');
+      const txt = (await badge.innerText()).trim();
+      if (/^Steady · week \d+ of 17$/.test(txt)) ok(`${W}: Today badge "${txt}"`); else fail(`${W}: Today badge "${txt}"`);
+      if ((await line.innerText()).trim() === 'Steady mode') ok(`${W}: sidebar line Steady mode`); else fail(`${W}: sidebar line "${await line.innerText()}"`);
+      const hh = await page.evaluate(() => document.querySelector('[data-slot="sidebar-inset"] [data-page-header]').getBoundingClientRect().height);
+      if (Math.abs(hh - 48) <= 1) ok(`${W}: header stays 48px with the badge`); else fail(`${W}: header ${hh}px with the badge`);
+      await badge.click(); await page.waitForTimeout(500);
+      const inView = await page.evaluate(() => { const e = document.querySelector('[data-setting="mode"]'); if (!e) return false; const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; });
+      if ((await page.evaluate(() => location.hash)) === '#setup' && inView) ok(`${W}: badge opens Setup with the Mode setting in view`); else fail(`${W}: badge did not land on the Mode setting`);
+      await page.getByRole('radio', { name: 'Grind' }).click(); await page.waitForTimeout(300);
+      if ((await line.innerText()).trim() === 'Grind mode') ok(`${W}: sidebar line updates to Grind mode`); else fail(`${W}: sidebar line after switch "${await line.innerText()}"`);
+      await page.locator('[data-slot="sidebar"] [data-nav="today"]').first().click(); await page.waitForTimeout(300);
+      const t2 = (await page.locator('[data-mode-badge]').innerText()).trim();
+      if (/^Grind · week \d+ of \d+$/.test(t2)) ok(`${W}: Today badge after switch "${t2}"`); else fail(`${W}: Today badge after switch "${t2}"`);
+    } else {
+      if ((await line.innerText()).trim() === 'Steady mode') ok(`${W}: phone shows Steady mode`); else fail(`${W}: phone line "${await line.innerText().catch(() => '')}"`);
+      const over = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+      if (over <= 0) ok(`${W}: no horizontal scroll`); else fail(`${W}: horizontal overflow ${over}px`);
+      const hh = await page.evaluate(() => document.querySelector('[data-slot="sidebar-inset"] [data-page-header]').getBoundingClientRect().height);
+      if (Math.abs(hh - 44) <= 1) ok(`${W}: header stays 44px`); else fail(`${W}: header ${hh}px`);
+      await page.screenshot({ path: join(shots, 'mode-indicators-375.png') });
+    }
+    checkErrors(errors, W);
+    await ctx.close();
+  }
   // ---------- v2: day count per mode, and search finds patterns and owner labels ----------
   for (const [mode, modes, want] of [['Grind', GRIND, /Day 1 of 91\b/], ['Steady', {}, /Day 1 of 119\b/]]) {
     const at = new Date(2026, 10, 2, 10, 0); // Mon 2 Nov = Day 1

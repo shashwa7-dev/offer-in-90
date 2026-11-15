@@ -10,6 +10,7 @@ import { TRACKS, bandOf } from '@/lib/timeline';
 import { STATUS_LABEL, isSkipped, owes, settled, statusOf } from '@/lib/task-status';
 import { EMPTY_FILTER, isActive, matches, statusCounts, trackOfCat, type GroupBy } from '@/lib/task-filter';
 import { totalDays, type Block, type Day, type Task, dayStats, dayTitle, fmtDate, hrs, iso, overall, parseISO, toMin } from '@/lib/engine';
+import { modeBadge } from '@/lib/modes';
 import { Band, Chip, PageFrame, PageHeader, Ring, Row, Seg, Surface, SummaryRow } from './shell/page';
 import { TaskRow } from './task-row';
 import { QuickAdd } from './own-task';
@@ -98,6 +99,18 @@ export function TodayView() {
     setMissedOpen(true);
     requestAnimationFrame(() => document.querySelector('[data-band="missed-earlier"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
+  /** Setup, scrolled to the Mode setting with its toggle focused (Setup mounts after go, so wait for it). */
+  const openMode = () => {
+    go('setup');
+    let tries = 0;
+    const find = () => {
+      const el = document.querySelector<HTMLElement>('[data-setting="mode"]');
+      if (!el) { if (++tries < 20) setTimeout(find, 50); return; }
+      el.scrollIntoView({ block: 'center' });
+      el.querySelector<HTMLElement>('[role="radio"][data-state="on"]')?.focus({ preventScroll: true });
+    };
+    setTimeout(find, 0);
+  };
   const items = [
     { k: 'Done', v: `${hrs(st.doneMin)} of ${hrs(st.planMin)} h` },
     ...(isToday ? [{ k: 'Missed', v: `${missedHere} task${missedHere === 1 ? '' : 's'}` }] : []),
@@ -109,6 +122,7 @@ export function TodayView() {
         crumbs={[{ label: `Week ${d.week}`, phoneHidden: true }, d.no === 0 ? 'Day 0 · prep' : phone ? `Day ${d.no}` : `Day ${d.no} of ${totalDays(days)}`, fmtDate(d.date)]}
         keepLast
         actions={<>
+          <button type="button" data-mode-badge onClick={openMode} title="Change mode in Setup" className="rounded-[5px] outline-none focus-visible:ring-2 focus-visible:ring-ring/50 max-sm:hidden"><Chip>{modeBadge(state.modes, iso(d.date), state.start, days)}</Chip></button>
           <Button variant="outline" size="icon-sm" onClick={openSearch} aria-label="Search" title="Search" data-search-phone className="md:hidden"><Search /></Button>
           <Button variant="outline" size="icon-sm" onClick={() => setViewIdx(clamp(viewIdx - 1))} aria-label="Previous day"><ChevronLeft /></Button>
           <Button variant="outline" size="sm" onClick={() => setViewIdx(clamp(todayIdx))} disabled={isToday} className="hidden sm:inline-flex">Today</Button>

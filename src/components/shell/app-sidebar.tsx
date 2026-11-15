@@ -8,7 +8,7 @@ import type { StatusMap } from '@/lib/task-status';
 import type { ThreadsFeed } from '@/lib/interview-feed';
 import { useUI, type View } from '@/components/ui-state';
 import { cycleList } from '@/lib/cycle';
-import { Ring } from '@/components/shell/page';
+import { ModeLine, Ring } from '@/components/shell/page';
 import { StatusIcon } from '@/components/status-control';
 import { useCycleDays } from '@/components/today-rail';
 import {
@@ -83,6 +83,7 @@ export function AppSidebar() {
           <img data-logo src={`${BASE}/logo-64.png`} alt="Offer in 90" width={24} height={24} className="size-6 shrink-0 rounded-full ring-1 ring-border group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-5" />
           <div className="min-w-0 leading-tight group-data-[collapsible=icon]:hidden">
             <div className="truncate text-[14px] font-semibold">Offer in 90</div>
+            <ModeLine className="truncate text-[12px] text-muted-foreground" />
             <div className="truncate text-[12px] text-muted-foreground tabular-nums" data-shell="status">{statusLine(days, todayIdx, state.done, state.status)}</div>
           </div>
         </div>

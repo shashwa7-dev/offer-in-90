@@ -28,9 +28,9 @@ function download(name: string, text: string, type: string) {
 }
 
 /** One settings line: label and one-line help on the left, the control on the right (stacked on phones). */
-function Setting({ label, help, children, htmlFor }: { label: string; help: ReactNode; children?: ReactNode; htmlFor?: string }) {
+function Setting({ label, help, children, htmlFor, id }: { label: string; help: ReactNode; children?: ReactNode; htmlFor?: string; /** Sets data-setting, for scrolling to (the Today mode badge). */ id?: string }) {
   return (
-    <div className="flex flex-col gap-2.5 border-t border-border px-4 py-3 first:border-t-0 sm:flex-row sm:items-center sm:gap-6">
+    <div data-setting={id} className="flex flex-col gap-2.5 border-t border-border px-4 py-3 first:border-t-0 sm:flex-row sm:items-center sm:gap-6">
       <div className="min-w-0 flex-1">
         {htmlFor ? <label htmlFor={htmlFor} className="text-[13px] font-medium text-foreground">{label}</label> : <div className="text-[13px] font-medium text-foreground">{label}</div>}
         <div className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{help}</div>
@@ -166,7 +166,7 @@ export function SetupView() {
     <PageFrame header={<PageHeader crumbs={['Setup']} />}>
       <Surface>
         <Band id="plan" title="Your plan">
-          <Setting label="Mode" help={<><span className="block">Steady: 17 weeks · about 8.5 h a day</span><span className="block">Grind: 13 weeks · about 10.75 h a day</span></>}>
+          <Setting id="mode" label="Mode" help={<><span className="block">Steady: 17 weeks · about 8.5 h a day</span><span className="block">Grind: 13 weeks · about 10.75 h a day</span></>}>
             <ToggleGroup type="single" variant="outline" size="sm" value={mode} aria-label="Mode"
               onValueChange={v => { if (v === 'steady' || v === 'grind') switchTo(v); }}>
               <ToggleGroupItem value="steady" className="px-3 text-[13px]">Steady</ToggleGroupItem>

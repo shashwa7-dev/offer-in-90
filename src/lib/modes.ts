@@ -34,3 +34,23 @@ export function grindWeekOf(steadyWk: number): number {
   while (steadyWeek(w + 1) <= steadyWk) w++;
   return w;
 }
+
+/** "Steady mode" / "Grind mode": the mode in force on `isoDate` (sidebar and phone header). */
+export const modeLine = (modes: Modes, isoDate: string): string => `${modeOn(modes, isoDate).mode === 'grind' ? 'Grind' : 'Steady'} mode`;
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const dayKey = (d: Date | string) => (typeof d === 'string' ? d : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`);
+
+/** Today's header badge: "Steady · week 3 of 17", "Grind · week 3 of 13", or "Steady · starts 16 Nov" before the start.
+ * The week is the viewed day's plan week (Day.week). The total is the week count of the plan actually laid out
+ * (its last day's week), so a mid-plan mode switch that changed the real length shows the real total; for a plan
+ * that never switched this is the mode's own 17 or 13. */
+export function modeBadge(modes: Modes, viewedDate: string, start: string, days: { date: Date | string; week: number }[]): string {
+  const name = modeOn(modes, viewedDate).mode === 'grind' ? 'Grind' : 'Steady';
+  const day = days.find((d) => dayKey(d.date) === viewedDate);
+  if (viewedDate < start || !day) {
+    const [, m, d] = start.split('-').map(Number);
+    return `${name} · starts ${d} ${MONTHS[m - 1]}`;
+  }
+  return `${name} · week ${day.week} of ${days[days.length - 1].week}`;
+}
