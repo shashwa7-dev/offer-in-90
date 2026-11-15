@@ -1,5 +1,6 @@
 /* eslint-disable */
-// Curriculum data. Edit here; task IDs (p-<slug>, fe-N, mc-N, sd-N, beh-N, ux-N, fde-N, proj-N, lld-N, ai-N) must stay stable so progress survives.
+// Curriculum data. Moved content lives in src/lib/content/*.js with content-based ids (<prefix>:<slug>); this file adapts it to the
+// old shapes that engine.ts reads until Task 8. engine.ts still derives positional task ids (p-<slug>, fe-N, ai-N, ...) from these shapes.
 // 90-day curriculum. Built from the "Amazon Interview Prep by AnubhavInTech" Whimsical board,
 // extended for frontend / full-stack loops at Google, Meta, Microsoft, Amazon.
 
@@ -226,12 +227,14 @@ const LLD = [
 ];
 
 // Adapter (Task 4b): the old engine reads AI_UNITS as [unit, [[text, url]]] in the old 61-day order.
-// The paper/course days live in AI_EVENING and the `Build ·` days in AIB; both keep `unit` and `day`, so the old order is rebuilt here.
+// The reading/course days live in AI_EVENING and the build days in AIB; both keep `unit` and `day` (and `oldText` where the text
+// gained an explain-back), so the old order and text are rebuilt here.
 const AI_UNITS = [...AI_EVENING, ...AIB].filter(x => x.day !== undefined).sort((a, b) => a.day - b.day)
   .reduce((units, x) => {
     const last = units[units.length - 1];
-    if (last && last[0] === x.unit) last[1].push([x.text, x.url || '']);
-    else units.push([x.unit, [[x.text, x.url || '']]]);
+    const step = [x.oldText ?? x.text, x.url || ''];
+    if (last && last[0] === x.unit) last[1].push(step);
+    else units.push([x.unit, [step]]);
     return units;
   }, []);
 const AI_REVIEW = AI_REVIEW_NEW.map(x => [x.text, x.url || '']);
