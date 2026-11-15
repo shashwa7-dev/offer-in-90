@@ -7,7 +7,7 @@ import { ADV_DSA } from './content/dsa.js';
 import { FE as FE_NEW } from './content/fe.js';
 import { UX as UX_NEW } from './content/ux.js';
 import { BEH as BEH_NEW, FDE as FDE_NEW, COMPANY_MAP } from './content/career.js';
-import { AIB_MOVED } from './content/ai.js';
+import { AIB_MOVED, AIB, AI_EVENING, AI_REVIEW as AI_REVIEW_NEW } from './content/ai.js';
 
 // Adapter (Task 4a): the content files hold the new { id, text, ... } items; engine.ts still reads the old tuples until Task 8 rewrites it.
 // FDE: the Python and Stage-6 cloud items moved to ai.js; they are put back at their original positions so the old engine keeps its order.
@@ -225,119 +225,16 @@ const LLD = [
   ['LLD: Design an alarm / alert service for AWS', 'https://www.lldcoding.com/'],
 ];
 
-// Evening AI block. Courses and papers spread over 2–4 days each, with applied builds in between.
-const AI_UNITS = [
-  ['Neural network basics · 3Blue1Brown', [
-    ['Ch 1: What is a neural network?', 'https://www.youtube.com/watch?v=aircAruvnKk'],
-    ['Ch 2: Gradient descent, how networks learn', 'https://www.youtube.com/watch?v=IHZwWFHWa-w'],
-    ['Ch 3: Backpropagation, intuitively', 'https://www.youtube.com/watch?v=Ilg3gGewQ5U'],
-    ['Ch 4: Backpropagation calculus. Write a 5-line summary of all 4 chapters.', 'https://www.youtube.com/watch?v=tIeHLnjs5U8'],
-  ]],
-  ['Transformers, visually · 3Blue1Brown', [
-    ['Ch 5: Transformers, the tech behind LLMs (tokens, embeddings)', 'https://www.youtube.com/watch?v=wjZofJX0v4M'],
-    ['Ch 6: Attention in transformers', 'https://www.youtube.com/watch?v=eMlx5fFNoYc'],
-    ['Ch 7: How LLMs might store facts (MLP layers)', 'https://www.youtube.com/watch?v=9-Jl0dxWQs8'],
-  ]],
-  ['Paper · Attention Is All You Need (2017)', [
-    ['Read the Illustrated Transformer first, then the paper\'s abstract, intro and Figure 1', 'https://jalammar.github.io/illustrated-transformer/'],
-    ['Paper §3.1–3.2: encoder/decoder stacks, scaled dot-product + multi-head attention', 'https://arxiv.org/abs/1706.03762'],
-    ['Paper §3.3–3.5: feed-forward layers, embeddings, positional encoding', 'https://arxiv.org/abs/1706.03762'],
-    ['Skim the Annotated Transformer code; write a 1-page summary and explain it out loud in 3 min', 'https://nlp.seas.harvard.edu/annotated-transformer/'],
-  ]],
-  ['Course · Karpathy: Let\'s build GPT from scratch', [
-    ['Part 1 (0:00–0:40): data, tokenization, bigram model. Code along.', 'https://www.youtube.com/watch?v=kCc8FmEb1nY'],
-    ['Part 2 (0:40–1:20): self-attention from scratch. Code along.', 'https://www.youtube.com/watch?v=kCc8FmEb1nY'],
-    ['Part 3 (1:20–end): multi-head attention, blocks, training. Push your notebook.', 'https://www.youtube.com/watch?v=kCc8FmEb1nY'],
-  ]],
-  ['Course · Karpathy: Deep dive into LLMs like ChatGPT', [
-    ['Pretraining: data, tokens, the base model', 'https://www.youtube.com/watch?v=7xTGNNLPyMI'],
-    ['Post-training: SFT, hallucinations, tool use', 'https://www.youtube.com/watch?v=7xTGNNLPyMI'],
-    ['Reinforcement learning, reasoning models, what is coming. Summarize in AI notes.', 'https://www.youtube.com/watch?v=7xTGNNLPyMI'],
-  ]],
-  ['Build · Talking to models from code', [
-    ['Call an LLM API from TypeScript; then stream tokens into a React component', 'https://docs.anthropic.com/en/docs/build-with-claude/streaming'],
-    ['Structured output: JSON schema + Zod validation', 'https://zod.dev/'],
-    ['Prompting properly: clear instructions, examples, XML structure. Rewrite 3 prompts.', 'https://docs.anthropic.com/en/docs/build-with-claude/prompt-engineering/overview'],
-  ]],
-  ['Paper · GPT-3: Language Models are Few-Shot Learners (2020)', [
-    ['Abstract, intro, Figure 1.1–1.3: what in-context learning means', 'https://arxiv.org/abs/2005.14165'],
-    ['§2 Approach + skim §3 results tables', 'https://arxiv.org/abs/2005.14165'],
-    ['§5 Limitations + §6 Broader impacts. Write 5 bullets.', 'https://arxiv.org/abs/2005.14165'],
-  ]],
-  ['Paper · InstructGPT: training with human feedback (RLHF, 2022)', [
-    ['Abstract, intro, Figure 2 (the 3-step RLHF pipeline)', 'https://arxiv.org/abs/2203.02155'],
-    ['§3 Methods: SFT, reward model, PPO', 'https://arxiv.org/abs/2203.02155'],
-    ['§4 Results + §5 Discussion. Explain RLHF in 2 minutes out loud.', 'https://arxiv.org/abs/2203.02155'],
-  ]],
-  ['Build · Tools and embeddings', [
-    ['Tool use / function calling: build the tool-call loop', 'https://docs.anthropic.com/en/docs/build-with-claude/tool-use/overview'],
-    ['Embeddings + cosine similarity: embed 50 sentences, find neighbours', 'https://platform.openai.com/docs/guides/embeddings'],
-    ['Vector storage with Postgres + pgvector', 'https://github.com/pgvector/pgvector'],
-  ]],
-  ['Paper · RAG: Retrieval-Augmented Generation (2020) + build', [
-    ['Read the RAG paper: abstract, §2 methods, Figure 1', 'https://arxiv.org/abs/2005.11401'],
-    ['Read Contextual Retrieval: why chunking and reranking matter', 'https://www.anthropic.com/news/contextual-retrieval'],
-    ['Build RAG over your own Notes with citations', ''],
-  ]],
-  ['Paper · Chain-of-Thought Prompting (2022) + reasoning models', [
-    ['Read the CoT paper: abstract, Figures 1–4', 'https://arxiv.org/abs/2201.11903'],
-    ['Extended thinking / reasoning models: when they help, what they cost', 'https://docs.anthropic.com/en/docs/build-with-claude/extended-thinking'],
-  ]],
-  ['Paper · ReAct (2022) + building agents', [
-    ['Read ReAct: reasoning + acting loop, Figure 1', 'https://arxiv.org/abs/2210.03629'],
-    ['Read Building Effective Agents: the 5 workflow patterns', 'https://www.anthropic.com/engineering/building-effective-agents'],
-    ['Build a small agent with 2 tools; log every step', ''],
-  ]],
-  ['Build · MCP + AI SDK', [
-    ['Model Context Protocol: build a tiny MCP server with one tool', 'https://modelcontextprotocol.io/introduction'],
-    ['Vercel AI SDK: useChat, streaming, tool calls in React', 'https://ai-sdk.dev/docs/introduction'],
-  ]],
-  ['Evals · testing LLM features', [
-    ['Read Hamel Husain on evals: why and how', 'https://hamel.dev/blog/posts/evals/'],
-    ['Write 20 test cases for your RAG bot + a pass-rate script', ''],
-    ['LLM-as-judge: add a grader, check it against your own labels', ''],
-  ]],
-  ['Papers · Scaling laws (2020) + Chinchilla (2022)', [
-    ['Scaling laws: abstract + Figure 1. What grows with compute?', 'https://arxiv.org/abs/2001.08361'],
-    ['Chinchilla: compute-optimal training, Figure 1 + conclusions', 'https://arxiv.org/abs/2203.15556'],
-    ['Write: why models keep getting better and what limits them (5 bullets)', ''],
-  ]],
-  ['Paper · LoRA (2021) + when to fine-tune', [
-    ['LoRA: abstract, Figure 1, §4 method', 'https://arxiv.org/abs/2106.09685'],
-    ['Prompting vs RAG vs fine-tuning: decision table with 3 examples', 'https://platform.openai.com/docs/guides/optimizing-llm-accuracy'],
-  ]],
-  ['Paper · Constitutional AI (2022) + AI security', [
-    ['Constitutional AI: abstract, Figure 1, the critique-revise loop', 'https://arxiv.org/abs/2212.08073'],
-    ['OWASP Top 10 for LLM apps: prompt injection, data leakage', 'https://owasp.org/www-project-top-10-for-large-language-model-applications/'],
-    ['Attack your own app with 5 injections; fix 2', ''],
-  ]],
-  ['Paper · Lost in the Middle (2023) + cost and latency', [
-    ['Lost in the Middle: how models use long context', 'https://arxiv.org/abs/2307.03172'],
-    ['Prompt caching, model choice, cost estimate for 10k users', 'https://docs.anthropic.com/en/docs/build-with-claude/prompt-caching'],
-  ]],
-  ['Build · Production AI features', [
-    ['LLM observability: trace prompts, latency, user feedback', 'https://langfuse.com/docs'],
-    ['Multimodal: let users upload a screenshot and ask about it', 'https://docs.anthropic.com/en/docs/build-with-claude/vision'],
-    ['AI in the browser: run a small model with transformers.js', 'https://huggingface.co/docs/transformers.js/index'],
-  ]],
-  ['Design · System design for AI products', [
-    ['Design an AI chat product at scale: streaming, rate limits, queues, caching', ''],
-    ['Design RAG at scale: ingestion pipeline, re-indexing, permissions, evals', ''],
-    ['Design an AI feature rollout: eval gates, feature flags, fallbacks', ''],
-  ]],
-  ['Working with AI coding tools', [
-    ['Build a feature with an AI assistant; review every line; note what it got wrong', 'https://docs.anthropic.com/en/docs/claude-code/overview'],
-    ['AI-assisted coding round practice: solve a machine-coding task with AI, narrating decisions', ''],
-    ['Write a short post about something you built with AI', 'https://www.linkedin.com/'],
-  ]],
-];
-// After the units run out: explain-it-back revision.
-const AI_REVIEW = ['Transformers and attention', 'RLHF', 'RAG', 'Agents and tool use', 'Evals', 'Scaling laws', 'Fine-tuning vs RAG', 'Prompt injection'].map(t => [`Explain it back, 3 min out loud, then write 3 flashcards: ${t}`, '']);
-const AI_NEWS = [
-  ['TLDR AI', 'https://tldr.tech/ai'], ["Simon Willison's blog", 'https://simonwillison.net/'], ['The Batch', 'https://www.deeplearning.ai/the-batch/'],
-  ['Hacker News', 'https://news.ycombinator.com/'], ['LMArena leaderboard (how models compare)', 'https://lmarena.ai/leaderboard'], ['Artificial Analysis (speed, price, quality)', 'https://artificialanalysis.ai/'],
-  ['Latent Space', 'https://www.latent.space/'],
-];
+// Adapter (Task 4b): the old engine reads AI_UNITS as [unit, [[text, url]]] in the old 61-day order.
+// The paper/course days live in AI_EVENING and the `Build ·` days in AIB; both keep `unit` and `day`, so the old order is rebuilt here.
+const AI_UNITS = [...AI_EVENING, ...AIB].filter(x => x.day !== undefined).sort((a, b) => a.day - b.day)
+  .reduce((units, x) => {
+    const last = units[units.length - 1];
+    if (last && last[0] === x.unit) last[1].push([x.text, x.url || '']);
+    else units.push([x.unit, [[x.text, x.url || '']]]);
+    return units;
+  }, []);
+const AI_REVIEW = AI_REVIEW_NEW.map(x => [x.text, x.url || '']);
 
 const OA_LINKS = [
   'https://leetcode.com/discuss/post/7112319/amazon-oa-sde-august-2025-by-anonymous_u-o8ee/',

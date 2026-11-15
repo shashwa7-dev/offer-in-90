@@ -3,10 +3,12 @@ import assert from 'node:assert/strict';
 import { FE, FE_DEPTH_READS } from '../src/lib/content/fe.js';
 import { UX } from '../src/lib/content/ux.js';
 import { BEH, FDE, COMPANY_MAP, TEARDOWNS } from '../src/lib/content/career.js';
-import { AIB_MOVED } from '../src/lib/content/ai.js';
+import { AIB_MOVED, AIB, AI_EVENING, AI_REVIEW, AI_NEWS } from '../src/lib/content/ai.js';
+import { createHash } from 'node:crypto';
 import { PLAN } from '../src/lib/plan-data.js';
 
-const ALL_ID_LISTS: any[][] = [FE, FE_DEPTH_READS, UX, BEH, FDE, AIB_MOVED, TEARDOWNS];
+// AIB contains the AIB_MOVED items, so AIB_MOVED itself is not listed again.
+const ALL_ID_LISTS: any[][] = [FE, FE_DEPTH_READS, UX, BEH, FDE, TEARDOWNS, AIB, AI_EVENING, AI_REVIEW, AI_NEWS];
 const byId = (list: any[], id: string) => list.find((x) => x.id === id);
 
 // ---- 4a: FE, UX, career ----
@@ -97,6 +99,71 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
     assert.match(t.url, /^https:\/\//);
   }
   assert.equal(new Set(TEARDOWNS.map((x) => x.id)).size, TEARDOWNS.length);
+}
+
+// ---- 4b: AI evening + AI-build track ----
+{
+  // the old engine's AI_UNITS (21 units, 61 days) as of c6d617f; 11 of those days are the four `Build ·` units
+  const OLD_UNITS = PLAN.AI_UNITS as [string, [string, string][]][];
+  const sha = (v: unknown) => createHash('sha256').update(JSON.stringify(v)).digest('hex');
+  assert.equal(sha(PLAN.AI_UNITS), '3c643583137660a467fa1dc942dde814502b294a41bcbf63efb57d3275b6859d', 'old-shape AI_UNITS unchanged');
+  assert.equal(sha(PLAN.AI_REVIEW), 'b0c7f594bc75e514b07d1ada603529506cb4d7b2d9df2de96cb036213c5cfcc2', 'old-shape AI_REVIEW unchanged');
+  const oldDays = OLD_UNITS.flatMap(([unit, days]) => days.map(([text, url]) => ({ unit, text, url })));
+  assert.equal(oldDays.length, 61);
+  const buildDays = oldDays.map((d, day) => ({ ...d, day })).filter((d) => d.unit.startsWith('Build · '));
+  assert.equal(buildDays.length, 11);
+
+  // AI_EVENING: every paper/course day at its old day index, plus the 7 depth reads
+  const kept = AI_EVENING.filter((x) => x.day !== undefined);
+  assert.equal(kept.length, 61 - 11);
+  for (const x of kept) {
+    const d = oldDays[x.day];
+    assert.ok(!d.unit.startsWith('Build · '), `${x.id} is not a build day`);
+    assert.equal(x.text, d.text); assert.equal(x.unit, d.unit); assert.equal(x.url || '', d.url);
+    assert.match(x.id, /^ai:/);
+  }
+  assert.deepEqual(kept.map((x) => x.day), [...kept.map((x) => x.day)].sort((a, b) => a - b), 'evening keeps old order');
+  const depth = AI_EVENING.filter((x) => x.depth);
+  assert.equal(depth.length, 7);
+  assert.equal(AI_EVENING.length, 57);
+  assert.ok(depth.every((x) => x.day === undefined && x.after && AI_EVENING.some((y) => y.id === x.after)));
+  const ddia = depth.filter((x) => x.id.startsWith('ai:depth-ddia-'));
+  assert.equal(ddia.length, 4);
+  assert.ok(ddia.every((x) => x.url === 'https://dataintensive.net/'));
+  for (const t of [/data models/i, /storage/i, /replication/i, /transactions/i]) assert.ok(ddia.some((x) => t.test(x.text)), String(t));
+  const applied = depth.filter((x) => x.url.startsWith('https://applied-llms.org/'));
+  assert.equal(applied.length, 2);
+  assert.deepEqual(depth.filter((x) => x.url === 'https://eugeneyan.com/writing/llm-patterns/').length, 1);
+  assert.ok(depth.every((x) => /explain/i.test(x.text)), 'depth tasks end with an explain-back');
+
+  // AIB: Python first, 6 new hands-on days, the 11 build days, the 4 cloud sessions
+  assert.deepEqual(AIB.slice(0, 2).map((x) => x.id), ['aib:python-for-js', 'aib:pandas']);
+  for (const m of AIB_MOVED) assert.equal(AIB.find((x) => x.id === m.id), m, `${m.id} in AIB`);
+  const NEW = [['LLM API fundamentals', 1], ['Retrieval that works', 2], ['Agents in production', 2], ['LLM gateway', 1]] as const;
+  const fresh = AIB.filter((x) => x.title);
+  assert.equal(fresh.length, 6);
+  for (const [title, n] of NEW) {
+    const its = fresh.filter((x) => x.title === title);
+    assert.equal(its.length, n, title);
+    for (const x of its) { assert.ok(x.text.startsWith(title), x.id); assert.ok(x.url, x.id); assert.equal(x.slots, 1); }
+  }
+  const moved = AIB.filter((x) => x.day !== undefined);
+  assert.equal(moved.length, 11);
+  for (const b of buildDays) {
+    const x = moved.find((y) => y.day === b.day)!;
+    assert.ok(x, `build day ${b.day}`);
+    assert.equal(x.text, b.text); assert.equal(x.unit, b.unit); assert.equal(x.url || '', b.url); assert.equal(x.slots, 2);
+    assert.match(x.id, /^aib:/);
+  }
+  assert.equal(AIB.length, 6 + 6 + 11);
+  const slots = AIB.reduce((a, x) => a + (x.slots ?? 1), 0);
+  assert.ok(slots <= 78, `AIB slots ${slots}`);
+  assert.equal(slots, 40);
+  // no AI_UNITS day lives in both tracks
+  assert.equal(new Set([...kept, ...moved].map((x) => x.day)).size, 61);
+
+  assert.equal(AI_REVIEW.length, 8);
+  assert.equal(AI_NEWS.length, 7);
 }
 
 console.log('test-content: ok');
