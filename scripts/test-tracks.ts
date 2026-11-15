@@ -405,14 +405,14 @@ for (const x of T.mc.flatMap((s: Any) => s.items)) {
   // Only slot 6 has an `after`: the first item of product slot 1 (Task 6 creates it).
   assert.equal(T.jt[5].items[0].after, 'proj:pick-scaffold');
   assert.deepEqual(T.jt.flatMap((s: Any, i: number) => s.items.filter((x: Any) => x.after).map((x: Any) => [i + 1, x.id, x.after])), [[6, 'pf:environments', 'proj:pick-scaffold']], 'only slot 6 has after');
-  // Slots 19–78: the depth items in the spec's order, the 12 practicals at 23 + 5k. The re-engineering round would straddle
-  // slot 68, so the 10th practical takes 67 and the pair 68–69; the next 23 + 5k slot (73) is a practical again.
-  const DEPTH = ['fe:sql', 'fe:use-the-index-luke-1', 'fe:use-the-index-luke-2', 'pf:explain-analyze', 'jt:practical-rate-limiter',
-    'fde:sql-analysis', 'pf:postgres-in-practice', 'fe:nosql', 'fe:redis', 'jt:practical-retry-backoff',
-    'fe:queues', 'pf:background-job', 'fe:node-runtime', 'aib:containers', 'jt:practical-ttl-cache-swr',
+  // Slots 19–78: the depth topics in the spec's order. A multi-slot topic never splits; each practical sits at or near
+  // 23 + 5k, just before or after a topic its target falls inside (the result is fixed here).
+  const DEPTH = ['fe:sql', 'fe:use-the-index-luke-1', 'fe:use-the-index-luke-2', 'pf:explain-analyze', 'fde:sql-analysis',
+    'jt:practical-rate-limiter', 'pf:postgres-in-practice', 'fe:nosql', 'fe:redis', 'jt:practical-retry-backoff',
+    'fe:queues', 'pf:background-job', 'fe:node-runtime', 'jt:practical-ttl-cache-swr', 'aib:containers',
     'pf:docker-compose', 'pf:k8s-deployments', 'pf:k8s-services', 'pf:k8s-scaling', 'jt:practical-debounced-fetcher',
-    'aib:terraform', 'pf:terraform-state-modules', 'aib:devops', 'pf:canary', 'jt:practical-merge-csvs',
-    'pf:blue-green', 'fe:docker-ci', 'pf:otel-metrics', 'pf:slos', 'jt:practical-parse-log',
+    'aib:terraform', 'pf:terraform-state-modules', 'aib:devops', 'pf:canary', 'pf:blue-green',
+    'jt:practical-merge-csvs', 'fe:docker-ci', 'pf:otel-metrics', 'jt:practical-parse-log', 'pf:slos',
     'jt:depth-sre-troubleshooting', 'aib:aws', 'pf:aws-vpc-compute', 'pf:aws-storage-lambda', 'jt:practical-streaming-backpressure',
     'pf:finops', 'fde:data-pipelines', 'fde:data-warehouses', 'fde:data-audit-modeling', 'jt:practical-rag-pipeline',
     'pf:customer-apis-webhooks', 'fde:integration-engineering', 'pf:privacy-residency', 'jt:code-review-1', 'jt:practical-cli-tool',
@@ -421,9 +421,25 @@ for (const x of T.mc.flatMap((s: Any) => s.items)) {
     'jt:practical-promise-pool', 'pf:nginx', 'pf:network-debugging', 'pf:grpc', 'pf:multi-tenancy', 'jt:practical-webhook-idempotency'];
   assert.equal(DEPTH.length, 60);
   assert.deepEqual(T.jt.slice(18).map((s: Any) => s.items[0].id), DEPTH, 'slots 19–78');
+  // Every multi-slot topic sits on consecutive slots, in the spec's topic order.
+  const GROUPS: [string, string[]][] = [
+    ['sql', ['fe:sql', 'fe:use-the-index-luke-1', 'fe:use-the-index-luke-2', 'pf:explain-analyze', 'fde:sql-analysis']],
+    ['queues', ['fe:queues', 'pf:background-job']], ['docker', ['aib:containers', 'pf:docker-compose']],
+    ['kubernetes', ['pf:k8s-deployments', 'pf:k8s-services', 'pf:k8s-scaling']], ['terraform', ['aib:terraform', 'pf:terraform-state-modules']],
+    ['cicd', ['aib:devops', 'pf:canary', 'pf:blue-green']], ['otel', ['fe:docker-ci', 'pf:otel-metrics']], ['slo', ['pf:slos', 'jt:depth-sre-troubleshooting']],
+    ['aws', ['aib:aws', 'pf:aws-vpc-compute', 'pf:aws-storage-lambda']], ['data', ['fde:data-pipelines', 'fde:data-warehouses', 'fde:data-audit-modeling']],
+    ['integration', ['pf:customer-apis-webhooks', 'fde:integration-engineering', 'pf:privacy-residency']],
+  ];
+  for (const [g, gIds] of GROUPS) {
+    assert.deepEqual(PF.filter((r) => r.group === g).map((r) => r.id), gIds, `group ${g} rows`);
+    const at = gIds.map((id) => slotOf('jt', id));
+    at.forEach((n, j) => assert.equal(n, at[0] + j, `group ${g}: ${gIds[j]} on the next slot`));
+  }
+  assert.deepEqual(PF.filter((r) => r.group).map((r) => r.group).filter((g, j, xs) => g !== xs[j - 1]), GROUPS.map(([g]) => g), 'groups in spec order, each one run');
   // The 12 practical coding reps: v2 ids, one 45-min TypeScript task each, no Python.
   const prac = T.jt.map((s: Any, i: number) => [i + 1, s] as [number, Any]).filter(([, s]) => s.items[0].id.startsWith('jt:practical-'));
-  assert.deepEqual(prac.map(([n]) => n), [23, 28, 33, 38, 43, 48, 53, 58, 63, 67, 73, 78], 'practicals at 23 + 5k (67 before the pair)');
+  assert.deepEqual(prac.map(([n]) => n), [24, 28, 32, 38, 44, 47, 53, 58, 63, 67, 73, 78], 'practical slots');
+  prac.forEach(([n], k) => assert.ok(Math.abs(n - (23 + 5 * k)) <= 2, `practical ${k + 1} at slot ${n}, within 2 of ${23 + 5 * k}`));
   assert.deepEqual(prac.map(([, s]) => s.items[0].id).sort(), (judgment.PRACTICAL as Any[]).map((x) => x.id).sort(), 'the 12 v2 practical ids');
   assert.equal(T.jt.flatMap((s: Any) => s.items).filter((x: Any) => x.id.startsWith('jt:practical-')).length, 12, 'exactly 12 practicals');
   for (const [n, s] of prac) {

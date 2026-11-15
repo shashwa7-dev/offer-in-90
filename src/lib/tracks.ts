@@ -229,25 +229,34 @@ function sdTrack(c: TrackContent): Slot[] {
 }
 
 // ---------- jt (v3 §4): Platform, data and DevOps ----------
-/** Platform's practical coding reps go at slots 23, 28, …, 78 (0-based index 22 + 5k). */
-const isPracticalSlot = (i: number) => i >= 22 && (i - 22) % 5 === 0;
-/** The depth items in row order with the 12 practical reps (`jt:practical-*`) at 23 + 5k. A 2-slot row never straddles
- * a practical slot: when it would, the practical goes first and the pair after it, and the next free 23 + 5k slot is a
- * practical again. */
+/** The 0-based slot index each practical coding rep aims for: slots 23, 28, …, 78 (23 + 5k). */
+const practicalTarget = (k: number) => 22 + 5 * k;
+/** The depth rows in order, with the 12 practical reps (`jt:practical-*`) at or near 23 + 5k. A topic never splits: the
+ * rows sharing a `group` (and the two slots of a `parts: 2` row) stay on consecutive slots. When a practical's target falls
+ * inside a topic, the practical goes just before or just after it, whichever is closer (before on a tie). */
 function platformTrack(c: TrackContent): Slot[] {
   const rows: Row[] = c.PLATFORM;
   const isPractical = (r: Row) => r.id.startsWith('jt:practical-');
-  const practicals = queue(rows.filter(isPractical)), rest = queue(rows.filter((r) => !isPractical(r)));
-  const slots: SlotItem[][] = [];
-  const put = (r: Row) => slots.push(...expandRow(r, 'platform'));
-  while (rest.left || practicals.left) {
-    const i = slots.length, next = rest.peek();
-    if (practicals.left && (!next || isPracticalSlot(i))) put(practicals.next());
-    else {
-      if (next.parts === 2 && isPracticalSlot(i + 1) && practicals.left) put(practicals.next());
-      put(rest.next());
-    }
+  const practicals = queue(rows.filter(isPractical));
+  // Topics: a run of rows with the same `group`, or one row on its own.
+  const topics: Row[][] = [];
+  for (const r of rows.filter((x) => !isPractical(x))) {
+    const last = topics.at(-1);
+    if (r.group && last && last[0].group === r.group) last.push(r);
+    else topics.push([r]);
   }
+  const slots: SlotItem[][] = [];
+  let k = 0;
+  const putPractical = () => { slots.push(...expandRow(practicals.next(), 'platform')); k++; };
+  const putTopic = (t: Row[]) => t.forEach((r) => slots.push(...expandRow(r, 'platform')));
+  for (const t of topics) {
+    while (practicals.left && practicalTarget(k) <= slots.length) putPractical();
+    const i = slots.length, n = t.reduce((m, r) => m + (r.parts === 2 ? 2 : 1), 0), target = practicalTarget(k);
+    if (practicals.left && target > i && target < i + n) {
+      if (target - i <= i + n - target) { putPractical(); putTopic(t); } else { putTopic(t); putPractical(); }
+    } else putTopic(t);
+  }
+  while (practicals.left) putPractical();
   return toSlots('jt', slots);
 }
 /** Interim (until Task 7 replaces the v2 beh track): the ids Platform lays out or absorbs. */
