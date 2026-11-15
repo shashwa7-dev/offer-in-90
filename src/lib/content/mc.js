@@ -4,8 +4,9 @@
 // Item shape: { id, text, url?, mins?, depth?, slots? } plus extra keys. IDs are content-based (<prefix>:<slug>) and must never change.
 
 // The 34 builds, in the old order (the v1 adapter in plan-data.js reads their text and order). 90 min each, except the
-// 8 pairs of small builds (§5), which share one 90-min block: both halves carry the same `pair: [first, second]` and 45 min.
-// A pair runs in one block; 34 builds therefore fill 26 Mon/Wed/Fri blocks, plus the 3 screenshot builds.
+// 8 pairs of small builds (§5), which share one 90-min block: both halves carry the same `pair: [first, second]` (ordered by
+// MC position) and 45 min. A pair runs as one block at its first member's MC position; 34 builds therefore fill 26 Mon/Wed/Fri
+// blocks, plus the 3 screenshot builds.
 export const MC = [
   { id: 'mc:todo-vanilla', text: 'Todo list in vanilla JS (add, edit, delete, filter) — no framework', mins: 90 },
   { id: 'mc:accordion', text: 'Accordion (single/multi open, keyboard accessible)', mins: 45, pair: ['mc:accordion', 'mc:tabs'] },
@@ -15,13 +16,13 @@ export const MC = [
   { id: 'mc:debounced-search', text: 'Debounced search input that cancels stale requests', mins: 45, pair: ['mc:debounced-search', 'mc:like-button'] },
   { id: 'mc:pagination', text: 'Pagination component', mins: 45, pair: ['mc:pagination', 'mc:toast'] },
   { id: 'mc:infinite-scroll', text: 'Infinite scroll feed (IntersectionObserver)', mins: 90 },
-  { id: 'mc:image-carousel', text: 'Image carousel (autoplay, dots, swipe)', mins: 45, pair: ['mc:tic-tac-toe', 'mc:image-carousel'] },
+  { id: 'mc:image-carousel', text: 'Image carousel (autoplay, dots, swipe)', mins: 45, pair: ['mc:image-carousel', 'mc:tic-tac-toe'] },
   { id: 'mc:toast', text: 'Toast notification system (stacking, auto-dismiss)', mins: 45, pair: ['mc:pagination', 'mc:toast'] },
   { id: 'mc:autocomplete', text: 'Autocomplete / typeahead (cache, keyboard nav, highlight)', mins: 90 },
   { id: 'mc:nested-comments', text: 'Nested comments (reply, collapse, delete)', mins: 90 },
   { id: 'mc:file-explorer', text: 'File explorer tree (expand, add, rename, delete)', mins: 90 },
   { id: 'mc:form-wizard', text: 'Multi-step form wizard with validation', mins: 90 },
-  { id: 'mc:tic-tac-toe', text: 'Tic-tac-toe N×N with winner check', mins: 45, pair: ['mc:tic-tac-toe', 'mc:image-carousel'] },
+  { id: 'mc:tic-tac-toe', text: 'Tic-tac-toe N×N with winner check', mins: 45, pair: ['mc:image-carousel', 'mc:tic-tac-toe'] },
   { id: 'mc:data-table', text: 'Data table: sort, filter, paginate', mins: 90 },
   { id: 'mc:kanban', text: 'Kanban board with drag and drop', mins: 90 },
   { id: 'mc:date-picker', text: 'Date picker / month calendar', mins: 90 },
@@ -47,12 +48,12 @@ export const MC = [
 export const MC_TIMED = ['mc:autocomplete', 'mc:data-table', 'mc:kanban', 'mc:nested-comments', 'mc:file-explorer', 'mc:modal',
   'mc:spreadsheet-lite', 'mc:date-picker', 'mc:email-client', 'mc:chat-ui', 'mc:promise-pool', 'mc:virtualized-list'];
 
-// "Match this screenshot" builds (§5): in the Mon/Wed/Fri rotation in weeks 4–8. Free Frontend Mentor challenges, which ship
+// "Match this screenshot" builds (§5): in the Mon/Wed/Fri rotation in weeks 4–8 (`weeks: [first, last]`, Grind weeks). Free Frontend Mentor challenges, which ship
 // the design screenshots for mobile and desktop. URLs checked 2026-11-15.
 export const MC_SCREENSHOT = [
-  { id: 'mc:screenshot-product-card', text: 'Match this screenshot: product preview card. Build it pixel-accurate from the design images, responsive from 375 px to desktop, and accessible (semantic HTML, alt text, visible focus, contrast). 45 min, then diff your build against the screenshot.', url: 'https://www.frontendmentor.io/challenges/product-preview-card-component-GO7UmttRfa', mins: 45 },
-  { id: 'mc:screenshot-rating', text: 'Match this screenshot: interactive rating component (select a score, submit, thank-you state). Build it pixel-accurate, responsive, and accessible (a real radio group with keyboard support, focus states, a live thank-you message). 45 min, then diff your build against the screenshot.', url: 'https://www.frontendmentor.io/challenges/interactive-rating-component-koxpeBUmI', mins: 45 },
-  { id: 'mc:screenshot-newsletter', text: 'Match this screenshot: newsletter sign-up form with validation and a success message. Build it pixel-accurate, responsive (the layout changes at mobile width), and accessible (labelled input, errors announced, focus moved to the success state). 45 min, then diff your build against the screenshot.', url: 'https://www.frontendmentor.io/challenges/newsletter-signup-form-with-success-message-3FC1AZbNrv', mins: 45 },
+  { id: 'mc:screenshot-product-card', text: 'Match this screenshot: product preview card. Build it pixel-accurate from the design images, responsive from 375 px to desktop, and accessible (semantic HTML, alt text, visible focus, contrast). 45 min, then diff your build against the screenshot.', url: 'https://www.frontendmentor.io/challenges/product-preview-card-component-GO7UmttRfa', mins: 45, weeks: [4, 8] },
+  { id: 'mc:screenshot-rating', text: 'Match this screenshot: interactive rating component (select a score, submit, thank-you state). Build it pixel-accurate, responsive, and accessible (a real radio group with keyboard support, focus states, a live thank-you message). 45 min, then diff your build against the screenshot.', url: 'https://www.frontendmentor.io/challenges/interactive-rating-component-koxpeBUmI', mins: 45, weeks: [4, 8] },
+  { id: 'mc:screenshot-newsletter', text: 'Match this screenshot: newsletter sign-up form with validation and a success message. Build it pixel-accurate, responsive (the layout changes at mobile width), and accessible (labelled input, errors announced, focus moved to the success state). 45 min, then diff your build against the screenshot.', url: 'https://www.frontendmentor.io/challenges/newsletter-signup-form-with-success-message-3FC1AZbNrv', mins: 45, weeks: [4, 8] },
 ];
 
 // Product engineer take-home simulations (§5): weeks 7 and 10, Mon–Wed instead of the usual blocks (3 × 90 min plus optional
@@ -83,16 +84,15 @@ export const TAKE_HOMES = [
 // every review; AI coding tools write a lot of the code.
 // `v1` is the step's old 1-based position (merged entries keep both old steps in `oldSteps`), and `oldText` is the old text
 // of a step that gained an explain-back: only the v1 adapter in plan-data.js reads them.
-// Depth (§13): the real-time and offline steps (area 2) and the AI steps and evals (area 3) end with an explain-back. The step
-// before real-time carries the Ink & Switch "Local-first software" depth read (area 2) as `read` (URL checked 2026-11-15).
+// Depth (§13): the real-time and offline steps (area 2) and the AI steps and evals (area 3) end with an explain-back. The
+// Ink & Switch depth read before the real-time step is in PROJECT_DEPTH_READS below.
 export const PROJECT = [
   { id: 'proj:brief-wireframes', text: 'Product brief: target user, the problem, 3 core jobs, success metrics. Teardown of Notion, Linear docs and Slab. UX: wireframes, design tokens, component inventory in Figma', url: 'https://help.figma.com/hc/en-us/articles/360040451373',
     oldSteps: [{ v1: 1, text: 'Product brief: target user, the problem, 3 core jobs, success metrics. Teardown of Notion, Linear docs and Slab.', url: '' }, { v1: 3, text: 'UX: wireframes, design tokens, component inventory in Figma', url: 'https://help.figma.com/hc/en-us/articles/360040451373' }] },
   { id: 'proj:design-doc', v1: 2, text: 'Design doc (RFC): architecture, data model, API, real-time approach (CRDT), AI design (RAG), risks, milestones. This is the document you steer the AI with.', url: 'https://www.industrialempathy.com/posts/design-docs-at-google/' },
   { id: 'proj:setup', v1: 4, text: 'Setup: Next.js + TypeScript, lint, tests, CI, preview deploys. Write CONTRIBUTING rules for your AI coding agent.', url: 'https://nextjs.org/docs' },
   { id: 'proj:auth', v1: 5, text: 'Auth (OAuth/OIDC), workspaces, roles; Postgres schema with row-level security', url: 'https://supabase.com/docs/guides/database/postgres/row-level-security' },
-  { id: 'proj:editor', v1: 6, text: 'Editor: rich text (Tiptap/ProseMirror), slash commands, keyboard-first', url: 'https://tiptap.dev/docs',
-    read: { id: 'proj:local-first-software', depth: true, text: 'Read Ink & Switch, "Local-first software" (Kleppmann, Wiggins, van Hardenberg, McGranaghan, 2019): the seven ideals, why CRDTs, and what is still hard. Explain back what happens when two people edit offline and reconnect, and how a CRDT merges their changes.', url: 'https://www.inkandswitch.com/essay/local-first/' } },
+  { id: 'proj:editor', v1: 6, text: 'Editor: rich text (Tiptap/ProseMirror), slash commands, keyboard-first', url: 'https://tiptap.dev/docs' },
   { id: 'proj:realtime', v1: 7, depth: true, text: 'Real-time collaboration: Yjs + WebSocket provider, live cursors and presence. Explain back what happens when two people type in the same block at once, and why every client ends up with the same document.', oldText: 'Real-time collaboration: Yjs + WebSocket provider, live cursors and presence', url: 'https://docs.yjs.dev/' },
   { id: 'proj:offline', v1: 8, depth: true, text: 'Offline-first: IndexedDB persistence, sync on reconnect, conflict and reconnect UX. Explain back what happens when two people edit offline and reconnect, and why your design handles it.', oldText: 'Offline-first: IndexedDB persistence, sync on reconnect, conflict and reconnect UX', url: 'https://docs.yjs.dev/getting-started/allowing-offline-editing' },
   { id: 'proj:search-performance', text: 'Search + command palette (⌘K) with virtualized results. Performance pass: Web Vitals budget, code splitting, React Profiler. Record before/after numbers.', url: 'https://web.dev/articles/vitals',
@@ -107,6 +107,12 @@ export const PROJECT = [
   { id: 'proj:load-failure', v1: 18, text: 'Load + failure testing: k6 load test, kill the WebSocket server, fix what breaks', url: 'https://grafana.com/docs/k6/latest/' },
   { id: 'proj:launch', v1: 19, text: 'Launch: deploy, get 5–10 real users, collect feedback, ship one fix from it' },
   { id: 'proj:case-study', v1: 20, text: 'Case study: README with architecture diagram, trade-offs, metrics, 3-min demo video. Practice the 15-min project deep dive.' },
+];
+
+// §13 area 2: the Ink & Switch "Local-first software" read, after the editor step and before the real-time step (like
+// FE_DEPTH_READS, `after` names the item it follows). URL checked 2026-11-15.
+export const PROJECT_DEPTH_READS = [
+  { id: 'proj:local-first-software', after: 'proj:editor', depth: true, mins: 60, text: 'Read Ink & Switch, "Local-first software" (Kleppmann, Wiggins, van Hardenberg, McGranaghan, 2019): the seven ideals, why CRDTs, and what is still hard. Explain back what happens when two people edit offline and reconnect, and how a CRDT merges their changes.', url: 'https://www.inkandswitch.com/essay/local-first/' },
 ];
 
 // LLD (§5): Saturdays in the machine-coding block, the 13 from the board, unchanged.

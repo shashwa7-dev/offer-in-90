@@ -4,15 +4,15 @@ import { FE, FE_DEPTH_READS } from '../src/lib/content/fe.js';
 import { UX } from '../src/lib/content/ux.js';
 import { BEH, FDE, COMPANY_MAP, TEARDOWNS } from '../src/lib/content/career.js';
 import { AIB_MOVED, AIB, AI_EVENING, AI_REVIEW, AI_NEWS } from '../src/lib/content/ai.js';
-import { MC, MC_TIMED, MC_SCREENSHOT, TAKE_HOMES, PROJECT, LLD } from '../src/lib/content/mc.js';
+import { MC, MC_TIMED, MC_SCREENSHOT, TAKE_HOMES, PROJECT, PROJECT_DEPTH_READS, LLD } from '../src/lib/content/mc.js';
 import { SD, SD_MOCKS } from '../src/lib/content/sd.js';
 import { createHash } from 'node:crypto';
 import { PLAN } from '../src/lib/plan-data.js';
 
 // AIB contains the AIB_MOVED items, so AIB_MOVED itself is not listed again.
-// TAKE_HOMES briefs and their parts, and the PROJECT step reads, are listed alongside so their ids are checked too.
+// TAKE_HOMES briefs and their parts are listed alongside so their ids are checked too.
 const ALL_ID_LISTS: any[][] = [FE, FE_DEPTH_READS, UX, BEH, FDE, TEARDOWNS, AIB, AI_EVENING, AI_REVIEW, AI_NEWS,
-  MC, MC_SCREENSHOT, TAKE_HOMES, TAKE_HOMES.flatMap((b: any) => b.parts), PROJECT, PROJECT.filter((x: any) => x.read).map((x: any) => x.read), LLD, SD, SD_MOCKS];
+  MC, MC_SCREENSHOT, TAKE_HOMES, TAKE_HOMES.flatMap((b: any) => b.parts), PROJECT, PROJECT_DEPTH_READS, LLD, SD, SD_MOCKS];
 const byId = (list: any[], id: string) => list.find((x) => x.id === id);
 
 // ---- 4a: FE, UX, career ----
@@ -214,7 +214,7 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
   assert.deepEqual(MC.map((x) => x.text), PLAN.MC);
   assert.ok(MC.every((x) => /^mc:/.test(x.id)));
   const PAIRS = [['mc:accordion', 'mc:tabs'], ['mc:star-rating', 'mc:otp-input'], ['mc:pagination', 'mc:toast'], ['mc:modal', 'mc:tooltip'],
-    ['mc:event-emitter', 'mc:promise-pool'], ['mc:debounced-search', 'mc:like-button'], ['mc:tic-tac-toe', 'mc:image-carousel'], ['mc:use-fetch', 'mc:redux-store']];
+    ['mc:event-emitter', 'mc:promise-pool'], ['mc:debounced-search', 'mc:like-button'], ['mc:image-carousel', 'mc:tic-tac-toe'], ['mc:use-fetch', 'mc:redux-store']];
   const paired = MC.filter((x) => x.pair);
   assert.equal(paired.length, 16);
   for (const [a, b] of PAIRS) for (const id of [a, b]) {
@@ -222,6 +222,7 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
     assert.equal(byId(MC, id).mins, 45, `${id} mins`);
   }
   assert.ok(MC.filter((x) => !x.pair).every((x) => x.mins === 90));
+  for (const [a, b] of PAIRS) assert.ok(MC.findIndex((x) => x.id === a) < MC.findIndex((x) => x.id === b), `${a} before ${b} in MC`);
   assert.equal(MC.length - PAIRS.length, 26, '34 builds in 26 blocks');
 
   // MC_TIMED: the same 12 builds as the old 1-based index list, as ids
@@ -231,7 +232,7 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
   // screenshot builds (§5): 3 × 45 min, pixel-accurate, responsive, accessible
   assert.equal(MC_SCREENSHOT.length, 3);
   for (const x of MC_SCREENSHOT) {
-    assert.equal(x.mins, 45); assert.match(x.id, /^mc:screenshot-/); assert.match(x.url, /^https:\/\/www\.frontendmentor\.io\/challenges\//);
+    assert.equal(x.mins, 45); assert.deepEqual(x.weeks, [4, 8]); assert.match(x.id, /^mc:screenshot-/); assert.match(x.url, /^https:\/\/www\.frontendmentor\.io\/challenges\//);
     for (const w of [/pixel-accurate/, /responsive/, /accessible/]) assert.match(x.text, w, x.id);
   }
 
@@ -264,9 +265,12 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
   // §13 row 2: Ink & Switch read in the step before the real-time step
   const rt = PROJECT.findIndex((x) => x.id === 'proj:realtime');
   assert.ok(rt > 0);
-  const read = PROJECT[rt - 1].read;
-  assert.ok(read && read.depth === true && read.url === 'https://www.inkandswitch.com/essay/local-first/', 'local-first read');
-  assert.equal(PROJECT.filter((x) => x.read).length, 1);
+  assert.equal(PROJECT_DEPTH_READS.length, 1);
+  const read = PROJECT_DEPTH_READS[0];
+  assert.equal(read.id, 'proj:local-first-software');
+  assert.equal(read.after, PROJECT[rt - 1].id, 'read follows the step before real-time');
+  assert.ok(read.depth === true && read.mins === 60 && read.url === 'https://www.inkandswitch.com/essay/local-first/', 'local-first read');
+  assert.ok(PROJECT.every((x) => !('read' in x)), 'one link per item: no nested reads');
 
   // LLD: 13, unchanged
   assert.equal(LLD.length, 13);
@@ -309,7 +313,7 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
     sd:ai-eval-framework sd:ai-chatgpt sd:ai-rag-search sd:ai-coding-agent`.split(/\s+/);
   for (const id of DEPTH) assert.equal([...PROJECT, ...SD].find((x) => x.id === id)?.depth, true, `${id} depth`);
   assert.equal([...MC, ...PROJECT, ...SD].filter((x) => x.depth).length, DEPTH.length, 'no other depth items');
-  for (const x of [...MC, ...MC_SCREENSHOT, ...PROJECT, read, ...LLD, ...SD].filter((y) => y.depth)) {
+  for (const x of [...MC, ...MC_SCREENSHOT, ...PROJECT, ...PROJECT_DEPTH_READS, ...LLD, ...SD].filter((y) => y.depth)) {
     assert.match(x.text, /(^|[.!?] )Explain back[^.!?]*\.$/, `${x.id} ends with an explain-back`);
   }
 }
