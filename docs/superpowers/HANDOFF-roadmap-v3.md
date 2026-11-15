@@ -15,7 +15,15 @@ Written 2026-11-15 at the end of the Release 1 build session. Supersedes `HANDOF
 - **Ledger with every ruling (R1–R15) and deferred minors:**
   `.superpowers/sdd/2026-11-16-roadmap-v2-release-1/progress.md` (git-ignored; also briefs and reports there).
 
-## What happens next (in order)
+## Status (2026-11-16)
+
+**Everything below is DONE.** Release 1 + roadmap v3 + daily DSA + mode indicators + IDT rename are on `roadmap-v2`,
+reviewed (per task, whole-branch, fix waves), and open as **PR #2** against `main`
+(https://github.com/shashwa7-dev/offer-in-90/pull/2). Next: the owner reviews/merges PR #2 (merge deploys to
+GitHub Pages). Only after that merge: Releases 2 (quizzes) and 3 (AI) — their plans predate v3 and need a short
+refresh pass first. Execution ledger with every ruling: `.superpowers/sdd/2026-11-16-roadmap-v3-content/progress.md`.
+
+## What happened (historical, in order)
 
 1. **DONE 2026-11-15 (8f090a5; tests, tsc pass; smoke 601 ok, 0 fail).** ~~Finish the parked Task 15 cleanup.~~ It's in `git stash list` as
    "WIP Task 15 fix round 2 …". The three fixes it was doing (all from the last review):
