@@ -127,7 +127,9 @@ export const LLD = [
   { id: 'lld:rate-limiter', text: 'LLD: Design a rate limiter', url: 'https://www.lldcoding.com/' },
   { id: 'lld:google-calendar-db', text: 'LLD: Design the Google Calendar database model', url: 'https://www.lldcoding.com/' },
   { id: 'lld:coupon-system', text: 'LLD: Design a coupon system (quick-commerce app)', url: 'https://www.lldcoding.com/' },
-  { id: 'lld:thread-pool', text: 'LLD: Design a thread pool', url: 'https://medium.com/@prashant558908/top-3-questions-to-practice-multi-threading-for-low-level-design-interviews-1cc4d6b5d00b' },
+  // The earlier Medium article on multithreading LLD questions was removed (410); replaced by AlgoMaster's free
+  // Concurrency Interview chapter on the thread-pool pattern. URL checked 2026-11-15 (HTTP 200, article body free).
+  { id: 'lld:thread-pool', text: 'LLD: Design a thread pool (task queue, workers, shutdown, rejection policy)', url: 'https://algomaster.io/learn/concurrency-interview/thread-pool-pattern' },
   { id: 'lld:tetris', text: 'LLD: Design Tetris', url: 'https://www.lldcoding.com/' },
   { id: 'lld:aws-alarm-service', text: 'LLD: Design an alarm / alert service for AWS', url: 'https://www.lldcoding.com/' },
 ];
