@@ -102,8 +102,15 @@ export function RoadmapReference() {
       <Ref id="whimsical-board" title="Whimsical board → where it is in the plan" n={P.BOARD_MAP.length}>
         <Table head={['Board section', 'In the plan']} rows={P.BOARD_MAP} />
       </Ref>
-      <Ref id="month-4" title="Month 4 · optional, after day 91" n={P.EXTENSION.length}>
-        <List items={P.EXTENSION.map((r: string[]) => <span key={r[0]}><span className="font-medium">{r[0]}:</span> <span className="text-muted-foreground">{r[1]}</span></span>)} />
+      <Ref id="explore-later" title="Explore later · outside the daily plan" n={P.EXPLORE_LATER.length}>
+        <List items={P.EXPLORE_LATER.map((x: { id: string; area: string; text: string; resources: { text: string; url: string }[] }) => (
+          <span key={x.id} data-explore={x.id}>
+            <span className="font-medium">{x.area}:</span> <span className="text-muted-foreground">{x.text}</span>
+            <span className="mt-1 flex flex-wrap gap-x-3 text-[12px]">
+              {x.resources.map(r => <a key={r.url} href={r.url} target="_blank" rel="noopener noreferrer" className="text-faint hover:text-foreground">{r.text} ↗<span className="sr-only">(opens in a new tab)</span></a>)}
+            </span>
+          </span>
+        ))} />
       </Ref>
     </>
   );

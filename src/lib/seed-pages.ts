@@ -11,6 +11,6 @@ export function seedPages(now = Date.now()): Record<string, Page> {
     pg5: { title: 'Job tracker', body: '# Job tracker\n\n| Company | Role | Referral? | Applied | Stage |\n|---|---|---|---|---|\n\n## Skills job posts keep asking for\n- \n', upd: now - 4 },
     pg6: { title: 'LLD question bank', body: '# LLD question bank (from the board)\n\nSaturdays cover the first ones. Tick the rest off when you practice them. Reference: https://www.lldcoding.com/\n\n' + LLD.map(q => `- [ ] ${q}`).join('\n') + '\n', upd: now - 5 },
     pg7: { title: 'FDE decomposition template', body: '# Decomposition template\n\nSpend the first 10 minutes structuring. Name no technology yet.\n\n1. **Goal:** what changes for the customer if this works?\n2. **Stakeholders:** who uses it, who pays, who can block it?\n3. **Data:** what exists, where, how messy, who owns it, PII?\n4. **Main constraint:** time, data access, compliance, latency, budget\n5. **First slice:** the smallest thing we ship in 2 weeks\n6. **Success metric:** one number we move\n7. **Rollout:** pilot → eval gate → wider rollout → monitoring\n8. **Risks + what I would ask next**\n', upd: now - 6 },
-    pg8: { title: 'Parking lot', body: '# Parking lot\n\nFound something interesting online? Put it here, not in today. Look at this list on Sundays or in Month 4.\n\n- [ ] \n', upd: now - 7 },
+    pg8: { title: 'Parking lot', body: '# Parking lot\n\nFound something interesting online? Put it here, not in today. Look at this list on Sundays, or move it into Explore later.\n\n- [ ] \n', upd: now - 7 },
   };
 }

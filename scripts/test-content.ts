@@ -8,11 +8,17 @@ import { MC, MC_TIMED, MC_SCREENSHOT, TAKE_HOMES, PROJECT, PROJECT_DEPTH_READS, 
 import { SD, SD_MOCKS } from '../src/lib/content/sd.js';
 import { createHash } from 'node:crypto';
 import { PLAN } from '../src/lib/plan-data.js';
+import { HOW_IT_WORKS, MEMOS, PRACTICAL, DECOMP, OSS_REPOS, OSS_FIXES, CODE_REVIEWS, JT_DEPTH_READS, INTERVIEW_ENV } from '../src/lib/content/judgment.js';
+import { SUNDAY_READS, SUNDAY_CORE, SUNDAY_OPTIONAL, READINESS, WEEK8_REVIEW } from '../src/lib/content/sundays.js';
+import { EXPLORE_LATER, FOCUS_RULES } from '../src/lib/content/reference.js';
 
 // AIB contains the AIB_MOVED items, so AIB_MOVED itself is not listed again.
 // TAKE_HOMES briefs and their parts are listed alongside so their ids are checked too.
 const ALL_ID_LISTS: any[][] = [FE, FE_DEPTH_READS, UX, BEH, FDE, TEARDOWNS, AIB, AI_EVENING, AI_REVIEW, AI_NEWS,
-  MC, MC_SCREENSHOT, TAKE_HOMES, TAKE_HOMES.flatMap((b: any) => b.parts), PROJECT, PROJECT_DEPTH_READS, LLD, SD, SD_MOCKS];
+  MC, MC_SCREENSHOT, TAKE_HOMES, TAKE_HOMES.flatMap((b: any) => b.parts), PROJECT, PROJECT_DEPTH_READS, LLD, SD, SD_MOCKS,
+  // JT_DEPTH_READS[0] is the Stripe item of HOW_IT_WORKS (the same object), so only the SRE read is listed again.
+  HOW_IT_WORKS, MEMOS, PRACTICAL, DECOMP, OSS_REPOS, OSS_FIXES, CODE_REVIEWS, JT_DEPTH_READS.slice(1), INTERVIEW_ENV,
+  SUNDAY_READS, SUNDAY_CORE, SUNDAY_OPTIONAL, READINESS, [WEEK8_REVIEW], EXPLORE_LATER];
 const byId = (list: any[], id: string) => list.find((x) => x.id === id);
 
 // ---- 4a: FE, UX, career ----
@@ -316,6 +322,181 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
   for (const x of [...MC, ...MC_SCREENSHOT, ...PROJECT, ...PROJECT_DEPTH_READS, ...LLD, ...SD].filter((y) => y.depth)) {
     assert.match(x.text, /(^|[.!?] )Explain back[^.!?]*\.$/, `${x.id} ends with an explain-back`);
   }
+}
+
+// ---- 4d: judgment thread, Sundays, readiness, reference ----
+{
+  const EXPLAIN_BACK = /(^|[.!?] )Explain back[^.!?]*\.$/;
+
+  // How it really works (§4): 10 reads, each on the company's own engineering blog, in the §4 order
+  assert.equal(HOW_IT_WORKS.length, 10);
+  const HIW = [['Figma', /figma\.com\/blog\//], ['Linear', /linear\.app\/now\//], ['Stripe', /stripe\.com\/blog\//], ['Discord', /discord\.com\/blog\//],
+    ['Slack', /slack\.engineering\//], ['Notion', /notion\.com\/blog\//], ['Next.js', /nextjs\.org\/blog\//], ['Shopify', /shopify\.engineering\//],
+    ['Cloudflare', /blog\.cloudflare\.com\/18-november-2025-outage/], ['GitHub', /github\.blog\//]] as const;
+  HIW.forEach(([company, host], i) => {
+    const x = HOW_IT_WORKS[i];
+    assert.equal(x.company, company, `how-it-works ${i + 1}`);
+    assert.match(x.url, /^https:\/\//); assert.match(x.url, host, `${x.id} url on ${company}'s own blog`);
+    assert.match(x.id, /^jt:hiw-/);
+    for (const w of [/redraw the system from memory/, /3 trade-offs/]) assert.match(x.text, w, x.id);
+  });
+
+  // Decision memos (§4): the 13 prompts verbatim
+  const MEMO_PROMPTS = ['SSR vs CSR for a dashboard', 'Postgres vs DynamoDB for chat', 'RAG vs fine-tuning for support', 'Build vs buy auth', 'WebSocket vs SSE',
+    'Monolith vs services at 5 engineers', 'Polling vs webhooks for an integration', 'Ship now vs fix tech debt', 'One model vs routing', 'Sync vs queue for an export',
+    'Feature flag vs long-lived branch', 'Cache vs read replica', 'Offline-first or not'];
+  assert.equal(MEMOS.length, 13);
+  assert.deepEqual(MEMOS.map((x) => x.prompt), MEMO_PROMPTS);
+  for (const x of MEMOS) {
+    assert.match(x.id, /^jt:memo-/);
+    assert.ok(x.text.includes(x.prompt), x.id);
+    for (const w of [/options/, /criteria/, /pick/, /what would change your mind/]) assert.match(x.text, w, x.id);
+  }
+
+  // Practical coding (§4): 12 timed 45-min reps in the §4 order, alternating TypeScript and Python
+  const PRACTICAL_TOPICS = [/rate limiter/i, /exponential backoff and jitter/i, /TTL cache with stale-while-revalidate/i, /cancellable\/debounced fetcher/i,
+    /merge two messy CSVs/i, /parse a log file/i, /backpressure/i, /RAG pipeline/i, /CLI tool/i, /LRU cache/i, /promise pool/i, /webhook receiver with idempotency/i];
+  assert.equal(PRACTICAL.length, 12);
+  PRACTICAL.forEach((x, i) => {
+    assert.match(x.text, PRACTICAL_TOPICS[i], x.id);
+    assert.equal(x.lang, i % 2 === 0 ? 'ts' : 'py', `${x.id} lang`);
+    assert.equal(x.mins, 45);
+    assert.match(x.text, x.lang === 'ts' ? /TypeScript/ : /Python/, `${x.id} names its language`);
+  });
+
+  // Decomposition / client simulation (§4): the FDE reps and FDE_PROMPTS (one duplicate dropped), plus 2 from published FDE guides
+  assert.equal(DECOMP.length, 12);
+  assert.ok(DECOMP.every((x) => /^jt:decomp-|^jt:client-sim-/.test(x.id) && x.mins === 45));
+  assert.equal(new Set(DECOMP.map((x) => x.text)).size, 12, 'no prompt twice');
+  const fromFde = DECOMP.filter((x) => x.from);
+  assert.deepEqual(fromFde.map((x) => x.from), ['fde:decomposition-framework', 'fde:decomposition-2', 'fde:client-simulation-1', 'fde:decomposition-3',
+    'fde:client-simulation-2', 'fde:decomposition-4']);
+  for (const x of fromFde) assert.ok(FDE.some((f) => f.id === x.from), `${x.id} from ${x.from}`);
+  const fromPrompts = DECOMP.filter((x) => x.v1Prompt !== undefined);
+  assert.deepEqual(fromPrompts.map((x) => x.v1Prompt), [0, 2, 4, 5], 'FDE_PROMPTS 1, 3, 5, 6 (2 duplicates fde:client-simulation-2, 4 is practical coding)');
+  for (const x of fromPrompts) assert.ok(x.text.startsWith(PLAN.FDE_PROMPTS[x.v1Prompt]), x.id);
+  const guides = DECOMP.filter((x) => x.source);
+  assert.equal(guides.length, 2);
+  assert.ok(guides.every((x) => x.url === x.source && /^https:\/\/www\.(aced\.io|techinterview\.org)\//.test(x.url)), 'guide prompts carry their source');
+  assert.equal(fromFde.length + fromPrompts.length + guides.length, 12);
+
+  // Open source (§4, Ruling R4): 3 repos, 7 fixes and 4 code reviews over the 11 Fridays of weeks 3–13 (reviews in weeks 5, 8, 11, 13)
+  assert.deepEqual(OSS_REPOS.map((x) => x.name), ['PostHog', 'Cal.com', 'Excalidraw']);
+  for (const r of OSS_REPOS) { assert.match(r.url, /^https:\/\/github\.com\/[^/]+\/[^/]+\/issues\?q=/); assert.match(r.url, /label/); }
+  assert.equal(OSS_FIXES.length, 7);
+  assert.equal(CODE_REVIEWS.length, 4);
+  assert.deepEqual(CODE_REVIEWS.map((x) => x.week), [5, 8, 11, 13]);
+  const repoIds = OSS_REPOS.map((r) => r.id);
+  for (const x of [...OSS_FIXES, ...CODE_REVIEWS]) { assert.ok(repoIds.includes(x.repo), `${x.id} repo`); assert.match(x.url, /^https:\/\/github\.com\//); }
+  assert.ok(OSS_FIXES.every((x) => /reproduce → hypothesise → isolate → verify/.test(x.text) && /postmortem/.test(x.text)));
+  assert.ok(CODE_REVIEWS.every((x) => /maintainers/.test(x.text) && /\/pulls\?q=/.test(x.url)));
+
+  // Depth reads (§13): Stripe idempotency (a how-it-works Monday in week 2 or 3), SRE ch. 12 (week 3, before the first OSS fix)
+  assert.equal(JT_DEPTH_READS.length, 2);
+  const [stripe, sre] = JT_DEPTH_READS;
+  assert.equal(stripe, HOW_IT_WORKS.find((x) => x.company === 'Stripe'), 'Stripe read is the how-it-works item');
+  assert.equal(stripe.url, 'https://stripe.com/blog/idempotency');
+  const stripeWeek = HOW_IT_WORKS.indexOf(stripe) + 1; // how-it-works item i runs on the Monday of Grind week i + 1
+  assert.ok(stripeWeek === 2 || stripeWeek === 3, `Stripe read in week ${stripeWeek}`);
+  assert.equal(sre.url, 'https://sre.google/sre-book/effective-troubleshooting/');
+  assert.equal(sre.week, 3); assert.equal(sre.before, OSS_FIXES[0].id);
+  assert.ok(JT_DEPTH_READS.every((x) => x.depth === true));
+
+  // §13 depth: area 2 how-it-works (Figma, Linear, Slack), area 1 data reads, area 3 Copilot, area 4 OSS fixes + code reviews
+  for (const c of ['Figma', 'Linear', 'Stripe', 'Discord', 'Slack', 'Notion', 'Next.js', 'GitHub']) assert.equal(HOW_IT_WORKS.find((x) => x.company === c).depth, true, c);
+  assert.ok([...OSS_FIXES, ...CODE_REVIEWS].every((x) => x.depth === true));
+  const JT_ALL = [...HOW_IT_WORKS, ...MEMOS, ...PRACTICAL, ...DECOMP, ...OSS_FIXES, ...CODE_REVIEWS, sre, ...INTERVIEW_ENV];
+  for (const x of JT_ALL.filter((y) => y.depth)) assert.match(x.text, EXPLAIN_BACK, `${x.id} ends with an explain-back`);
+  for (const x of JT_ALL) if (x.url) assert.match(x.url, /^https:\/\//, x.id);
+
+  // Interview environment practice (§18): the 4 Phase 3 tasks, one per week in weeks 10–13
+  assert.equal(INTERVIEW_ENV.length, 4);
+  for (const [i, w] of [/CoderPad\/HackerRank/, /Google Doc with no autocomplete/, /Excalidraw while talking/, /camera and mic/].entries()) {
+    assert.match(INTERVIEW_ENV[i].text, w);
+    assert.equal(INTERVIEW_ENV[i].week, 10 + i);
+    assert.match(INTERVIEW_ENV[i].id, /^env:/);
+  }
+
+  // Sunday reads (§17): the 15 curated reads in order (Grind uses 1–13), plus 2 Steady extras (an AI paper, an industry problem)
+  assert.equal(SUNDAY_READS.length, 17);
+  const READ_URLS = ['https://www.uber.com/blog/h3/', 'https://about.gitlab.com/blog/postmortem-of-database-outage-of-january-31/',
+    'https://openai.com/index/why-language-models-hallucinate/', 'https://bytes.swiggy.com/engineering-challenges-at-swiggy-430dea6c86a3',
+    'https://www.allthingsdistributed.com/2007/10/amazons_dynamo.html', 'https://linear.app/now/how-we-built-multi-region-support-for-linear',
+    'https://aws.amazon.com/message/101925/', 'https://www.uber.com/blog/deepeta-how-uber-predicts-arrival-times/',
+    'https://www.anthropic.com/research/tracing-thoughts-language-model', 'https://blog.swiggy.com/life-at-swiggy/heres-how-swiggy-built-the-group-ordering-feature/',
+    'https://www.crowdstrike.com/wp-content/uploads/2024/08/Channel-File-291-Incident-Root-Cause-Analysis-08.06.2024.pdf', 'https://razorpay.com/blog/payment-gateway-uptime-slas/',
+    'https://aws.amazon.com/blogs/database/unlocking-performance-scalability-and-cost-efficiency-of-zomatos-billing-platform-by-switching-from-tidb-to-dynamodb/',
+    'https://blog.hotstar.com/scaling-for-tsunami-traffic-2ec290c37504', 'https://linear.app/now/rebuilding-delta-sync-read-path'];
+  assert.deepEqual(SUNDAY_READS.slice(0, 15).map((x) => x.url), READ_URLS);
+  const CATS = ['app', 'incident', 'ai-paper', 'industry', 'classic-paper', 'app', 'incident', 'industry', 'ai-paper', 'app', 'incident', 'industry', 'app', 'industry', 'app'];
+  assert.deepEqual(SUNDAY_READS.slice(0, 15).map((x) => x.category), CATS);
+  assert.deepEqual(SUNDAY_READS.map((x) => x.grind), [...Array(13).fill(true), false, false, false, false], 'Grind uses reads 1–13');
+  const extras = SUNDAY_READS.slice(15);
+  assert.deepEqual(extras.map((x) => x.category), ['ai-paper', 'industry']);
+  assert.ok(extras.every((x) => x.steadyExtra === true));
+  for (const x of SUNDAY_READS) {
+    assert.match(x.id, /^sun:read-/); assert.match(x.url, /^https:\/\//); assert.equal(x.optional, true);
+    for (const w of [/the real problem/, /the key trade-off/, /where you'd use the idea/]) assert.match(x.text, w, x.id);
+  }
+  assert.equal(new Set(SUNDAY_READS.map((x) => x.url)).size, 17);
+  // none repeats a Monday how-it-works read (§17)
+  assert.ok(SUNDAY_READS.every((x) => !HOW_IT_WORKS.some((h) => h.url === x.url)));
+
+  // Sunday core (§17): weekly self-check (R1: hand-scored), reflection with a listen-back, next-week preview
+  assert.deepEqual(SUNDAY_CORE.map((x) => x.id), ['sun:weekly-self-check', 'sun:reflection', 'sun:next-week-preview']);
+  const [check, reflect, preview] = SUNDAY_CORE;
+  assert.ok(check.text.startsWith('Weekly self-check: ') && check.scores === true && check.mins === 40);
+  assert.match(reflect.text, /listen-back/i); assert.match(reflect.text, /one thing to change/);
+  assert.match(preview.text, /next week/); assert.equal(preview.mins, 10);
+  assert.deepEqual(SUNDAY_OPTIONAL.map((x) => [x.id, x.fromWeek, x.optional]), [['sun:apply-roles', 8, true]]);
+  assert.match(SUNDAY_OPTIONAL[0].text, /apply to 3–5 roles/);
+
+  // Readiness checks (§11): 5 checks keyed by Grind week, text exactly as §11
+  const READY = {
+    4: '3 past-project deep dives rehearsed; story bank of 12 stories; pitch recorded; unseen checks passed for the Arrays and Stack patterns; 3 decision memos; weekly test ≥ 70%.',
+    8: 'Linked List, Trees and Heaps green; 4 open-source fixes submitted; flagship has real-time and 1 AI feature working; take-home 1 done.',
+    10: 'unseen checks passed for 18 of the 24 patterns; 6 decomposition reps.',
+    12: 'all 24 patterns green (the second unseen solve comes from Phase 3 timed sets and mocks); the top-12 machine-coding builds done in ≤ 45 min.',
+    13: '3 full mock loops (product engineer, FDE, frontend SDE-2); flagship case study published; weekly test ≥ 80% for 3 weeks running.',
+  };
+  assert.deepEqual(READINESS.map((x) => x.week), [4, 8, 10, 12, 13]);
+  for (const x of READINESS) { assert.equal(x.text, READY[x.week as keyof typeof READY]); assert.equal(x.id, `sun:readiness-w${x.week}`); }
+  assert.equal(WEEK8_REVIEW.id, 'sun:week8-review');
+  assert.equal(WEEK8_REVIEW.week, 8);
+  assert.equal(WEEK8_REVIEW.text, 'Week-8 review: read the weekly-test trend, which patterns are green, the readiness checks, and the four depth tests. ' +
+    'Then rebalance the remaining weeks: move optional reps into weak areas and note what to drop to optional. Write the result as a Notes page.');
+
+  // Explore later (§16): 8 areas, 1–3 https resources each
+  assert.deepEqual(EXPLORE_LATER.map((x) => x.area), ['DSA', 'Systems', 'Frontend', 'AI', 'Infra', 'Product', 'Career growth', 'Interview extras']);
+  for (const x of EXPLORE_LATER) {
+    assert.match(x.id, /^xl:/); assert.ok(x.text.length > 20, x.id);
+    assert.ok(x.resources.length >= 1 && x.resources.length <= 3, `${x.id} 1–3 resources`);
+    for (const r of x.resources) { assert.ok(r.text, x.id); assert.match(r.url, /^https:\/\//, `${x.id} ${r.url}`); }
+  }
+
+  // Focus rules (§19): the 4 old rules (Month 4 → Explore later) plus the 3 new ones
+  assert.equal(FOCUS_RULES.length, 7);
+  assert.ok(FOCUS_RULES.every((r) => !/Month 4/.test(r)));
+  assert.match(FOCUS_RULES[0], /Explore later/);
+  for (const w of [/only that day's list/, /One link per task/, /Parking lot/]) assert.ok(FOCUS_RULES.slice(4).some((r) => w.test(r)), String(w));
+
+  // plan-data.js is a thin re-export: EXTENSION is gone, Explore later and the reference names are there,
+  // and every shape the old engine reads is byte-identical (pinned at 46d77a4)
+  assert.ok(!('EXTENSION' in PLAN), 'Month 4 removed');
+  assert.equal(PLAN.EXPLORE_LATER, EXPLORE_LATER);
+  assert.equal(PLAN.FOCUS_RULES, FOCUS_RULES);
+  const sha = (v: unknown) => createHash('sha256').update(JSON.stringify(v)).digest('hex');
+  const PINNED: Record<string, string> = {
+    ADV_DSA: '09a44292c1df4c7a61561432a6878478cfc695138e4185a925fd4bacd358e3ff', APPLY: 'b21fcd22518f51696a4a67219d153c49d2f05884f18c5f408a3ce09b35169d48',
+    BEH: 'a13c9afd2d333277721559bcbce703dbaf9779c2cf7ef23aa287e0d7e966c9af', BOARD_MAP: 'a2dd5b5d85e46696222e0ef5613f99c93454b3e4a7d112aed46874601343632f',
+    COMPANY_MAP: 'cda3811dba9a23c77a532ff8ce894494f373d25058497ea1cbb7d8afdac5968a', DSA: '2bf6d8f0b57dd20b2842a2962cc2d9ad56bc221d18ad0b9fa2246c6cfb45ff13',
+    FDE: 'ca7d94385ce2fd7f58e679c00f0e25e16b50991629249428c23a80b4d8f77bb2', FDE_PROMPTS: 'f39cab3b1450d5c58dde9829a49dfe9d8f07621abe32c307cc193d1924f6e204',
+    FDE_STAGES: '1ce5963713b47c9706b6008259c3cf7a08fda6eda3327d4e0db4feb523171971', FE: '2dd5a668da33309d6135d0eec315fe51e4072eb162f480119b849c86b3023ad2',
+    HLD_FRAMEWORK: 'f94d1ed11c897f963954909cadace5098653b0bcd1a5f56da843ffb4880a87a9', OA_LINKS: 'c5df9ff2da676fc074f6bff0ca3c9718599690e23fb91947c9ca3df31defad63',
+    RULES: '0a28d9f123e0ddf3293e3bd3d43526a9b388f808f87ce41c62dafac675492fe9', UX: '9a4d37ecf3da23ab3e3013f1f2f1cdc67dbe59953cf532803b04121ab5a90d1d',
+  };
+  for (const [k, h] of Object.entries(PINNED)) assert.equal(sha(PLAN[k]), h, `old-shape ${k} unchanged`);
+  assert.equal(PLAN.FDE_PROMPTS.length, 6);
 }
 
 console.log('test-content: ok');
