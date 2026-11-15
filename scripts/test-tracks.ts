@@ -6,6 +6,7 @@ import * as fe from '../src/lib/content/fe.js';
 import * as ux from '../src/lib/content/ux.js';
 import * as career from '../src/lib/content/career.js';
 import * as ai from '../src/lib/content/ai.js';
+import * as aiCore from '../src/lib/content/ai-core.js';
 import * as mc from '../src/lib/content/mc.js';
 import * as sd from '../src/lib/content/sd.js';
 import * as judgment from '../src/lib/content/judgment.js';
@@ -14,7 +15,11 @@ import { buildTracks, expandRow, GRIND_DOW, SLOTS } from '../src/lib/tracks.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
-const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...mc, ...sd, ...judgment, ...reference };
+const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...aiCore, ...mc, ...sd, ...judgment, ...reference };
+// AI core (v3) absorbs v2 ids: each row's primary id is laid out in the AI core track; its `covers` ids are not laid out anywhere.
+const CORE: Any[] = aiCore.AI_CORE as Any[];
+const CORE_PLACED = new Set<string>(CORE.map((r) => r.id));
+const CORE_COVERS = new Set<string>(CORE.flatMap((r) => r.covers ?? []));
 const T: Any = buildTracks(content);
 const TRACKS = ['dsa', 'fe', 'mc', 'sd', 'jt', 'beh', 'ai'];
 const idx = (w: number, d: number) => (w - 1) * 6 + (d - 1);
@@ -51,30 +56,34 @@ GRIND_DOW.forEach((d: number, i: number) => assert.equal(d, (i % 6) + 1));
 
 // ---------- every content item exactly once (fillers excepted) ----------
 const PRIMARY = (judgment.JT_DEPTH_READS as Any[]).slice(1); // [0] is the Stripe how-it-works item itself
-const SKIP_FDE = new Set([...(judgment.DECOMP as Any[]).filter((x) => x.from).map((x) => x.from), 'fde:practical-coding-log', 'fde:reengineering-round']);
+const SKIP_FDE = new Set([...(judgment.DECOMP as Any[]).filter((x) => x.from).map((x) => x.from), 'fde:practical-coding-log', 'fde:reengineering-round', ...CORE_PLACED, ...CORE_COVERS]);
 const expected: string[] = [
   ...(dsa.PROBLEMS as Any[]).filter((p) => p.tier === 'must').map((p) => `p-${p.slug}`),
-  ...(fe.FE as Any[]), ...(fe.FE_DEPTH_READS as Any[]), ...(ux.UX as Any[]), ...(career.BEH as Any[]),
+  // v2 FE (fe.js) is not laid out until Task 8 moves it into Frontend.
+  ...(ux.UX as Any[]), ...(career.BEH as Any[]),
   ...(career.FDE as Any[]).filter((x) => !SKIP_FDE.has(x.id)), ...(career.TEARDOWNS as Any[]),
-  ...(ai.AI_EVENING as Any[]), ...(ai.AI_REVIEW as Any[]),
+  ...(ai.AI_EVENING as Any[]).filter((x) => !CORE_PLACED.has(x.id) && !CORE_COVERS.has(x.id)),
+  ...CORE.map((r) => r.id),
   ...(mc.MC as Any[]), ...(mc.MC_SCREENSHOT as Any[]), ...(mc.TAKE_HOMES as Any[]).flatMap((x) => x.parts),
   ...(mc.PROJECT as Any[]), ...(mc.PROJECT_DEPTH_READS as Any[]), ...(mc.LLD as Any[]),
-  ...(sd.SD as Any[]),
+  ...(sd.SD as Any[]).filter((x) => !CORE_PLACED.has(x.id)),
   ...(judgment.HOW_IT_WORKS as Any[]), ...(judgment.MEMOS as Any[]), ...(judgment.PRACTICAL as Any[]), ...(judgment.DECOMP as Any[]),
   ...(judgment.OSS_FIXES as Any[]), ...(judgment.CODE_REVIEWS as Any[]), ...PRIMARY, ...(judgment.INTERVIEW_ENV as Any[]),
 ].map((x: Any) => (typeof x === 'string' ? x : x.id));
 // Items that take 2 slots appear once per part, keyed by id + part.
 const seen = all.filter((x) => !x.filler).map((x) => (x.part ? `${x.id.replace(/:part-\d$/, '')}#${x.part[0]}` : x.id));
 for (const id of expected) assert.equal(seen.filter((s) => s === id).length, 1, `${id} appears exactly once`);
+for (const id of CORE_COVERS) assert.equal(seen.filter((s) => s === id).length, 0, `${id} (absorbed by AI core) is not laid out`);
 for (const id of (mc.MC_TIMED as string[])) assert.equal(allIds.filter((x) => x === `${id}:timed`).length, 1, `${id} timed pass once`);
 assert.equal(all.filter((x) => /^adv:[a-z-]+$/.test(x.id)).length, 3, 'ADV_DSA x3');
-const known = new Set([...expected, ...(dsa.FOUNDATIONS as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`]), ...(dsa.ADV_DSA as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`]), ...(mc.MC_TIMED as string[]).map((id) => `${id}:timed`)]);
+const known = new Set([...expected, ...CORE.filter((r) => !r.kind).flatMap((r) => [`${r.id}:do`, `${r.id}:explain`]), ...(dsa.FOUNDATIONS as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`]), ...(dsa.ADV_DSA as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`]), ...(mc.MC_TIMED as string[]).map((id) => `${id}:timed`)]);
 const extras = all.filter((x) => !x.filler && !known.has(x.part ? `${x.id.replace(/:part-\d$/, '')}#${x.part[0]}` : x.id));
 // Non-content items the builder adds on purpose: pattern cards, explain-backs, foundations, ADV_DSA, Phase 3 sets, FE revision, SD mocks, jt Saturdays.
 for (const x of extras) assert.match(x.id, /^(dsa:(card|explain-back|oa|google|meta|revisit)-|fe:revise-|fe:bfe-|sdm:|jt:(ai-drill|mock|peer-mock|speed-pair|mock-loop)-)/, `unexpected item ${x.id}`);
 // The SD_MOCKS rotation is used in order from its first item.
 const sdm = T.sd.flatMap((s: Any) => s.items).filter((x: Any) => x.id.startsWith('sdm:')).map((x: Any) => x.id);
-assert.deepEqual(sdm, (sd.SD_MOCKS as Any[]).slice(0, sdm.length).map((x) => x.id));
+const sdRotation = (sd.SD_MOCKS as Any[]).filter((x) => !CORE_PLACED.has(x.id));
+assert.deepEqual(sdm, sdRotation.slice(0, sdm.length).map((x) => x.id));
 
 // ---------- dsa ----------
 const HARD = ['dp', 'graph-traversal', 'topo-sort', 'union-find', 'shortest-path-mst', 'backtracking', 'tree-dfs', 'tree-bfs', 'top-k', 'two-heaps', 'k-way-merge', 'intervals', 'sliding-window', 'binary-search'];
@@ -159,46 +168,103 @@ for (const [n, env] of (judgment.INTERVIEW_ENV as Any[]).entries()) {
 }
 for (const t of TRACKS.filter((t) => t !== 'dsa')) assert.ok(!T[t].some((s: Any) => s.items.some((x: Any) => x.id.startsWith('env:'))), `env only in dsa (${t})`);
 
-// ---------- fe ----------
-const feIds = T.fe.map((s: Any) => s.items[0].id);
-const sqlAt = feIds.indexOf('fe:sql');
-assert.deepEqual(feIds.slice(sqlAt, sqlAt + 3), ['fe:sql', 'fe:use-the-index-luke-1', 'fe:use-the-index-luke-2'], 'FE depth reads right after fe:sql');
-assert.deepEqual(feIds.slice(0, 51).filter((id: string) => !id.startsWith('fe:use-the-index')), (fe.FE as Any[]).map((x) => x.id), 'FE in order');
-for (let i = 51; i < 78; i++) assert.ok(has('fe', i, /^fe:revise-/) && has('fe', i, /^fe:bfe-/), `fe[${i}] revision pair`);
+// ---------- fe: AI engineering core (v3 §2) ----------
+{
+  assert.equal(CORE.length, 78, 'AI_CORE has 78 rows');
+  assert.equal(T.fe.length, 78);
+  T.fe.forEach((s: Any, i: number) => assert.ok(s.items.every((x: Any) => x.cat === 'ai'), `fe[${i}] cat ai`));
+  const PRIMARY_IDS: Record<number, string> = {
+    1: 'ai:math-intuition', 2: 'ai:classical-ml', 17: 'ai:chip-use-cases', 29: 'ai:rag-evaluation', 30: 'ai:advanced-rag', 36: 'ai:evals-agents-rag',
+    45: 'ai:sft-dpo-rlhf', 46: 'ai:fine-tune-data', 47: 'ai:fine-tune-evaluate', 48: 'ai:dataset-engineering', 49: 'ai:prefill-decode',
+    51: 'ai:gpu-basics', 52: 'ai:self-host-mac', 54: 'ai:design-serving', 56: 'ai:guardrails', 66: 'ai:design-semantic-search',
+    67: 'ai:design-agent-memory', 68: 'ai:design-multi-tenant', 69: 'ai:dspy-model-card',
+    72: 'ai:teach-back-1', 73: 'ai:teach-back-2', 74: 'ai:teach-back-3', 75: 'ai:teach-back-4',
+    76: 'sdm:ai-chatgpt', 77: 'sdm:ai-eval-framework', 78: 'sdm:ai-rag',
+    // Task 6 depends on these.
+    19: 'aib:stream-tokens-react', 21: 'aib:tool-call-loop', 24: 'ai:prompt-caching-cost', 25: 'aib:embeddings-neighbours', 26: 'aib:pgvector',
+    27: 'aib:retrieval-chunking-hybrid', 28: 'ai:rag-paper', 32: 'aib:evals-test-cases', 33: 'aib:evals-llm-judge', 34: 'fde:eval-pipelines',
+    39: 'aib:react-build-agent', 40: 'aib:agents-sdk-build', 55: 'aib:llm-gateway', 57: 'ai:owasp-llm', 62: 'aib:multimodal-upload',
+    // First id named in the spec cell.
+    3: 'ai:3b1b-neural-network', 4: 'ai:3b1b-backprop', 5: 'ai:3b1b-transformers', 6: 'ai:3b1b-attention', 7: 'ai:attention-illustrated',
+    8: 'ai:attention-paper-attention', 9: 'ai:attention-annotated-code', 10: 'ai:karpathy-gpt-bigram', 11: 'ai:karpathy-gpt-training',
+    12: 'ai:karpathy-llm-pretraining', 13: 'ai:gpt3-approach', 14: 'ai:scaling-laws', 15: 'ai:karpathy-llm-post-training', 16: 'ai:instructgpt-results',
+    18: 'aib:llm-api-fundamentals', 20: 'aib:prompting-rewrite', 22: 'aib:mcp-server', 23: 'fde:model-providers', 31: 'ai:evals-hamel',
+    35: 'ai:depth-applied-llms-tactical', 37: 'sd:ai-rag-search', 38: 'ai:building-effective-agents', 41: 'fde:agents-memory', 42: 'fde:debugging-agents',
+    43: 'ai:prompt-rag-finetune', 44: 'ai:lora', 50: 'fde:inference-optimization', 53: 'aib:transformers-js', 58: 'fde:mlops',
+    59: 'fde:governance-privacy', 60: 'ai:design-ai-rollout', 61: 'ai:cot-paper', 63: 'sd:ai-chatgpt', 64: 'sd:ai-eval-framework',
+    65: 'sd:ai-coding-agent', 70: 'aib:ai-assisted-feature', 71: 'ai:ai-build-post',
+  };
+  assert.equal(Object.keys(PRIMARY_IDS).length, 78, 'every slot has its primary id listed');
+  for (const [n, id] of Object.entries(PRIMARY_IDS)) assert.equal(T.fe[+n - 1].items[0].id, id, `fe slot ${n} is ${id}`);
+  for (let i = 0; i < 75; i++) {
+    const r = CORE[i], it = T.fe[i].items;
+    assert.ok(!r.kind && r.understand && r.do && r.explain, `slot ${i + 1} is a learning row`);
+    assert.deepEqual(it.map((x: Any) => x.id), [r.id, `${r.id}:do`, `${r.id}:explain`], `slot ${i + 1} has 3 tasks`);
+    assert.match(it[2].text, /Deep enough when you can/, `slot ${i + 1} explain`);
+    assert.ok(it[0].url && /^https:\/\//.test(it[0].url), `slot ${i + 1} Understand has a link`);
+    if (r.url2) assert.match(r.url2, /^https:\/\//);
+  }
+  for (let i = 75; i < 78; i++) {
+    const r = CORE[i];
+    assert.equal(r.kind, 'mock', `slot ${i + 1} mock`);
+    assert.equal(r.mins, 45, `slot ${i + 1} 45 min`);
+    assert.equal(T.fe[i].items.length, 1);
+    assert.equal(T.fe[i].items[0].mins, 45);
+  }
+  // The three AI-engineer coding reps, in TypeScript.
+  for (const [n, word] of [[5, 'BPE'], [18, 'sampling'], [25, 'cosine']] as [number, string][]) {
+    const t = T.fe[n - 1].items.map((x: Any) => x.text).join(' ');
+    assert.ok(t.includes(word) && /TypeScript/.test(t) && /\brep\b/i.test(t), `slot ${n} has the ${word} rep in TypeScript`);
+  }
+  // Coverage: every v2 AI evening item (bar DDIA), every review and the 22 AIB items the spec places here, once each.
+  const counts = new Map<string, number>();
+  for (const r of CORE) for (const id of [r.id, ...(r.covers ?? [])]) counts.set(id, (counts.get(id) ?? 0) + 1);
+  const AIB_HERE = ['aib:llm-api-fundamentals', 'aib:stream-tokens-react', 'aib:structured-output-zod', 'aib:prompting-rewrite', 'aib:tool-call-loop',
+    'aib:mcp-server', 'aib:embeddings-neighbours', 'aib:pgvector', 'aib:retrieval-hnsw-recall', 'aib:retrieval-chunking-hybrid', 'aib:rag-build-notes',
+    'aib:evals-test-cases', 'aib:evals-llm-judge', 'aib:llm-observability', 'aib:react-build-agent', 'aib:agents-sdk-build', 'aib:agents-long-running',
+    'aib:transformers-js', 'aib:llm-gateway', 'aib:prompt-injection-attack', 'aib:multimodal-upload', 'aib:ai-assisted-feature'];
+  assert.equal(AIB_HERE.length, 22);
+  for (const id of AIB_HERE) assert.ok((ai.AIB as Any[]).some((x) => x.id === id), `${id} is a v2 AIB id`);
+  const mustCover = [...(ai.AI_EVENING as Any[]).map((x) => x.id).filter((id) => !id.startsWith('ai:depth-ddia-')), ...(ai.AI_REVIEW as Any[]).map((x) => x.id), ...AIB_HERE];
+  for (const id of mustCover) assert.equal(counts.get(id), 1, `${id} once in AI core (primary or covers)`);
+  for (const [id, k] of counts) assert.equal(k, 1, `${id} named once in AI core`);
+  assert.equal(counts.get('ai:review-rag') && CORE[28].covers.includes('ai:review-rag'), true, 'slot 29 covers ai:review-rag');
+  assert.ok(CORE[55].covers.includes('ai:constitutional-ai'), 'slot 56 covers ai:constitutional-ai');
+  // v2 urls reused: a slot whose primary id is a v2 item keeps that item's url.
+  const v2 = new Map<string, Any>([...(ai.AI_EVENING as Any[]), ...(ai.AIB as Any[]), ...(career.FDE as Any[]), ...(sd.SD as Any[])].map((x) => [x.id, x]));
+  for (const r of CORE) if (v2.get(r.id)?.url) assert.equal(r.url, v2.get(r.id).url, `${r.id} keeps its v2 url`);
+  // Copy rules.
+  for (const r of CORE) {
+    assert.ok(!('after' in r), `${r.id} has no after`);
+    const text = [r.understand, r.do, r.explain, r.text].filter(Boolean).join(' ');
+    assert.ok(!/python|pandas|notebook/i.test(text), `${r.id} no Python/pandas/notebook`);
+    assert.ok(!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(text), `${r.id} no emoji`);
+  }
+  for (const n of [10, 11]) assert.match(CORE[n - 1].understand, /read the code, no retyping/, `Karpathy GPT slot ${n}`);
+}
 
 // ---------- sd ----------
-assert.deepEqual(T.sd.slice(0, 61).map((s: Any) => s.items[0].id), (sd.SD as Any[]).map((x) => x.id));
-for (let i = 61; i < 78; i++) assert.ok(has('sd', i, /^sdm:/), `sd[${i}] mock`);
+// Interim (until Task 4): the 4 AI designs and 2 AI mocks moved to AI core, so the v2 sd track skips them.
+const SD_LEFT = (sd.SD as Any[]).filter((x) => !CORE_PLACED.has(x.id));
+assert.equal(SD_LEFT.length, 57);
+assert.deepEqual(T.sd.slice(0, SD_LEFT.length).map((s: Any) => s.items[0].id), SD_LEFT.map((x) => x.id));
+for (let i = SD_LEFT.length; i < 78; i++) assert.ok(has('sd', i, /^sdm:/), `sd[${i}] mock`);
+assert.ok(!T.sd.some((s: Any) => s.items.some((x: Any) => CORE_PLACED.has(x.id.replace(/:\d+$/, '')))), 'sd track skips what AI core places');
 
-// ---------- ai ----------
-// AI_EVENING items at their old `day`; depth reads (no day) in the first free slot after their `after`; AI_REVIEW
-// rotation (in order, repeats are fillers) in every other slot.
-const evening: Any[] = ai.AI_EVENING as Any[];
-for (const x of evening.filter((x) => typeof x.day === 'number')) assert.equal(slotOf('ai', x.id), x.day, `${x.id} on day ${x.day}`);
-for (const x of evening.filter((x) => typeof x.day !== 'number')) {
-  const from = slotOf('ai', x.after), i = slotOf('ai', x.id);
-  assert.ok(from >= 0 && i > from, `${x.id} after ${x.after}`);
-  for (let j = from + 1; j < i; j++) assert.ok(!T.ai[j].items.some((y: Any) => y.id.startsWith('ai:review-')), `${x.id} takes the first free slot after ${x.after}`);
-}
-const TAUGHT: Record<string, string> = {
-  'ai:review-transformers': 'ai:attention-annotated-code', 'ai:review-rlhf': 'ai:instructgpt-results', 'ai:review-rag': 'ai:contextual-retrieval',
-  'ai:review-agents': 'ai:building-effective-agents', 'ai:review-evals': 'ai:evals-hamel', 'ai:review-scaling-laws': 'ai:scaling-write-up',
-  'ai:review-finetune-vs-rag': 'ai:prompt-rag-finetune', 'ai:review-prompt-injection': 'ai:owasp-llm',
-};
-assert.deepEqual(Object.keys(TAUGHT).sort(), (ai.AI_REVIEW as Any[]).map((x) => x.id).sort());
-const gaps = T.ai.map((s: Any, i: number) => i).filter((i: number) => !evening.some((x) => slotOf('ai', x.id) === i));
-assert.equal(gaps.length, 78 - evening.length);
-let prevReview = '';
-for (const i of gaps) {
-  assert.equal(T.ai[i].items.length, 1);
-  const x = T.ai[i].items[0];
-  if (x.id.startsWith('ai:revisit-notes-')) { assert.equal(x.filler, true); assert.match(x.text, /^Revisit: re-read your notes from /); prevReview = ''; continue; }
-  const m = /^(ai:review-[a-z-]+)(?::(\d+))?$/.exec(x.id);
-  assert.ok(m && TAUGHT[m[1]], `ai[${i}] review ${x.id}`);
-  assert.ok(i > slotOf('ai', TAUGHT[m![1]]), `${x.id} at ${i} after its topic ${TAUGHT[m![1]]}`);
-  assert.equal(!!x.filler, !!m![2], `${x.id} filler iff repeat`);
-  assert.notEqual(m![1], prevReview, `ai[${i}] same review twice running`);
-  prevReview = m![1];
+// ---------- ai (v2 evening track, interim until Task 8) ----------
+// AI core places or absorbs every AI_EVENING item but the 4 DDIA reads and every AI_REVIEW, so the v2 evening track skips
+// them: the DDIA chain from the first slot, then notes-revisit fillers.
+{
+  const left = (ai.AI_EVENING as Any[]).filter((x) => !CORE_PLACED.has(x.id) && !CORE_COVERS.has(x.id)).map((x) => x.id);
+  assert.deepEqual(left, ['ai:depth-ddia-data-models', 'ai:depth-ddia-storage-indexes', 'ai:depth-ddia-replication', 'ai:depth-ddia-transactions']);
+  assert.deepEqual(T.ai.slice(0, 4).map((s: Any) => s.items[0].id), left, 'DDIA reads in order from slot 1');
+  for (let i = 4; i < 78; i++) {
+    assert.equal(T.ai[i].items.length, 1);
+    const x = T.ai[i].items[0];
+    assert.ok(x.filler && x.id.startsWith('ai:revisit-notes-'), `ai[${i}] notes revisit`);
+    assert.match(x.text, /^Revisit: re-read your notes from /);
+  }
+  for (const id of [...CORE_PLACED, ...CORE_COVERS]) assert.equal(slotOf('ai', id), -1, `${id} not in the v2 evening track`);
 }
 
 // ---------- mc ----------

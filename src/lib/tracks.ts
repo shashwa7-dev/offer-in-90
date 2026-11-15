@@ -165,23 +165,14 @@ function dsaTrack(c: TrackContent): Slot[] {
   return toSlots('dsa', slots);
 }
 
-// ---------- fe (§9): FE topics, the depth reads after their `after`, then revision pairs ----------
-function feTrack(c: TrackContent): Slot[] {
-  const fe = (x: Row) => item(x, 'fe', { ...(x.practice ? { practice: x.practice } : {}), ...(x.summary ? { summary: x.summary } : {}) });
-  const slots: SlotItem[][] = [];
-  for (const x of c.FE as Row[]) {
-    slots.push([fe(x)]);
-    for (const d of (c.FE_DEPTH_READS as Row[]).filter((d) => d.after === x.id)) slots.push([fe(d)]);
-  }
-  const FE: Row[] = c.FE;
-  for (let k = 0; slots.length < SLOTS; k++) {
-    const a = FE[(k * 2) % FE.length], b = FE[(k * 2 + 1) % FE.length], s = (x: Row) => x.id.replace(/^fe:/, '');
-    slots.push([
-      filler(`fe:revise-${s(a)}-${s(b)}`, `Revise and explain out loud (3 min each): ${a.text}; ${b.text}`, 'fe', a.url),
-      filler(`fe:bfe-${k + 1}`, 'Solve 2 JS / React questions + a 10-question output quiz', 'fe', 'https://bigfrontend.dev/problem'),
-    ]);
-  }
-  return toSlots('fe', slots);
+// ---------- fe (v3 §2): the AI engineering core, one content row per slot ----------
+function aiCoreTrack(c: TrackContent): Slot[] {
+  return toSlots('fe', (c.AI_CORE as Row[]).flatMap((r) => expandRow(r, 'ai')));
+}
+/** Interim (until Tasks 4, 7 and 8 replace the v2 sd, beh and ai tracks): ids the AI core lays out or absorbs
+ * (`covers`) are skipped by those v2 tracks, so nothing is laid out twice. */
+function aiCoreIds(c: TrackContent): Set<string> {
+  return new Set<string>(((c.AI_CORE ?? []) as Row[]).flatMap((r) => [r.id, ...(r.covers ?? [])]));
 }
 
 // ---------- mc (§5): builds Mon/Wed/Fri, flagship Tue/Thu from week 2, LLD Sat, take-homes, timed second passes ----------
@@ -234,8 +225,9 @@ function mcTrack(c: TrackContent): Slot[] {
 
 // ---------- sd (§6): SD in order, then the SD_MOCKS rotation ----------
 function sdTrack(c: TrackContent): Slot[] {
-  const slots: SlotItem[][] = (c.SD as Row[]).map((x) => [item(x, 'sd')]);
-  const M: Row[] = c.SD_MOCKS;
+  const core = aiCoreIds(c);
+  const slots: SlotItem[][] = (c.SD as Row[]).filter((x) => !core.has(x.id)).map((x) => [item(x, 'sd')]);
+  const M: Row[] = (c.SD_MOCKS as Row[]).filter((x) => !core.has(x.id));
   for (let k = 0; slots.length < SLOTS; k++) {
     const m = M[k % M.length], round = Math.floor(k / M.length);
     const text = `Mock, 45 min, timed, out loud: ${m.text}. Then self-review against the HLD framework: what did you skip?`;
@@ -320,7 +312,7 @@ function behTrack(c: TrackContent): Slot[] {
     'beh:negotiation-1': at(12, 1), 'beh:negotiation-2': at(12, 2),
   };
   // FDE items that moved to the judgment thread (DECOMP `from`) or duplicate a jt rep are skipped here.
-  const skip = new Set<string>([...(c.DECOMP as Row[]).filter((x) => x.from).map((x) => x.from), 'fde:practical-coding-log', 'fde:reengineering-round']);
+  const skip = new Set<string>([...(c.DECOMP as Row[]).filter((x) => x.from).map((x) => x.from), 'fde:practical-coding-log', 'fde:reengineering-round', ...aiCoreIds(c)]);
   const fde: Row[] = (c.FDE as Row[]).filter((x) => !skip.has(x.id));
   const teardowns = queue(c.TEARDOWNS as Row[]);
   const TEARDOWN_EVERY = Math.floor(fde.length / (teardowns.left || 1)) || 1;
@@ -357,24 +349,30 @@ const REVIEW_TAUGHT_BY: Record<string, string> = {
 };
 
 // ---------- ai (§7): the evening hour at its old days, depth reads after their targets, review in the gaps ----------
+// Interim until Task 8: items the AI core lays out or absorbs are skipped. A depth read whose `after` is not in this
+// track takes the first free slot and drops that `after`.
 function aiTrack(c: TrackContent): Slot[] {
+  const core = aiCoreIds(c);
   const slots: (SlotItem[] | undefined)[] = Array.from({ length: SLOTS }, () => undefined);
-  const E: Row[] = c.AI_EVENING;
+  const E: Row[] = (c.AI_EVENING as Row[]).filter((x) => !core.has(x.id));
   for (const x of E.filter((x) => typeof x.day === 'number')) {
     if (slots[x.day]) throw new Error(`track ai: two items on day ${x.day}`);
     slots[x.day] = [item(x, 'ai')];
   }
   // Depth reads (no day) take the first free slot after the item they follow (`after`), in list order so chains hold.
   for (const x of E.filter((x) => typeof x.day !== 'number')) {
-    const from = slots.findIndex((s) => s?.some((y) => y.id === x.after));
+    const inTrack = E.some((y) => y.id === x.after), from = inTrack ? slots.findIndex((s) => s?.some((y) => y.id === x.after)) : -1;
+    if (inTrack && from < 0) mustFit('ai', 1);
     const free = slots.findIndex((s, i) => i > from && !s);
-    if (from < 0 || free < 0) mustFit('ai', 1);
-    slots[free] = [item(x, 'ai')];
+    if (free < 0) mustFit('ai', 1);
+    const it = item(x, 'ai');
+    if (!inTrack) delete it.after; // its target moved to the AI core; holding this read back would stall the ai track
+    slots[free] = [it];
   }
   // The gaps (old v2 build days) and the tail: explain-it-back reviews, each only after the evening slot
   // that teaches its topic. Least-used covered review first (never the same one twice running); with none, a notes revisit.
   const at_ = (id: string) => slots.findIndex((s) => s?.some((y) => y.id === id));
-  const reviews = (c.AI_REVIEW as Row[]).map((r) => {
+  const reviews = (c.AI_REVIEW as Row[]).filter((r) => !core.has(r.id)).map((r) => {
     const taught = REVIEW_TAUGHT_BY[r.id];
     if (!taught || at_(taught) < 0) throw new Error(`track ai: no teaching item for ${r.id}`);
     return { r, after: at_(taught), uses: 0 };
@@ -385,8 +383,8 @@ function aiTrack(c: TrackContent): Slot[] {
     const pick = reviews.filter((x) => x.after < i && x.r !== last).sort((a, b) => a.uses - b.uses)[0];
     if (!pick) {
       last = null;
-      const prevId = [...slots.slice(0, i)].reverse().find(Boolean)![0].id, prev = E.find((x) => x.id === prevId);
-      return [filler(`ai:revisit-notes-${++revisits}`, `Revisit: re-read your notes from ${prev.unit ?? prev.text}`, 'ai')];
+      const prevId = [...slots.slice(0, i)].reverse().find(Boolean)?.[0].id, prev = E.find((x) => x.id === prevId);
+      return [filler(`ai:revisit-notes-${++revisits}`, `Revisit: re-read your notes from ${prev ? (prev.unit ?? prev.text) : 'the AI core track'}`, 'ai')];
     }
     last = pick.r;
     const n = ++pick.uses;
@@ -399,7 +397,7 @@ function aiTrack(c: TrackContent): Slot[] {
 export function buildTracks(content: TrackContent): Record<TrackId, Slot[]> {
   if (WEEKS * 6 !== SLOTS) throw new Error('Grind has 13 weeks of 6 study days');
   return {
-    dsa: dsaTrack(content), fe: feTrack(content), mc: mcTrack(content),
+    dsa: dsaTrack(content), fe: aiCoreTrack(content), mc: mcTrack(content),
     sd: sdTrack(content), jt: jtTrack(content), beh: behTrack(content), ai: aiTrack(content),
   };
 }

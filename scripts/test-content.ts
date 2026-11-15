@@ -5,6 +5,7 @@ import { PATTERNS as DSA_PATTERNS } from '../src/lib/content/dsa.js';
 import { UX } from '../src/lib/content/ux.js';
 import { BEH, FDE, COMPANY_MAP, TEARDOWNS } from '../src/lib/content/career.js';
 import { AIB_MOVED, AIB, AI_EVENING, AI_REVIEW, AI_NEWS } from '../src/lib/content/ai.js';
+import { AI_CORE } from '../src/lib/content/ai-core.js';
 import { MC, MC_TIMED, MC_SCREENSHOT, TAKE_HOMES, PROJECT, PROJECT_DEPTH_READS, LLD } from '../src/lib/content/mc.js';
 import { SD, SD_MOCKS } from '../src/lib/content/sd.js';
 import { PLAN } from '../src/lib/plan-data.js';
@@ -443,6 +444,27 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
   assert.equal(PLAN.FOCUS_RULES, FOCUS_RULES);
   assert.equal(PLAN.FE, FE);
   assert.equal(PLAN.SUNDAY_READS, SUNDAY_READS);
+  assert.equal(PLAN.AI_CORE, AI_CORE);
+}
+
+// ---- v3 AI engineering core (Task 3): row shape and copy rules; tracks.ts tests the layout ----
+{
+  assert.equal(AI_CORE.length, 78);
+  const seenIds = new Set<string>();
+  for (const r of AI_CORE as any[]) {
+    assert.match(r.id, /^[a-z]+:[a-z0-9]+(-[a-z0-9]+)*$/, `bad id ${r.id}`);
+    assert.ok(!seenIds.has(r.id), `duplicate AI_CORE id ${r.id}`);
+    seenIds.add(r.id);
+    assert.match(r.url, /^https:\/\//, `${r.id} url`);
+    if (r.url2) { assert.match(r.url2, /^https:\/\//, `${r.id} url2`); assert.notEqual(r.url2, r.url, `${r.id} url2 differs`); }
+    for (const c of r.covers ?? []) assert.match(c, /^[a-z]+:[a-z0-9]+(-[a-z0-9]+)*$/, `${r.id} covers ${c}`);
+    const texts = r.kind ? [r.text] : [r.understand, r.do, r.explain];
+    for (const t of texts) {
+      assert.ok(typeof t === 'string' && t.trim(), `${r.id} text`);
+      assert.ok(!/python|pandas|notebook/i.test(t), `${r.id}: no Python, pandas or notebooks`);
+    }
+    if (!r.kind) assert.match(r.explain, /Deep enough when you can/, `${r.id} explain`);
+  }
 }
 
 console.log('test-content: ok');

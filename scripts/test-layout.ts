@@ -5,6 +5,7 @@ import * as fe from '../src/lib/content/fe.js';
 import * as ux from '../src/lib/content/ux.js';
 import * as career from '../src/lib/content/career.js';
 import * as ai from '../src/lib/content/ai.js';
+import * as aiCore from '../src/lib/content/ai-core.js';
 import * as mc from '../src/lib/content/mc.js';
 import * as sd from '../src/lib/content/sd.js';
 import * as judgment from '../src/lib/content/judgment.js';
@@ -15,7 +16,7 @@ import { steadyRuns, layoutDays, cursorsAt, WEEKS } from '../src/lib/layout.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
-const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...mc, ...sd, ...judgment, ...reference };
+const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...aiCore, ...mc, ...sd, ...judgment, ...reference };
 const tracks: Any = buildTracks(content);
 const TRACKS = ['dsa', 'fe', 'mc', 'sd', 'jt', 'beh', 'ai'];
 const ZERO: Any = Object.fromEntries(TRACKS.map((t) => [t, 0]));
@@ -173,15 +174,15 @@ checkAfter(steady, 'steady');
 
 // ---------- changing start (Review Focus 1) ----------
 {
-  const done = { 'fe:closures': 1, 'p-two-sum': 1 };
+  const done = { 'ai:math-intuition': 1, 'p-two-sum': 1 };
   const a = plan(START, {}, done);
   const b = plan('2026-11-23', {}, done);
   assert.equal(b[0].date, '2026-11-22');
   assert.deepEqual(new Set(itemIds(a)), new Set(itemIds(b)), 'same content IDs');
   // the ticks are keyed by content ID, so both calendars carry exactly the ticked items, once each
   const ticked = (days: Any[]) => itemIds(days).filter((id) => id in done).sort();
-  assert.deepEqual(ticked(a), ['fe:closures', 'p-two-sum']);
-  assert.deepEqual(ticked(b), ['fe:closures', 'p-two-sum']);
+  assert.deepEqual(ticked(a), ['ai:math-intuition', 'p-two-sum']);
+  assert.deepEqual(ticked(b), ['ai:math-intuition', 'p-two-sum']);
 }
 
 // ---------- mode switches (Review Focus 2) ----------
@@ -314,7 +315,7 @@ const fxPlan = (modes: Any = {}, done: Any = {}) => layoutDays({ start: START, k
     const days = plan(start, modes, done);
     checkOnce(days, `start ${start} after a switch`);
     assert.equal(days.find((d) => d.date === date)!.mode, 'grind', `start ${start}: still grind from ${date}`);
-    assert.ok(itemIds(days).includes('fe:closures'));
+    assert.ok(itemIds(days).includes('ai:math-intuition'));
   }
 }
 
