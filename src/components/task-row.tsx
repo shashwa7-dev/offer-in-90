@@ -9,6 +9,7 @@ import { Chip } from './shell/page';
 import { StatusControl, statusKey, useTaskStatus } from './status-control';
 import { newsTabFor, useUI } from './ui-state';
 import { TaskInput, deleteOwn, parseTask } from './own-task';
+import { LabelChip, taskLabelViews } from './label-picker';
 
 export const noteKey = (t: Task) => (t.slug ? `p-${t.slug}` : t.id);
 const DIFF = { E: 'Easy', M: 'Medium', H: 'Hard' } as const;
@@ -37,6 +38,7 @@ export function TaskRow({ t, dayIdx, extra, status, chip, noStatusChip }: { t: T
   const save = (raw: string) => { const { text, url } = parseTask(raw); update(s => { const c = s.custom[t.own!]; if (!c) return s; const n = { ...c, text }; if (url) n.url = url; else delete n.url; return { ...s, custom: { ...s.custom, [t.own!]: n } }; }); setEditing(false); };
   const remove = () => deleteOwn(update, state, t.own!);
   const flag = () => update(s => { const f = { ...s.flags }; if (f[t.slug!]) delete f[t.slug!]; else f[t.slug!] = 1; return { ...s, flags: f }; });
+  const lbls = taskLabelViews(t, state, st);
   const title = t.text.replace(/^Re-solve without looking: /, '');
 
   return (
@@ -58,7 +60,8 @@ export function TaskRow({ t, dayIdx, extra, status, chip, noStatusChip }: { t: T
             </button>
             {st === 'progress' && !noStatusChip && <Chip className="ml-2 align-[1px] border-input text-foreground">In progress</Chip>}
             {skipped && !noStatusChip && <Chip className="ml-2 align-[1px]">Skipped</Chip>}
-            {t.own && <Chip className="ml-2 align-[1px]">Yours</Chip>}
+            {lbls.slice(0, 2).map(v => <LabelChip key={v.id} v={v} className="ml-2 align-[1px]" />)}
+            {lbls.length > 2 && <Chip className="ml-2 align-[1px]" data-label-more title={lbls.slice(2).map(v => v.name).join(', ')}>+{lbls.length - 2}</Chip>}
             {t.superseded && <Chip className="ml-2 align-[1px]" data-moved>{t.movedTo ? `moved to ${fmtDate(parseISO(t.movedTo))}` : 'moved'}</Chip>}
             {chip && <Chip className="ml-2 max-w-[calc(100%-0.5rem)] align-[1px]" data-block-chip title={chip}><span className="truncate">{chip}</span></Chip>}
             {t.cat === 'update' && <Chip className="ml-2 align-[1px] border-input text-foreground">New</Chip>}

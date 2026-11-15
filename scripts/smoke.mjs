@@ -1479,6 +1479,70 @@ try {
     checkErrors(errors, W);
     await ctx.close();
   }
+
+  // Labels (Task 10): make a group and a label in Setup, put it on a task from the peek, filter Today by it, delete it.
+  {
+    const { ctx, page, errors } = await open(1100, 900);
+    const W = 'labels';
+    const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem('offer90.v1')));
+    await page.locator('[data-slot="sidebar"] [data-nav="setup"]').first().click();
+    await page.waitForTimeout(300);
+    const band = page.locator('#labels');
+    await band.getByRole('button', { name: /Labels/ }).first().click().catch(() => {});
+    await page.waitForTimeout(200);
+    await page.locator('[data-new-group]').fill('Smoke group');
+    await page.getByRole('button', { name: 'Add group' }).click();
+    await page.waitForTimeout(200);
+    await page.locator('[data-new-label]').fill('Smoke weak');
+    await page.locator('select[aria-label="Group"]').selectOption({ label: 'Smoke group' });
+    await page.getByRole('button', { name: 'Add label' }).click();
+    await page.waitForTimeout(300);
+    let st = await saved();
+    const lb = Object.values(st.labels || {}).find(l => l.name === 'Smoke weak');
+    if (lb && lb.group && Object.values(st.labels).find(l => l.kind === 'group' && l.single)) ok(`${W}: group and label created in Setup`); else fail(`${W}: label not created (${JSON.stringify(st.labels)})`);
+    await page.locator('[data-new-label]').fill('smoke WEAK');
+    await page.getByRole('button', { name: 'Add label' }).click();
+    if (await page.locator('[data-label-error]').count()) ok(`${W}: duplicate name rejected`); else fail(`${W}: duplicate name accepted`);
+
+    await page.locator('[data-slot="sidebar"] [data-nav="today"]').first().click();
+    await page.waitForTimeout(400);
+    for (const b of await page.locator('[data-block]').all()) { await b.click().catch(() => {}); }
+    await page.waitForTimeout(300);
+    const first = page.locator('[data-task]:not([data-own]) [data-title]:visible').first();
+    const tid = await first.locator('xpath=ancestor::*[@data-task][1]').getAttribute('data-task');
+    await first.click();
+    await page.waitForTimeout(500);
+    const peek = page.locator('[data-peek]');
+    await peek.locator('[data-label-picker]').click();
+    await page.locator('[data-label-option="Smoke weak"]').click();
+    await page.waitForTimeout(300);
+    st = await saved();
+    if (lb && st.itemLabels?.[tid]?.includes(lb.id)) ok(`${W}: label applied from the peek`); else fail(`${W}: label not applied to ${tid} (${JSON.stringify(st.itemLabels)})`);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(200);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+    const row = page.locator(`[data-task="${tid}"]`);
+    if (await row.locator('[data-label-chip]', { hasText: 'Smoke weak' }).count()) ok(`${W}: row shows the label chip`); else fail(`${W}: row has no chip`);
+    await page.locator('[data-filter-add]').first().click();
+    await page.getByRole('option', { name: /^Label/ }).click();
+    await page.getByRole('option', { name: /Smoke weak/ }).click();
+    await page.keyboard.press('Escape'); await page.waitForTimeout(400);
+    const visible = await page.locator('[data-task]:visible').evaluateAll(els => els.map(e => e.getAttribute('data-task')));
+    if (visible.length === 1 && visible[0] === tid) ok(`${W}: Today filter keeps only the labelled task`); else fail(`${W}: filter shows ${visible.join(',')}`);
+    await page.screenshot({ path: join(shots, 'labels-1100.png') });
+
+    await page.locator('[data-slot="sidebar"] [data-nav="setup"]').first().click();
+    await page.waitForTimeout(300);
+    await page.getByRole('button', { name: 'Delete Smoke weak' }).click();
+    await page.locator('[data-confirm-delete]').click();
+    await page.waitForTimeout(300);
+    st = await saved();
+    if (!Object.values(st.labels).some(l => l.name === 'Smoke weak') && !Object.values(st.itemLabels || {}).some(a => a.includes(lb?.id))) ok(`${W}: delete removes the label from every item`); else fail(`${W}: delete left the label behind`);
+    await page.locator('[data-slot="sidebar"] [data-nav="today"]').first().click();
+    await page.waitForTimeout(400);
+    if (await page.locator('[data-label-chip]', { hasText: 'Smoke weak' }).count() === 0 && await page.locator('[data-filter-chip="labels"]').count() === 0) ok(`${W}: chip and filter are gone after delete`); else fail(`${W}: chip or filter still shown after delete`);
+    checkErrors(errors, W);
+    await ctx.close();
+  }
 } catch (e) {
   fail(`crashed: ${e.stack || e}`);
 } finally {

@@ -20,6 +20,7 @@ import { nextMonday, overflowMessage, parseRoutineForm, toDraft, type RoutineDra
 import type { RoutineKey } from '@/lib/state-types';
 import { companyCounts, flattenThreads } from '@/lib/interview-feed';
 import { useUI } from './ui-state';
+import { LabelsManager } from './labels-manager';
 import { Band, Chip, PageFrame, PageHeader, Surface } from './shell/page';
 
 function download(name: string, text: string, type: string) {
@@ -211,6 +212,10 @@ export function SetupView() {
               </PopoverContent>
             </Popover>
           </Setting>
+        </Band>
+
+        <Band id="labels" title="Labels" count={Object.values(state.labels).filter(l => l.kind === 'label').length || undefined}>
+          <LabelsManager />
         </Band>
 
         <Band id="sync" title="Sync and backup">

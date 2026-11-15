@@ -1,12 +1,13 @@
 'use client';
 /* Plane-style side peek for one task: status, title, properties, note. Only the user's own tasks can be edited or deleted. */
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, CalendarDays, Clock, Flag, Gauge, Link2, Maximize2, Minimize2, MoreHorizontal, Newspaper, Trash2, User, X } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Clock, Flag, Gauge, Link2, Maximize2, Minimize2, MoreHorizontal, Newspaper, Tag, Trash2, User, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import { defaultBlock } from '@/lib/own-tasks';
 import { domainOf } from '@/lib/interview-feed';
 import { fmtDate, iso, type Day, type Task } from '@/lib/engine';
+import { applyLabel, removeLabel } from '@/lib/labels';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Chip } from './shell/page';
@@ -16,6 +17,7 @@ import { StatusControl, statusKey, useTaskStatus } from './status-control';
 import { deleteOwn } from './own-task';
 import { BlockPick, DayPick, dayLabel } from './task-pickers';
 import { newsTabFor, useUI } from './ui-state';
+import { LabelChip, LabelPicker, taskLabelViews } from './label-picker';
 
 export type PeekTarget = { taskId: string; dayIdx: number };
 const DIFF = { E: 'Easy', M: 'Medium', H: 'Hard' } as const;
@@ -79,6 +81,8 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
   useEffect(() => { setName(t.text); }, [t.text]);
   useEffect(() => { setLink(t.url || ''); }, [t.url]);
 
+  const lbls = taskLabelViews(t, state, st);
+  const toggleLabel = (id: string, on: boolean) => update(s => { const r = (on ? applyLabel : removeLabel)({ labels: s.labels, itemLabels: s.itemLabels }, t.id, id); return r.itemLabels === s.itemLabels ? s : { ...s, itemLabels: r.itemLabels }; });
   const flag = () => update(s => { const f = { ...s.flags }; if (f[t.slug!]) delete f[t.slug!]; else f[t.slug!] = 1; return { ...s, flags: f }; });
   const edit = (fn: (c: NonNullable<typeof own>) => NonNullable<typeof own>) => update(s => { const c = s.custom[t.own!]; return c ? { ...s, custom: { ...s.custom, [t.own!]: fn(c) } } : s; });
   const saveName = () => { const v = name.replace(/\s+/g, ' ').trim(); if (!v) { setName(t.text); return; } if (v !== t.text) edit(c => ({ ...c, text: v })); };
@@ -168,6 +172,12 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
                 className={cn('inline-flex h-7 items-center gap-1.5 rounded-[5px] px-2 text-[13px] outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring/40', flagged ? 'text-foreground' : 'text-muted-foreground')}>
                 <Flag className={cn('size-3.5', flagged && 'fill-current')} />{flagged ? 'Flagged to re-solve' : 'Not flagged'}
               </button>
+            ))}
+            {prop(<Tag />, 'Labels', (
+              <div className="flex min-w-0 flex-wrap items-center gap-1" data-peek-labels>
+                {lbls.map(v => <LabelChip key={v.id} v={v} />)}
+                <LabelPicker selected={state.itemLabels[t.id] || []} onToggle={toggleLabel} />
+              </div>
             ))}
             {own && prop(<User />, 'Added', readonly(`Added by You · ${new Date(own.at).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`))}
           </div>

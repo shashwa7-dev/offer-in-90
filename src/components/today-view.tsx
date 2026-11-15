@@ -60,9 +60,10 @@ export function TodayView() {
   // Filter bar: counts follow every filter except status; blocks offered are this day's blocks with tasks.
   const { filter, groupBy } = fv;
   const active = isActive(filter);
-  const hit = (t: Task, bk: string) => matches(t, bk, filter, state.done, state.status);
+  const fl = (t: Task) => (t.slug && state.flags[t.slug] ? { ...t, flagged: true } : t);
+  const hit = (t: Task, bk: string) => matches(fl(t), bk, filter, state.done, state.status, state.itemLabels);
   const dayTasks = d.blocks.flatMap(b => b.tasks.map(t => ({ t, b })));
-  const counts = statusCounts(dayTasks.filter(x => matches(x.t, x.b.k, { ...filter, status: 'all' }, state.done, state.status)).map(x => x.t), state.done, state.status);
+  const counts = statusCounts(dayTasks.filter(x => matches(fl(x.t), x.b.k, { ...filter, status: 'all' }, state.done, state.status, state.itemLabels)).map(x => x.t), state.done, state.status);
   const blockOpts = d.blocks.filter(b => b.tasks.length).map(b => ({ k: b.k, title: `${b.s} ${b.title}` }));
   // A saved block that isn't on this day stays listed (so it can be unticked), labelled from any day that has it.
   for (const k of filter.blocks) if (!blockOpts.some(o => o.k === k)) {

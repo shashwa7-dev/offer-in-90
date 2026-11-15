@@ -10,7 +10,7 @@ assert.equal(isActive(EMPTY_FILTER), false);
 assert.equal(isActive({ ...EMPTY_FILTER, status: 'done' }), true);
 assert.equal(isActive({ ...EMPTY_FILTER, tracks: ['dsa'] }), true);
 assert.equal(isActive({ ...EMPTY_FILTER, blocks: ['b'] }), true);
-assert.equal(isActive({ ...EMPTY_FILTER, owner: 'own' }), true);
+assert.equal(isActive({ ...EMPTY_FILTER, labels: ['lb-1'] }), true);
 assert.equal(isActive({ ...EMPTY_FILTER, diff: ['E'] }), true);
 
 const t = { id: 'a', cat: 'dsa', own: 'x', diff: 'M' as const };
@@ -34,11 +34,22 @@ assert.equal(matches(t, 'k', { ...EMPTY_FILTER, tracks: ['dsa'], status: 'done' 
 assert.equal(matches(t, 'k', { ...EMPTY_FILTER, blocks: ['k', 'z'] }, {}, {}), true);
 assert.equal(matches(t, 'k', { ...EMPTY_FILTER, blocks: ['z'] }, {}, {}), false);
 
-// owner
-assert.equal(matches(t, 'k', { ...EMPTY_FILTER, owner: 'own' }, {}, {}), true);
-assert.equal(matches(t, 'k', { ...EMPTY_FILTER, owner: 'plan' }, {}, {}), false);
-assert.equal(matches(none, 'k', { ...EMPTY_FILTER, owner: 'plan' }, {}, {}), true);
-assert.equal(matches(none, 'k', { ...EMPTY_FILTER, owner: 'own' }, {}, {}), false);
+// labels (ANY); Source is a system label group
+const IL = { a: ['lb-1'] };
+assert.equal(matches(t, 'k', { ...EMPTY_FILTER, labels: ['lb-1'] }, {}, {}, IL), true);
+assert.equal(matches(none, 'k', { ...EMPTY_FILTER, labels: ['lb-1'] }, {}, {}, IL), false);
+assert.equal(matches(t, 'k', { ...EMPTY_FILTER, labels: ['lb-9', 'lb-1'] }, {}, {}, IL), true, 'ANY');
+assert.equal(matches(t, 'k', { ...EMPTY_FILTER, labels: ['lb-1'] }, {}, {}), false, 'no itemLabels given');
+assert.equal(matches(t, 'k', { ...EMPTY_FILTER, labels: ['sys:source:yours'] }, {}, {}, {}), true);
+assert.equal(matches(none, 'k', { ...EMPTY_FILTER, labels: ['sys:source:yours'] }, {}, {}, {}), false);
+assert.equal(matches(none, 'k', { ...EMPTY_FILTER, labels: ['sys:source:plan'] }, {}, {}, {}), true);
+const pat = { id: 'p', cat: 'dsa', pattern: 'dp', tier: 'must', flags: ['hot'], depth: true, flagged: true };
+for (const id of ['sys:pattern:dp', 'sys:tier:must', 'sys:freq:hot', 'sys:flagged', 'sys:depth']) assert.equal(matches(pat, 'k', { ...EMPTY_FILTER, labels: [id] }, {}, {}, {}), true, id);
+assert.equal(matches(pat, 'k', { ...EMPTY_FILTER, labels: ['sys:pattern:trie'] }, {}, {}, {}), false);
+// an unseen problem does not reveal its pattern through the filter before Start
+const hid = { ...pat, hiddenUntilStart: true };
+assert.equal(matches(hid, 'k', { ...EMPTY_FILTER, labels: ['sys:pattern:dp'] }, {}, {}, {}), false);
+assert.equal(matches(hid, 'k', { ...EMPTY_FILTER, labels: ['sys:pattern:dp'] }, {}, { p: 'progress' }, {}), true);
 
 // diff excludes tasks without diff
 assert.equal(matches(t, 'k', { ...EMPTY_FILTER, diff: ['M', 'H'] }, {}, {}), true);
@@ -55,8 +66,11 @@ const def = { filter: EMPTY_FILTER, groupBy: 'time' };
 assert.deepEqual(parseFilter('garbage'), def);
 assert.deepEqual(parseFilter(null), def);
 assert.deepEqual(parseFilter({ status: 'nope' }), def);
-const p = parseFilter({ filter: { status: 'done', tracks: ['dsa', 'zzz'], blocks: ['b', 3], owner: 'own', diff: ['E', 'X'] }, groupBy: 'track' });
-assert.deepEqual(p, { filter: { status: 'done', tracks: ['dsa'], blocks: ['b'], owner: 'own', diff: ['E'] }, groupBy: 'track' });
+const p = parseFilter({ filter: { status: 'done', tracks: ['dsa', 'zzz'], blocks: ['b', 3], diff: ['E', 'X'], labels: [1, 'x'] }, groupBy: 'track' });
+assert.deepEqual(p, { filter: { status: 'done', tracks: ['dsa'], blocks: ['b'], diff: ['E'], labels: ['x'] }, groupBy: 'track' });
+// an old saved owner filter becomes the Source label
+assert.deepEqual(parseFilter({ filter: { owner: 'own' } }).filter.labels, ['sys:source:yours']);
+assert.deepEqual(parseFilter({ filter: { owner: 'plan', labels: ['x'] } }).filter.labels, ['x', 'sys:source:plan']);
 assert.equal(parseFilter({ filter: {}, groupBy: 'bad' }).groupBy, 'time');
 assert.notEqual(parseFilter('x').filter, EMPTY_FILTER, 'fresh copy, not shared');
 

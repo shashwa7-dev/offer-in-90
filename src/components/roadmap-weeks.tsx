@@ -4,11 +4,13 @@ import { Fragment, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import { patternNameOf, phaseSpans, shortText, type Day } from '@/lib/engine';
+import { EMPTY_FILTER, matches } from '@/lib/task-filter';
 import { cycleOf } from '@/lib/cycle';
 import { dateRange } from '@/lib/cycle-input';
 import { Band, Chip, Ring, Row } from './shell/page';
 import { useCycleDays } from './today-rail';
 import { useUI } from './ui-state';
+import { LabelFilterBar, pruneLabels } from './today-filters';
 
 const PHASE_TEXT: Record<number, string> = {
   1: 'How the internet works, JavaScript, browser, React basics, HLD fundamentals, frontend system design, first 60 DSA problems, machine-coding builds, LLD foundations on Saturdays. AI: neural nets, transformers, the Attention paper, building GPT from scratch. Career: resume, positioning, Amazon OA, LP story bank, a daily product & UX lesson.',
@@ -32,6 +34,10 @@ export function RoadmapWeeks() {
   const today = todayIdx >= 0 && todayIdx < days.length ? days[todayIdx] : undefined;
   const input = useCycleDays(days);
   const spans = phaseSpans(days);
+  // Label filter (compact Today filter): weeks stay listed only when one of their tasks has any chosen label.
+  const [lf, setLf] = useState<string[]>([]);
+  const labelIds = pruneLabels({ filter: { ...EMPTY_FILTER, labels: lf }, groupBy: 'time' }, state.labels).filter.labels;
+  const weekHit = (w: number) => !labelIds.length || days.some(d => d.week === w && d.blocks.some(b => b.tasks.some(t => !t.superseded && matches(t.slug && state.flags[t.slug] ? { ...t, flagged: true } : t, b.k, { ...EMPTY_FILTER, labels: labelIds }, state.done, state.status, state.itemLabels))));
   // Phase bands open by default on today's phase; a focus request (sidebar Cycles) opens its band and expands its week.
   const [openPh, setOpenPh] = useState<Record<number, boolean>>({});
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
@@ -47,6 +53,8 @@ export function RoadmapWeeks() {
 
   return (
     <>
+      <LabelFilterBar labels={labelIds} onChange={setLf} />
+      {labelIds.length > 0 && !days.some(d => weekHit(d.week)) && <p className="px-4 py-3 text-[13px] text-muted-foreground" data-weeks-empty>No week has a task with these labels.</p>}
       {spans.map(ph => {
         const weeks = Array.from({ length: ph.to - ph.from + 1 }, (_, k) => ph.from + k);
         return (
@@ -55,7 +63,7 @@ export function RoadmapWeeks() {
               <p className="px-4 py-2.5 text-[13px] leading-snug text-muted-foreground">{PHASE_TEXT[ph.p]}</p>
               {weeks.map(w => {
                 const ds = days.filter(d => d.week === w);
-                if (!ds.length) return null;
+                if (!ds.length || !weekHit(w)) return null;
                 // Same numbers as the Today rail's cycle card: study tasks, skipped left out, cat-based tracks.
                 const cyc = cycleOf(input, w, state.done, state.status, state.meta, todayIdx, Date.now());
                 const n = cyc?.byStatus.done ?? 0, total = cyc?.total ?? 0, share = cyc?.pct ?? 0;
