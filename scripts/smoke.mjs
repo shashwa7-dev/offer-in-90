@@ -1837,6 +1837,35 @@ try {
       await ctx.close();
     }
   }
+  // ---------- a task with a second link (url2) shows both links, in the row and in the peek ----------
+  {
+    const at = new Date(2026, 10, 2, 10, 0); // Mon 2 Nov = Grind day 1: the Frontend block's first row has url2
+    const fx = { ...fixture, modes: GRIND, start: isoDay(new Date(2026, 10, 2)), done: {}, notes: {}, updatedAt: +at };
+    const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
+    await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
+    const page = await ctx.newPage();
+    await page.clock.install({ time: at });
+    const errors = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+    page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+    await page.goto(URL, { waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+    await page.waitForTimeout(500);
+    const W = 'url2 1100';
+    for (const b of await page.locator('[data-block]').all()) if (!(await b.evaluate(e => e.nextElementSibling?.hasAttribute('data-task')))) await b.click().catch(() => {});
+    await page.waitForTimeout(300);
+    const want = ['https://web.dev/articles/critical-rendering-path', 'https://developer.chrome.com/docs/devtools/performance/reference'];
+    const row = page.locator('[data-task="fe:rendering-path"]');
+    const rowLinks = await row.locator('a[target="_blank"]').evaluateAll(els => els.map(e => e.getAttribute('href')));
+    if (want.every(u => rowLinks.includes(u))) ok(`${W}: row shows both links`); else fail(`${W}: row links ${JSON.stringify(rowLinks)}`);
+    await row.locator('[data-title]').first().click();
+    await page.waitForTimeout(500);
+    const peekLinks = await page.locator('[data-peek] a[target="_blank"]').evaluateAll(els => els.map(e => e.getAttribute('href')));
+    if (want.every(u => peekLinks.includes(u))) ok(`${W}: peek shows both links`); else fail(`${W}: peek links ${JSON.stringify(peekLinks)}`);
+    await page.screenshot({ path: join(shots, 'url2-1100.png') });
+    checkErrors(errors, W);
+    await ctx.close();
+  }
   // ---------- v2: day count per mode, and search finds patterns and owner labels ----------
   for (const [mode, modes, want] of [['Grind', GRIND, /Day 1 of 91\b/], ['Steady', {}, /Day 1 of 119\b/]]) {
     const at = new Date(2026, 10, 2, 10, 0); // Mon 2 Nov = Day 1

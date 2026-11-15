@@ -163,9 +163,13 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
             {!hidden && prop(<Link2 />, 'Link', own ? (
               <input value={link} onChange={e => setLink(e.target.value)} onBlur={saveLink} onKeyDown={enterBlur} placeholder="Paste a link" aria-label="Link" className={fieldInput} />
             ) : t.url ? (
-              <a href={t.url} target="_blank" rel="noopener noreferrer" className="flex min-w-0 items-center gap-1 rounded-[5px] px-2 py-1 text-foreground hover:bg-hover visited:text-muted-foreground">
-                <span className="truncate">{domainOf(t.url)}</span><span aria-hidden="true">↗</span><span className="sr-only">(opens in a new tab)</span>
-              </a>
+              <div className="flex min-w-0 flex-wrap items-center">
+                {[t.url, t.url2].filter((u): u is string => !!u).map(u => (
+                  <a key={u} href={u} target="_blank" rel="noopener noreferrer" className="flex min-w-0 items-center gap-1 rounded-[5px] px-2 py-1 text-foreground hover:bg-hover visited:text-muted-foreground">
+                    <span className="truncate">{domainOf(u)}</span><span aria-hidden="true">↗</span><span className="sr-only">(opens in a new tab)</span>
+                  </a>
+                ))}
+              </div>
             ) : readonly(<span className="text-faint">None</span>))}
             {own?.url && link === own.url && (
               <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-2 text-[13px]"><span />

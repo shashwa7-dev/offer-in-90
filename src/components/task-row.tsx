@@ -96,6 +96,11 @@ export function TaskRow({ t, dayIdx, extra, status, chip, noStatusChip }: { t: T
                 <span className="truncate">{domainOf(t.url)}</span><span aria-hidden="true">↗</span><span className="sr-only">(opens in a new tab)</span>
               </a>
             )}
+            {!hidden && t.url2 && (
+              <a href={t.url2} target="_blank" rel="noopener noreferrer" className={cn(tool, 'max-w-44')}>
+                <span className="truncate">{domainOf(t.url2)}</span><span aria-hidden="true">↗</span><span className="sr-only">(opens in a new tab)</span>
+              </a>
+            )}
             {t.own && <>
               <button type="button" onClick={() => setEditing(true)} title="Edit your task" aria-label={`Edit ${t.text}`} className={cn(tool, 'sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100')}><Pencil className="size-3.5" /></button>
               <button type="button" onClick={remove} title="Remove your task" aria-label={`Remove ${t.text}`} className={cn(tool, 'sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100')}><Trash2 className="size-3.5" /></button>
