@@ -9,6 +9,7 @@ import * as UX from './content/ux.js';
 import * as CAREER from './content/career.js';
 import * as AI from './content/ai.js';
 import * as AI_CORE from './content/ai-core.js';
+import * as FRONTEND from './content/frontend.js';
 import * as MC from './content/mc.js';
 import * as PRODUCT from './content/product.js';
 import * as SD from './content/sd.js';
@@ -18,5 +19,5 @@ import * as JUDGMENT from './content/judgment.js';
 import * as REFERENCE from './content/reference.js';
 import * as SUNDAYS from './content/sundays.js';
 
-export const CONTENT = { ...DSA, ...FE, ...UX, ...CAREER, ...AI, ...AI_CORE, ...MC, ...PRODUCT, ...SD, ...SYSTEMS, ...PLATFORM, ...JUDGMENT, ...REFERENCE, ...SUNDAYS };
+export const CONTENT = { ...DSA, ...FE, ...UX, ...CAREER, ...AI, ...AI_CORE, ...FRONTEND, ...MC, ...PRODUCT, ...SD, ...SYSTEMS, ...PLATFORM, ...JUDGMENT, ...REFERENCE, ...SUNDAYS };
 export const PLAN = CONTENT;

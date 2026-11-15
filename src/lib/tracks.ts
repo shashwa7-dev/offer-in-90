@@ -1,4 +1,4 @@
-/* Track sequences (roadmap v2 §1–§9, §14; v3 drops the aib track; v3 Product replaces the v2 mc track): the curriculum as 7 ordered tracks of 78 slots each, one track per study block.
+/* Track sequences (roadmap v2 §1–§9, §14; v3 drops the aib track; v3 Product replaces the v2 mc track, v3 Frontend the v2 ai track): the curriculum as 7 ordered tracks of 78 slots each, one track per study block.
  * The Grind weekday rules are baked into the order: Grind slot i falls on week floor(i / 6) + 1, weekday GRIND_DOW[i].
  * Steady (Task 6) runs the same sequences on whichever days a track runs.
  * Pure: content comes in as an argument and only type imports are used (extensionless runtime imports don't resolve
@@ -46,7 +46,6 @@ function item(x: Row, cat: Cat, extra: Partial<SlotItem> = {}): SlotItem {
   if (typeof x.after === 'string') it.after = x.after;
   return Object.assign(it, extra);
 }
-const filler = (id: string, text: string, cat: Cat, url?: string): SlotItem => ({ id, text, cat, ...(url ? { url } : {}), filler: true });
 
 /** One v3 content row → its slots (the plan's "Content row format"). A rep / mock row (`kind`) is one task with its
  * `id`. A learning row is Understand (`id`, with `url`, `url2` and `after`), Do (`id:do`, when given) and Explain
@@ -160,15 +159,6 @@ function dsaTrack(c: TrackContent): Slot[] {
 function aiCoreTrack(c: TrackContent): Slot[] {
   return toSlots('fe', (c.AI_CORE as Row[]).flatMap((r) => expandRow(r, 'ai')));
 }
-/** A v3 track's ids: each row's primary id plus the v2 ids it absorbs (`covers`). */
-const rowIds = (rows: Row[] | undefined): Set<string> => new Set<string>((rows ?? []).flatMap((r: Row) => [r.id, ...(r.covers ?? [])]));
-/** Interim (until Task 8 replaces the v2 ai track): ids the AI core lays out or absorbs are skipped by that v2 track,
- * so nothing is laid out twice. */
-const aiCoreIds = (c: TrackContent) => rowIds(c.AI_CORE);
-/** Interim (until Tasks 5 and 8 replace the v2 jt and ai tracks): the same for the ids Systems lays out or absorbs
- * (the how-it-works case studies and the 4 DDIA reads). */
-const systemsIds = (c: TrackContent) => rowIds(c.SYSTEMS);
-
 // ---------- mc (v3 §5): Product, the flagship ----------
 /** Walk the 78 slots: Saturdays are the 13 LLD sessions, Mon–Wed of weeks 7 and 10 the take-home parts (part 1 carries the
  * brief), and every other weekday slot the next flagship step. The v2 builds, timed passes and screenshot builds are gone. */
@@ -257,57 +247,14 @@ function behTrack(c: TrackContent): Slot[] {
   return toSlots('beh', slots);
 }
 
-/** The AI_EVENING item that finishes teaching each AI_REVIEW topic; the review only comes after it. */
-const REVIEW_TAUGHT_BY: Record<string, string> = {
-  'ai:review-transformers': 'ai:attention-annotated-code', 'ai:review-rlhf': 'ai:instructgpt-results',
-  'ai:review-rag': 'ai:contextual-retrieval', 'ai:review-agents': 'ai:building-effective-agents',
-  'ai:review-evals': 'ai:evals-hamel', 'ai:review-scaling-laws': 'ai:scaling-write-up',
-  'ai:review-finetune-vs-rag': 'ai:prompt-rag-finetune', 'ai:review-prompt-injection': 'ai:owasp-llm',
-};
-
-// ---------- ai (§7): the evening hour at its old days, depth reads after their targets, review in the gaps ----------
-// Interim until Task 8: items the AI core or Systems lays out or absorbs are skipped. A depth read whose `after` is not in this
-// track takes the first free slot and drops that `after`.
-function aiTrack(c: TrackContent): Slot[] {
-  const core = new Set<string>([...aiCoreIds(c), ...systemsIds(c)]);
-  const slots: (SlotItem[] | undefined)[] = Array.from({ length: SLOTS }, () => undefined);
-  const E: Row[] = (c.AI_EVENING as Row[]).filter((x) => !core.has(x.id));
-  for (const x of E.filter((x) => typeof x.day === 'number')) {
-    if (slots[x.day]) throw new Error(`track ai: two items on day ${x.day}`);
-    slots[x.day] = [item(x, 'ai')];
-  }
-  // Depth reads (no day) take the first free slot after the item they follow (`after`), in list order so chains hold.
-  for (const x of E.filter((x) => typeof x.day !== 'number')) {
-    const inTrack = E.some((y) => y.id === x.after), from = inTrack ? slots.findIndex((s) => s?.some((y) => y.id === x.after)) : -1;
-    if (inTrack && from < 0) mustFit('ai', 1);
-    const free = slots.findIndex((s, i) => i > from && !s);
-    if (free < 0) mustFit('ai', 1);
-    const it = item(x, 'ai');
-    if (!inTrack) delete it.after; // its target moved to the AI core; holding this read back would stall the ai track
-    slots[free] = [it];
-  }
-  // The gaps (old v2 build days) and the tail: explain-it-back reviews, each only after the evening slot
-  // that teaches its topic. Least-used covered review first (never the same one twice running); with none, a notes revisit.
-  const at_ = (id: string) => slots.findIndex((s) => s?.some((y) => y.id === id));
-  const reviews = (c.AI_REVIEW as Row[]).filter((r) => !core.has(r.id)).map((r) => {
-    const taught = REVIEW_TAUGHT_BY[r.id];
-    if (!taught || at_(taught) < 0) throw new Error(`track ai: no teaching item for ${r.id}`);
-    return { r, after: at_(taught), uses: 0 };
+// ---------- ai (v3 §7): Frontend, senior, one content row per slot (cat fe) ----------
+/** FRONTEND is in slot order (frontend.js): Saturdays are the 13 timed reps, every other slot a weekday row. */
+function frontendTrack(c: TrackContent): Slot[] {
+  const rows: Row[] = c.FRONTEND;
+  rows.forEach((r, i) => {
+    if ((GRIND_DOW[i] === 6) !== (typeof r.id === 'string' && r.id.startsWith('fe:rep-'))) throw new Error(`track ai: slot ${i + 1} (${r.id}) breaks the Saturday rep rule`);
   });
-  let last: Row = null, revisits = 0;
-  const out = slots.map((s, i) => {
-    if (s) return s;
-    const pick = reviews.filter((x) => x.after < i && x.r !== last).sort((a, b) => a.uses - b.uses)[0];
-    if (!pick) {
-      last = null;
-      const prevId = [...slots.slice(0, i)].reverse().find(Boolean)?.[0].id, prev = E.find((x) => x.id === prevId);
-      return [filler(`ai:revisit-notes-${++revisits}`, `Revisit: re-read your notes from ${prev ? (prev.unit ?? prev.text) : 'the AI core track'}`, 'ai')];
-    }
-    last = pick.r;
-    const n = ++pick.uses;
-    return [n > 1 ? filler(`${pick.r.id}:${n}`, pick.r.text, 'ai') : item(pick.r, 'ai')];
-  });
-  return toSlots('ai', out);
+  return toSlots('ai', rows.flatMap((r) => expandRow(r, 'fe')));
 }
 
 /** The 7 track sequences, 78 slots each. `content` is the merged exports of src/lib/content/*.js. */
@@ -315,6 +262,6 @@ export function buildTracks(content: TrackContent): Record<TrackId, Slot[]> {
   if (WEEKS * 6 !== SLOTS) throw new Error('Grind has 13 weeks of 6 study days');
   return {
     dsa: dsaTrack(content), fe: aiCoreTrack(content), mc: productTrack(content),
-    sd: sdTrack(content), jt: platformTrack(content), beh: behTrack(content), ai: aiTrack(content),
+    sd: sdTrack(content), jt: platformTrack(content), beh: behTrack(content), ai: frontendTrack(content),
   };
 }

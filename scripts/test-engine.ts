@@ -7,6 +7,7 @@ import * as ux from '../src/lib/content/ux.js';
 import * as career from '../src/lib/content/career.js';
 import * as ai from '../src/lib/content/ai.js';
 import * as aiCore from '../src/lib/content/ai-core.js';
+import * as frontend from '../src/lib/content/frontend.js';
 import * as systems from '../src/lib/content/systems.js';
 import * as platform from '../src/lib/content/platform.js';
 import * as mc from '../src/lib/content/mc.js';
@@ -25,7 +26,7 @@ import { counts } from '../src/lib/task-status.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
-const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...aiCore, ...mc, ...product, ...sd, ...systems, ...platform, ...judgment, ...reference, ...sundays };
+const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...aiCore, ...frontend, ...mc, ...product, ...sd, ...systems, ...platform, ...judgment, ...reference, ...sundays };
 const tracks: Any = buildTracks(content);
 const lib: Any = { content, tracks, layoutDays, cursorsAt, placeDay, resolveRoutine, WEEKDAY_BLOCKS, BUFFER_BLOCK, SUNDAY_BLOCKS };
 const START = '2026-11-16'; // a Monday

@@ -14,11 +14,12 @@ import * as judgment from '../src/lib/content/judgment.js';
 import * as systems from '../src/lib/content/systems.js';
 import * as platform from '../src/lib/content/platform.js';
 import * as reference from '../src/lib/content/reference.js';
+import * as frontend from '../src/lib/content/frontend.js';
 import { buildTracks, expandRow, GRIND_DOW, SLOTS } from '../src/lib/tracks.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
-const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...aiCore, ...mc, ...product, ...sd, ...systems, ...platform, ...judgment, ...reference };
+const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...aiCore, ...mc, ...product, ...sd, ...systems, ...platform, ...judgment, ...reference, ...frontend };
 // AI core (v3) absorbs v2 ids: each row's primary id is laid out in the AI core track; its `covers` ids are not laid out anywhere.
 const CORE: Any[] = aiCore.AI_CORE as Any[];
 const CORE_PLACED = new Set<string>(CORE.map((r) => r.id));
@@ -32,6 +33,9 @@ const PF_PLACED = new Set<string>(PF.map((r) => r.id));
 const PF_COVERS = new Set<string>(PF.flatMap((r) => r.covers ?? []));
 // Product (v3) flagship rows, laid out in the mc track.
 const FLAG_ROWS: Any[] = ((product as Any).FLAGSHIP ?? []) as Any[];
+// Frontend (v3 §7) likewise, in the ai track (cat fe).
+const FR: Any[] = ((frontend as Any).FRONTEND ?? []) as Any[];
+const FR_COVERS = new Set<string>(FR.flatMap((r) => r.covers ?? []));
 const T: Any = buildTracks(content);
 const TRACKS = ['dsa', 'fe', 'mc', 'sd', 'jt', 'beh', 'ai'];
 const idx = (w: number, d: number) => (w - 1) * 6 + (d - 1);
@@ -73,16 +77,17 @@ const MD_ROWS: Any[] = MD.flatMap((d) => [d.row, ...(d.carry ?? [])]);
 const CR_COVERS = new Set<string>([...CR, ...MD_ROWS].flatMap((r) => r.covers ?? []));
 const expected: string[] = [
   ...(dsa.PROBLEMS as Any[]).filter((p) => p.tier === 'must').map((p) => `p-${p.slug}`),
-  // v2 FE (fe.js) is not laid out until Task 8 moves it into Frontend.
+  // v2 FE (fe.js), the sd:fe-* items, the FE mocks and the kept mc builds are laid out through FRONTEND (primary ids;
+  // `covers` ids are not laid out anywhere).
+  ...FR.map((r) => r.id),
   // v2 UX is not laid out (dropped by owner choice; Task 9 deletes the module). BEH, FDE, DECOMP and TEARDOWNS are laid
   // out through CAREER (primary ids; `covers` ids are not laid out anywhere).
   ...CR.map((r) => r.id), ...MD_ROWS.map((r) => r.id),
-  ...(ai.AI_EVENING as Any[]).filter((x) => !CORE_PLACED.has(x.id) && !CORE_COVERS.has(x.id) && !SYS_COVERS.has(x.id)),
   ...CORE.map((r) => r.id),
   // Product (v3 §5): the flagship rows, the take-home parts and LLD. The v2 builds, timed passes and screenshot builds
-  // are not laid out (Task 8 moves a few into Frontend; Task 9 deletes the rest).
+  // are not laid out (a few live on in Frontend; Task 9 deletes the rest).
   ...FLAG_ROWS.map((r) => r.id), ...(product.TAKE_HOMES as Any[]).flatMap((x) => x.parts), ...(product.LLD as Any[]),
-  // v2 SD / SD_MOCKS / HOW_IT_WORKS are laid out through SYSTEMS (the sd:fe-* items wait for Task 8).
+  // v2 SD / SD_MOCKS / HOW_IT_WORKS are laid out through SYSTEMS (the sd:fe-* items through FRONTEND).
   ...SYS.map((r) => r.id),
   // v2 PRACTICAL, CODE_REVIEWS and the SRE read are laid out through PLATFORM. MEMOS and OSS_FIXES are dropped (spec).
   ...PF.flatMap((r) => (r.parts === 2 ? [`${r.id}#1`, `${r.id}#2`] : [r.id])), ...(judgment.INTERVIEW_ENV as Any[]),
@@ -94,9 +99,10 @@ for (const id of CORE_COVERS) assert.equal(seen.filter((s) => s === id).length, 
 for (const id of SYS_COVERS) assert.equal(seen.filter((s) => s === id).length, 0, `${id} (absorbed by Systems) is not laid out`);
 for (const id of PF_COVERS) assert.equal(seen.filter((s) => s === id).length, 0, `${id} (absorbed by Platform) is not laid out`);
 for (const id of CR_COVERS) assert.equal(seen.filter((s) => s === id).length, 0, `${id} (absorbed by Career) is not laid out`);
+for (const id of FR_COVERS) assert.equal(seen.filter((s) => s === id).length, 0, `${id} (absorbed by Frontend) is not laid out`);
 assert.equal(all.filter((x) => /^adv:[a-z-]+$/.test(x.id)).length, 3, 'ADV_DSA x3');
 const pfParts = PF.filter((r) => r.parts === 2).flatMap((r) => [1, 2].flatMap((k) => [`${r.id}:part-${k}:do#${k}`, `${r.id}:part-${k}:explain#${k}`]));
-const known = new Set([...expected, ...pfParts, ...[...CORE, ...SYS, ...FLAG_ROWS, ...CR, ...PF.filter((r) => r.parts !== 2)].filter((r) => !r.kind).flatMap((r) => [`${r.id}:do`, `${r.id}:explain`]), ...(dsa.FOUNDATIONS as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`]), ...(dsa.ADV_DSA as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`])]);
+const known = new Set([...expected, ...pfParts, ...[...CORE, ...SYS, ...FLAG_ROWS, ...CR, ...FR, ...PF.filter((r) => r.parts !== 2)].filter((r) => !r.kind).flatMap((r) => [`${r.id}:do`, `${r.id}:explain`]), ...(dsa.FOUNDATIONS as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`]), ...(dsa.ADV_DSA as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`])]);
 const extras = all.filter((x) => !x.filler && !known.has(x.part ? `${x.id.replace(/:part-\d$/, '')}#${x.part[0]}` : x.id));
 // Non-content items the builder adds on purpose: pattern cards, explain-backs, foundations, ADV_DSA, Phase 3 sets, FE revision, SD mocks.
 for (const x of extras) assert.match(x.id, /^(dsa:(card|explain-back|oa|google|meta|revisit)-|fe:revise-|fe:bfe-|sdm:)/, `unexpected item ${x.id}`);
@@ -330,7 +336,7 @@ for (const t of TRACKS.filter((t) => t !== 'dsa')) assert.ok(!T[t].some((s: Any)
   assert.ok([SYS[0].url, SYS[0].url2].includes(`${PRIMER}#latency-numbers-every-programmer-should-know`), 'slot 1 has the primer latency table');
   const solved: Record<string, string> = { 'sd:hld-bitly': 'pastebin', 'sd:hld-web-crawler': 'web_crawler', 'sd:hld-distributed-cache': 'query_cache', 'sd:hld-fb-news-feed': 'twitter' };
   for (const [id, sol] of Object.entries(solved)) assert.equal(SYS.find((r) => r.id === id).url2, `${PRIMER}/blob/master/solutions/system_design/${sol}/README.md`, `${id} primer solution`);
-  // No frontend or AI design in this track (sd:fe-* wait for Task 8; sd:ai-* are in the AI core).
+  // No frontend or AI design in this track (sd:fe-* are in Frontend; sd:ai-* are in the AI core).
   assert.ok(!T.sd.some((s: Any) => s.items.some((x: Any) => /^sdm?:(fe|ai)-/.test(x.id))), 'no sd:fe-* or sd:ai-* in Systems');
   // covers, as the brief names them
   const COVERS: Record<string, string[]> = {
@@ -346,20 +352,107 @@ for (const t of TRACKS.filter((t) => t !== 'dsa')) assert.ok(!T[t].some((s: Any)
   assert.equal(SYS.find((r) => r.id === 'jt:hiw-stripe-idempotency').url, (judgment.JT_DEPTH_READS as Any[])[0].url);
 }
 
-// ---------- ai (v2 evening track, interim until Task 8) ----------
-// AI core places or absorbs every AI_EVENING item but the 4 DDIA reads, and Systems absorbs those (ddia-2a/3a/5a/7a), so
-// the v2 evening track is notes-revisit fillers.
+// ---------- ai: Frontend, senior (v3 §7; track key `ai`, cat `fe`) ----------
 {
-  const left = (ai.AI_EVENING as Any[]).filter((x) => !CORE_PLACED.has(x.id) && !CORE_COVERS.has(x.id)).map((x) => x.id);
-  assert.deepEqual(left, ['ai:depth-ddia-data-models', 'ai:depth-ddia-storage-indexes', 'ai:depth-ddia-replication', 'ai:depth-ddia-transactions']);
-  for (const id of left) assert.ok(SYS_COVERS.has(id), `${id} covered by Systems`);
-  for (let i = 0; i < 78; i++) {
+  assert.equal(FR.length, 78, 'FRONTEND has 78 rows');
+  assert.equal(T.ai.length, 78);
+  assert.deepEqual(T.ai.map((s: Any) => s.items[0].id), FR.map((r) => r.id), 'ai track = FRONTEND, one row per slot');
+  for (const x of T.ai.flatMap((s: Any) => s.items)) assert.equal(x.cat, 'fe', `${x.id} cat fe`);
+  const at = (id: string) => FR.findIndex((r) => r.id === id);
+  const week = (i: number) => Math.floor(i / 6) + 1;
+  const isSat = (i: number) => i % 6 === 5;
+  // Saturdays: the 13 timed interview reps, 45–60 min, one task each.
+  const REPS = FR.filter((r) => r.id.startsWith('fe:rep-'));
+  assert.equal(REPS.length, 13, '13 timed reps');
+  FR.forEach((r, i) => {
+    if (!isSat(i)) { assert.ok(!r.id.startsWith('fe:rep-'), `${r.id} (slot ${i + 1}) is a weekday row`); return; }
+    assert.ok(r.id.startsWith('fe:rep-'), `Saturday slot ${i + 1} is a timed rep (${r.id})`);
+    assert.equal(r.kind, 'rep');
+    assert.ok(r.mins >= 45 && r.mins <= 60, `${r.id} 45–60 min`);
+    assert.equal(T.ai[i].items.length, 1, `${r.id} one task`);
+    assert.match(r.text, /^Timed rep \((45|60) min\)/, `${r.id} text`);
+  });
+  const repCovers = REPS.flatMap((r) => r.covers ?? []).sort();
+  assert.deepEqual(repCovers, ['fe:execution-context', 'fe:closures', 'fe:this-bind', 'fe:prototypes', 'fe:event-loop', 'fe:promises', 'fe:async-await',
+    'fe:array-polyfills', 'fe:debounce-throttle', 'fe:es6-proxy', 'fe:dom-events', 'mc:event-emitter', 'mc:promise-pool', 'mc:use-fetch'].sort(), 'rep covers');
+  assert.equal(REPS.filter((r) => /BFE\.dev/.test(r.text) && /mixed/i.test(r.text)).length, 2, '2 mixed timed sets (BFE.dev)');
+  // The 6 machine-coding rehearsal reps: weekdays of weeks 11–13, 45 min, AI off.
+  const REHEARSALS = ['mc:autocomplete', 'mc:data-table', 'mc:infinite-scroll', 'mc:file-explorer', 'mc:modal', 'mc:nested-comments'];
+  for (const id of REHEARSALS) {
+    const i = at(id), r = FR[i];
+    assert.ok(i >= 0, `${id} placed`);
+    assert.ok(week(i) >= 11 && week(i) <= 13 && !isSat(i), `${id} on a weekday of weeks 11–13 (slot ${i + 1})`);
+    assert.equal(r.kind, 'rep');
+    assert.equal(r.mins, 45);
+    assert.ok(r.text.startsWith('Interview rehearsal (45 min, AI off):'), `${id} text`);
     assert.equal(T.ai[i].items.length, 1);
-    const x = T.ai[i].items[0];
-    assert.ok(x.filler && x.id.startsWith('ai:revisit-notes-'), `ai[${i}] notes revisit`);
-    assert.match(x.text, /^Revisit: re-read your notes from /);
   }
-  for (const id of [...CORE_PLACED, ...CORE_COVERS, ...SYS_COVERS]) assert.equal(slotOf('ai', id), -1, `${id} not in the v2 evening track`);
+  assert.equal(FR.filter((r) => /^Interview rehearsal/.test(r.text ?? '')).length, 6, 'exactly 6 rehearsals');
+  // Weeks 1–3 weekdays: rendering and the browser, React internals and concurrency.
+  const RENDERING = ['fe:rendering-path', 'fe:animation-performance', 'fe:web-vitals', 'fe:types-memory', 'fe:js-concurrency'];
+  const REACT = ['fe:react-rendering', 'mc:mini-react', 'fe:react-hooks', 'fe:react-compiler', 'fe:react-concurrent', 'fe:forms-suspense', 'fe:react-rsc'];
+  for (const id of [...RENDERING, ...REACT]) { const i = at(id); assert.ok(i >= 0 && week(i) <= 3 && !isSat(i), `${id} on a weekday of weeks 1–3 (slot ${i + 1})`); }
+  assert.deepEqual(RENDERING.map(at), [...RENDERING.map(at)].sort((a, b) => a - b), 'rendering first, in order');
+  assert.ok(Math.max(...RENDERING.map(at)) < Math.min(...REACT.map(at)), 'rendering before React');
+  // Week 4 weekdays start with the 4 FE SD concept slots.
+  assert.deepEqual(FR.slice(18, 22).map((r) => r.id), ['sd:fe-radio', 'sd:fe-rendering', 'sd:fe-network-data', 'sd:fe-performance'], 'week 4 opens with the concepts');
+  // 12 designs × 2 consecutive weekday slots, after the concepts.
+  const DESIGNS = ['news-feed', 'autocomplete', 'chat-app', 'video-player', 'ecommerce', 'photo-gallery', 'collab-editor', 'spreadsheet', 'calendar',
+    'travel-booking', 'whiteboard', 'analytics-dashboard'];
+  for (const d of DESIGNS) {
+    const i = at(`sd:fe-${d}`), j = at(`sd:fe-${d}:deep-dive`);
+    assert.ok(i > 21, `sd:fe-${d} after the concept slots`);
+    assert.equal(j, i + 1, `sd:fe-${d} deep dive on the next slot`);
+    assert.ok(!isSat(i) && !isSat(j), `sd:fe-${d} on weekdays`);
+    assert.match(FR[i].do, /45 min/, `sd:fe-${d} slot 1 is a 45-min design`);
+    assert.match(FR[i].explain, /compare/i, `sd:fe-${d} slot 1 compares`);
+    assert.match(FR[j].understand, /^Deep dive/, `sd:fe-${d} slot 2 is a deep dive`);
+  }
+  assert.equal(FR.filter((r) => r.id.startsWith('sd:fe-')).length, 4 + 1 + 24, '4 concepts, micro-frontends, 24 design slots');
+  // The 8 FE mocks are covers of their design's first slot.
+  const MOCKS: Record<string, string> = { 'sdm:fe-news-feed': 'news-feed', 'sdm:fe-chat-app': 'chat-app', 'sdm:fe-autocomplete': 'autocomplete',
+    'sdm:fe-ecommerce': 'ecommerce', 'sdm:fe-google-sheets': 'spreadsheet', 'sdm:fe-video-player': 'video-player', 'sdm:fe-calendar': 'calendar',
+    'sdm:fe-photo-gallery': 'photo-gallery' };
+  assert.deepEqual(Object.keys(MOCKS).sort(), (sd.SD_MOCKS as Any[]).map((m) => m.id).filter((id) => id.startsWith('sdm:fe-')).sort());
+  for (const [m, d] of Object.entries(MOCKS)) assert.ok((FR[at(`sd:fe-${d}`)].covers ?? []).includes(m), `sd:fe-${d} covers ${m}`);
+  // Coverage: every FE id the spec maps to Frontend, the 18 sd:fe-* items and the 9 kept mc builds, once each (primary or covers).
+  const NOT_HERE = ['fe:node-runtime', 'fe:sql', 'fe:nosql', 'fe:redis', 'fe:queues', 'fe:docker-ci', 'fe:api-design', 'fe:os-networking'];
+  const counts = new Map<string, number>();
+  for (const r of FR) for (const id of [r.id, ...(r.covers ?? [])]) counts.set(id, (counts.get(id) ?? 0) + 1);
+  const MUST = [...(fe.FE as Any[]).map((x) => x.id).filter((id) => !NOT_HERE.includes(id)),
+    ...(sd.SD as Any[]).map((x) => x.id).filter((id) => id.startsWith('sd:fe-')), ...Object.keys(MOCKS),
+    'mc:mini-react', 'mc:vdom-diff', 'mc:redux-store', 'mc:event-emitter', 'mc:promise-pool', 'mc:use-fetch', ...REHEARSALS];
+  assert.equal(MUST.length, 41 + 18 + 8 + 12);
+  for (const id of MUST) assert.equal(counts.get(id), 1, `${id} once in Frontend`);
+  for (const id of NOT_HERE) assert.equal(counts.get(id) ?? 0, 0, `${id} is not in Frontend`);
+  assert.deepEqual([...counts].filter(([, n]) => n > 1), [], 'no id twice in Frontend');
+  // Folded items, as the spec names them.
+  assert.ok(FR[at('sd:fe-whiteboard')].covers.includes('fe:canvas-svg'), 'canvas-svg folds into the whiteboard');
+  assert.ok(FR[at('fe:web-security')].covers.includes('sd:fe-security-a11y'), 'FE SD security folds into web security');
+  assert.ok(FR[at('sd:fe-micro-frontends')].covers.includes('fe:web-components'));
+  assert.ok(FR[at('fe:state-management')].covers.includes('mc:redux-store'));
+  assert.ok(FR[at('mc:mini-react')].covers.includes('mc:vdom-diff'));
+  // Learning rows: Understand (one https link) + Do + Explain ("Deep enough when you can"); v2 ids keep their v2 url.
+  const v2 = new Map<string, Any>([...(fe.FE as Any[]), ...(sd.SD as Any[])].map((x) => [x.id, x]));
+  FR.forEach((r, i) => {
+    const s = T.ai[i].items;
+    assert.match(r.url, /^https:\/\//, `${r.id} url`);
+    if (r.url2) { assert.match(r.url2, /^https:\/\//, `${r.id} url2`); assert.notEqual(r.url2, r.url, `${r.id} url2 differs`); }
+    assert.ok(!('after' in r), `${r.id} has no after`);
+    if (!r.kind) {
+      assert.deepEqual(s.map((x: Any) => x.id), [r.id, `${r.id}:do`, `${r.id}:explain`], `slot ${i + 1} has 3 tasks`);
+      assert.match(r.explain, /Deep enough when you can/, `${r.id} explain`);
+      if (v2.get(r.id)?.url) assert.equal(r.url, v2.get(r.id).url, `${r.id} keeps its v2 url`);
+    }
+    const text = [r.understand, r.do, r.explain, r.text].filter(Boolean).join(' ');
+    assert.ok(!/basics/i.test(text), `${r.id} no "basics"`);
+    assert.ok(!/python|pandas|notebook/i.test(text), `${r.id} no Python/pandas/notebook`);
+    assert.ok(!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(text), `${r.id} no emoji`);
+  });
+  // No news task (that is the recall block's), no v2 AI evening or review item.
+  const fr = T.ai.flatMap((s: Any) => s.items);
+  assert.ok(!fr.some((x: Any) => /^ai:/.test(x.id) || x.filler), 'no ai:* item or filler in Frontend');
+  for (const n of (ai.AI_NEWS as Any[])) assert.equal(slotOf('ai', n.id), -1, `${n.id} not in Frontend`);
 }
 
 // ---------- mc: Product, the flagship (v3 §5) ----------
@@ -450,8 +543,10 @@ for (const t of TRACKS.filter((t) => t !== 'dsa')) assert.ok(!T[t].some((s: Any)
     assert.equal(T.mc[stepAt.get(n)!].items[0].after, r.after, `step ${n}: after on the first item`);
     assert.ok(T.mc[stepAt.get(n)!].items.slice(1).every((y: Any) => y.after === undefined));
   }
-  // No v2 widget build, timed pass or screenshot build in the plan.
+  // No v2 widget build, timed pass or screenshot build in the plan (Frontend keeps mini React and the 6 rehearsal reps).
+  const KEPT = ['mc:mini-react', 'mc:autocomplete', 'mc:data-table', 'mc:infinite-scroll', 'mc:file-explorer', 'mc:modal', 'mc:nested-comments'];
   for (const t of TRACKS) for (const x of T[t].flatMap((s: Any) => s.items)) {
+    if (t === 'ai' && KEPT.some((k) => x.id === k || x.id.startsWith(`${k}:`))) continue;
     assert.ok(!(mc.MC as Any[]).some((m) => m.id === x.id) && !x.id.endsWith(':timed') && !x.id.startsWith('mc:screenshot-') && !x.id.startsWith('mc:revisit'), `${x.id} is not a v2 build`);
   }
 }
