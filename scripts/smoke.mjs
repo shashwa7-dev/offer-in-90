@@ -1399,6 +1399,20 @@ try {
         if (ttl === 'IDT') ok(`frame ${width}: page title IDT`); else fail(`frame ${width}: page title "${ttl}"`);
         const sbName = await page.locator('[data-slot="sidebar"] img[data-logo] + div').first().innerText().catch(() => '');
         if (sbName.split('\n')[0].trim() === 'IDT') ok(`frame ${width}: sidebar name IDT`); else fail(`frame ${width}: sidebar name "${sbName}"`);
+        const lw = await logo.evaluate(e => e.getBoundingClientRect().width).catch(() => 0);
+        if (lw >= 40) ok(`frame ${width}: sidebar logo is large (${Math.round(lw)}px)`); else fail(`frame ${width}: sidebar logo ${lw}px`);
+        const mark = page.locator('[data-slot="sidebar"] img[data-sidebar-mark]').first();
+        const mk = await mark.evaluate(e => ({ nw: e.complete ? e.naturalWidth : 0, op: Number(getComputedStyle(e).opacity), pe: getComputedStyle(e).pointerEvents, alt: e.getAttribute('alt') })).catch(() => null);
+        if (mk && mk.nw > 0 && mk.op > 0 && mk.op <= 0.15 && mk.pe === 'none' && mk.alt === '') ok(`frame ${width}: faint sidebar mark (opacity ${mk.op})`); else fail(`frame ${width}: sidebar mark ${JSON.stringify(mk)}`);
+        const setupClick = await page.locator('[data-slot="sidebar"] [data-shell] , [data-slot="sidebar"] a, [data-slot="sidebar"] button').filter({ hasText: 'Setup' }).first().boundingBox().catch(() => null);
+        if (setupClick) {
+          const hit = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-sidebar-mark]') ? 'mark' : 'ok', { x: setupClick.x + setupClick.width / 2, y: setupClick.y + setupClick.height / 2 });
+          if (hit === 'ok') ok(`frame ${width}: the mark never blocks Setup`); else fail(`frame ${width}: the sidebar mark covers Setup`);
+        }
+        const html = await page.request.get(`${URL}/`).then(r => r.text()).catch(() => '');
+        if (html.includes('data-loader') && html.includes('logo-256.png')) ok('the first paint is the IDT logo loader'); else fail('loader missing from the first HTML');
+        const big = await page.request.get(`${URL}/logo-256.png`).then(r => r.status()).catch(() => 0);
+        if (big === 200) ok('/logo-256.png returns 200'); else fail(`/logo-256.png returns ${big}`);
         const icon = await page.request.get(`${URL}/icon.png`).then(r => r.status()).catch(() => 0);
         if (icon === 200) ok('/icon.png returns 200'); else fail(`/icon.png returns ${icon}`);
         await page.locator('[data-slot="sidebar"] [data-sidebar="trigger"], [data-sidebar="trigger"]').first().click().catch(() => {});

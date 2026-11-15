@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast as sonnerToast } from 'sonner';
-import { StoreProvider, useStore } from '@/lib/store';
+import { BASE, StoreProvider, useStore } from '@/lib/store';
 import { UICtx, type NewsTab, type NoteTarget, type RoadmapTab, type View } from '@/components/ui-state';
 import { TodayView } from '@/components/today-view';
 import { ProgressView } from '@/components/progress-view';
@@ -81,7 +81,13 @@ function App() {
 
   const ui = useMemo(() => ({ view, go, viewIdx, setViewIdx, openDay, openNote: setNote, newTask, openTask, toast, roadmapTab, setRoadmapTab, focusWeek, setFocusWeek, openChanges, setOpenChanges, newsTab, openSearch, notesSelect, setNotesSelect }), [view, go, viewIdx, openDay, newTask, openTask, toast, roadmapTab, focusWeek, openChanges, newsTab, openSearch, notesSelect]);
 
-  if (!ready) return <div className="p-8 text-muted-foreground">Loading your plan…</div>;
+  if (!ready) return (
+    <div data-loader role="status" aria-live="polite" className="flex min-h-svh flex-col items-center justify-center gap-4 bg-background px-4 text-muted-foreground">
+      {/* eslint-disable-next-line @next/next/no-img-element -- static export: plain img with the basePath prefix */}
+      <img src={`${BASE}/logo-256.png`} alt="IDT" width={96} height={96} className="size-24 rounded-2xl ring-1 ring-border motion-safe:animate-pulse" />
+      <span className="text-[13px]">Loading your plan…</span>
+    </div>
+  );
   return (
     <UICtx.Provider value={ui}>
       <SidebarProvider>
