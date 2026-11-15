@@ -2,7 +2,8 @@
 // AI engineering core (roadmap v3 §2, the `fe` track, 2 h): 78 slots, slot n = item n of the spec's AI-core table.
 // Follows Chip Huyen's AI Engineering (ToC: https://github.com/chiphuyen/aie-book/blob/main/ToC.md) and mlabonne's
 // llm-course "LLM Engineer" path. Papers sit in their module. Row format: the plan's "Content row format".
-// A v2 id as the primary id keeps its v2 `url`; `covers` lists the v2 ids the slot absorbs. New URLs checked 2026-11-15.
+// A v2 id as the primary id keeps its v2 `url` (except slot 37, sd:ai-rag-search: its v2 link is slot 27's contextual-retrieval
+// post, so it takes a RAG system-design guide instead, checked 2026-11-15); `covers` lists the v2 ids the slot absorbs. New URLs checked 2026-11-15.
 // Every Do task is TypeScript or an exercise against your own notes or product; an AI assistant is allowed.
 
 const MOCK = (id, prompt, url) => ({
@@ -202,8 +203,8 @@ export const AI_CORE = [
 
   // ---------- Module 5 (slots 37–42): agents, opening with the RAG design ----------
   { id: 'sd:ai-rag-search', covers: ['ai:design-rag-scale'],
-    understand: 'AI design: RAG over company docs. Re-read Contextual Retrieval, then list the parts: ingestion, chunking, embeddings, index, permissions, freshness, evals.',
-    url: 'https://www.anthropic.com/news/contextual-retrieval', url2: 'https://github.com/donnemartin/system-design-primer',
+    understand: 'AI design: RAG over company docs. Read the RAG solution design and evaluation guide (preparation, chunking, enrichment, embeddings, retrieval, evaluation), then list the parts: ingestion, chunking, embeddings, index, permissions, freshness, evals.',
+    url: 'https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/rag/rag-solution-design-and-evaluation-guide', url2: 'https://github.com/donnemartin/system-design-primer',
     do: 'Design it in 45 min, out loud, in Excalidraw: ingestion pipeline, re-indexing when the embedding model changes, per-user permissions, freshness and evals. Add numbers for 10M documents.',
     explain: 'Out loud, 3 min: your RAG design. Deep enough when you can explain how retrieval can return a stale or forbidden document, and how your design stops each one.' },
   { id: 'ai:building-effective-agents', covers: ['ai:react-paper', 'ai:review-agents'],
@@ -407,4 +408,15 @@ export const AI_CORE = [
   MOCK('sdm:ai-chatgpt', 'design ChatGPT, frontend + backend', 'https://huyenchip.com/2024/07/25/genai-platform.html'),
   MOCK('sdm:ai-eval-framework', 'design an eval framework for an LLM support bot', 'https://hamel.dev/blog/posts/evals/'),
   MOCK('sdm:ai-rag', 'design RAG search over company docs', 'https://www.anthropic.com/news/contextual-retrieval'),
+];
+
+// AI news sources (moved from the v2 ai.js unchanged): the list behind the recall block's news task; not in a track.
+export const AI_NEWS = [
+  { id: 'news:tldr-ai', text: 'TLDR AI', url: 'https://tldr.tech/ai' },
+  { id: 'news:simon-willison', text: "Simon Willison's blog", url: 'https://simonwillison.net/' },
+  { id: 'news:the-batch', text: 'The Batch', url: 'https://www.deeplearning.ai/the-batch/' },
+  { id: 'news:hacker-news', text: 'Hacker News', url: 'https://news.ycombinator.com/' },
+  { id: 'news:lmarena', text: 'LMArena leaderboard (how models compare)', url: 'https://lmarena.ai/leaderboard' },
+  { id: 'news:artificial-analysis', text: 'Artificial Analysis (speed, price, quality)', url: 'https://artificialanalysis.ai/' },
+  { id: 'news:latent-space', text: 'Latent Space', url: 'https://www.latent.space/' },
 ];

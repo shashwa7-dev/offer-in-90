@@ -373,13 +373,21 @@ export const ADV_DSA = [
 
 // Week 1 foundations (v3): two learning rows (Understand / Do / Explain). URLs checked 2026-11-15 (curl, 200).
 export const FOUNDATIONS = [
-  { id: 'dsa:foundations-big-o', covers: ['dsa:foundations-big-o'], url: 'https://www.bigocheatsheet.com/',
+  { id: 'dsa:foundations-big-o', url: 'https://www.bigocheatsheet.com/',
     understand: 'Foundations · Big-O as reasoning: from the input size to the complexity you need ("n = 10⁵ means I need n log n").',
     do: 'In a TS scratch file (AI assistant allowed), time one function at n = 10³, 10⁴ and 10⁵ and match its growth to O(n), O(n log n) or O(n²).',
     explain: 'Out loud, 3 min: how you go from the input limit to the complexity you need. Deep enough when you can say what n = 10⁵ and n = 20 each allow.' },
-  { id: 'dsa:foundations-recursion', covers: ['dsa:foundations-recursion'], url: 'https://javascript.info/recursion',
+  { id: 'dsa:foundations-recursion', url: 'https://javascript.info/recursion',
     url2: 'https://www.khanacademy.org/math/statistics-probability/counting-permutations-and-combinations',
     understand: 'Foundations · Recursion, induction and counting: base case, the call stack, depth limits. Then a discrete math overview: logic, sets, combinatorics and basic probability.',
     do: 'In a TS scratch file (AI assistant allowed), trace 3 recursive functions by hand, then count the subsets of 5 items with code and check the count against n choose k.',
     explain: 'Out loud, 3 min: why a recursive call needs a smaller input and a base case, and how n choose k counts subsets. Deep enough when you can say what the stack holds at depth 3.' },
+];
+
+// Interview environment practice (moved from the v2 judgment.js unchanged): Phase 3 short tasks; tracks.ts puts each on the Monday of its week, one per week in Grind weeks 10–13.
+export const INTERVIEW_ENV = [
+  { id: 'env:coderpad', week: 10, text: 'Interview environment: solve one problem in CoderPad/HackerRank, with no IDE help, talking as you go', url: 'https://app.coderpad.io/sandbox' },
+  { id: 'env:google-doc', week: 11, text: 'Interview environment: write one solution in a Google Doc with no autocomplete, then check it by hand', url: 'https://docs.google.com/document/create' },
+  { id: 'env:excalidraw', week: 12, text: 'Interview environment: draw one system design in Excalidraw while talking (record 5 min)', url: 'https://excalidraw.com/' },
+  { id: 'env:camera-mic', week: 13, text: 'Interview environment: check your camera and mic before a virtual onsite (light, framing, sound)', url: 'https://webcamtests.com/' },
 ];

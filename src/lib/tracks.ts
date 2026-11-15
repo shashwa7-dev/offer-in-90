@@ -137,7 +137,7 @@ function dsaTrack(c: TrackContent): Slot[] {
   const tagged = spread((p) => p.flags.length > 0);
   const pool: Row[] = [...tagged, ...spread((p) => p.flags.length === 0 && p.role === 'var'), ...spread((p) => p.flags.length === 0 && p.role !== 'var')];
   const draw = queue(pool);
-  const set = (id: string, head: string, next: () => Row | undefined): SlotItem[] => [{ id: `dsa:${id}`, cat: 'dsa', text: head },
+  const set = (id: string, head: string, mins: number, next: () => Row | undefined): SlotItem[] => [{ id: `dsa:${id}`, cat: 'dsa', text: head, mins },
     ...[0, 1].map(() => { const p = next(); if (!p) throw new Error(`BLOCKED: dsa ${id} has no problem left`); return { id: `dsa:${id}:${p.slug}`, text: p.name, url: p.url, cat: 'dsa' as Cat, slug: p.slug, diff: p.d }; })];
   const adv = queue(c.ADV_DSA as Row[]);
   const oa: string[] = c.OA_LINKS;
@@ -145,9 +145,9 @@ function dsaTrack(c: TrackContent): Slot[] {
     const [kind, k] = key.split('-'), n = Number(k);
     if (kind === 'oa') slots.push([{ id: `dsa:oa-${n}`, cat: 'dsa', url: oa[n - 1], mins: 60,
       text: 'Amazon OA simulation (60 minutes): solve 2 problems from this post, timed. Then read the best solution to each and log your minutes.' }]);
-    else if (kind === 'google') slots.push(set(`google-${n}`, 'Google set (60 min): 2 problems typed in a plain Google Doc. No autocomplete, no running code. Check each by hand.', draw.next));
-    else if (kind === 'meta') slots.push(set(`meta-${n}`, 'Meta speed set (40 min): 2 problems, talking out loud. Then optimize each and explain the trade-off.', draw.next));
-    else if (kind === 'revisit') slots.push(set(`revisit-${n}`, 'Revisit (60 min): 2 problems you have met before, solved again from a blank file. Talk out loud.', revisit.next));
+    else if (kind === 'google') slots.push(set(`google-${n}`, 'Google set (60 min): 2 problems typed in a plain Google Doc. No autocomplete, no running code. Check each by hand.', 60, draw.next));
+    else if (kind === 'meta') slots.push(set(`meta-${n}`, 'Meta speed set (40 min): 2 problems, talking out loud. Then optimize each and explain the trade-off.', 40, draw.next));
+    else if (kind === 'revisit') slots.push(set(`revisit-${n}`, 'Revisit (45 min): 2 problems from the hardest patterns, each from a blank file, timed. Talk out loud.', 45, revisit.next));
     else slots.push(expandRow(adv.next(), 'dsa')[0]);
   }
   // Interview-environment practice rides along on the Monday of its week (weeks 10–13).

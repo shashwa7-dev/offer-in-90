@@ -230,7 +230,7 @@ export function buildPlanFrom(state: PlanState, updates: UpdateItem[], custom: R
     return picks.map((p) => {
       used.add(p.slug);
       return T(`rv:${p.slug}:${L.date}`, `Pattern revisit (unseen, timed: ${REVISIT_MINS} min for ${picks.length === 1 ? 'it' : 'both'}): solve ${p.name} from a blank file, talking out loud. Log it as unseen with your minutes.`, 'dsa', {
-        slug: p.slug, url: p.url, mins: REVISIT_MINS / picks.length, ...(p.d === 'E' || p.d === 'M' || p.d === 'H' ? { diff: p.d } : {}),
+        slug: p.slug, ...(p.url ? { url: p.url } : {}), mins: REVISIT_MINS / picks.length, ...(p.d === 'E' || p.d === 'M' || p.d === 'H' ? { diff: p.d } : {}),
       });
     });
   }
@@ -257,7 +257,7 @@ export function buildPlanFrom(state: PlanState, updates: UpdateItem[], custom: R
       by.sunday = carry.splice(0);
       if ((state.sundayMode[L.date] ?? 'rest') === 'revision') {
         by.sunday.push(T(k('flagged'), 'Re-solve every flagged problem from a blank file; unflag the ones you nailed', 'dsa'),
-          T(k('catchup'), "Catch up on this week's missed tasks (Today › Missed), then re-read this week's pattern cards and decision memos", 'review'));
+          T(k('catchup'), "Catch up on this week's missed tasks (Today › Missed), then re-read this week's pattern cards and ADRs", 'review'));
       } else {
         const xl: Row[] = c.EXPLORE_LATER ?? [];
         const x = xl.length ? xl[(L.sundayNo! - 1) % xl.length] : undefined, res = x?.resources?.[0];

@@ -45,7 +45,7 @@ export const BEH = [
   { id: 'beh:negotiation-2', text: 'Offers and negotiation 2: competing offers and the recruiter call. Write your script and rehearse it out loud.', url: 'https://www.techinterviewhandbook.org/negotiation/' },
 ];
 
-// Forward-deployed engineer track (weeks 6–13), following roadmap.sh/forward-deployed-engineer. The 2 Python items and the 4 Stage-6 cloud items live in ai.js (AIB_MOVED).
+// Forward-deployed engineer track (weeks 6–13), following roadmap.sh/forward-deployed-engineer. The 2 Python items (dropped, v3-dropped.js) and the 4 Stage-6 cloud items (Platform) were moved out in v2 (AIB_MOVED).
 export const FDE = [
   { id: 'fde:stage1-intro', text: 'Stage 1 · Intro: roles & responsibilities, FDE tiers, "from X to FDE". Read 5 real FDE postings; write your skills gap in Notes.', url: 'https://roadmap.sh/forward-deployed-engineer' },
   { id: 'fde:stage1-glossary', text: 'Stage 1 · Glossary: Delta, UAT, last-mile integration, Day 2 operations, productized consulting, embedded engineering. Plus the interview loop.', url: 'https://careerservices.fas.harvard.edu/blog/2026/08/01/forward-deployed-engineer-interview-the-definitive-2026-guide-fde/' },
@@ -87,15 +87,15 @@ export const FDE = [
 
 // What each company actually tests and where the plan covers it: [company, what they test, where the plan covers it].
 export const COMPANY_MAP = [
-  ['Google (frontend SWE)', 'Phone screen: DSA. Onsite 4–5 rounds: mostly LeetCode medium–hard DSA, one frontend round (JS/async/DOM/React; large-scale frontend design at senior), Googleyness. Hiring committee + team match. At least one in-person round.', 'Daily DSA + timed sets typed in a plain doc; frontend block; frontend system design; Googleyness stories'],
-  ['Meta (front-end / product)', 'Screen: 2 problems in ~35–45 min (vanilla JS for front-end). Loop: 2 coding (one may be AI-enabled), product architecture (user-facing product, sometimes diagrammed in Mermaid), behavioral.', 'Speed sets (2 in 40 min), JS/DOM utilities, weekly AI-enabled coding drills, product-architecture mocks in Mermaid'],
-  ['Meta AI-enabled round', '60 min, multi-file codebase in CoderPad: fix a bug → implement a feature (harder than medium) with an AI chat → optimize for bigger inputs. Graded on understanding, verification, communication.', 'AI-enabled drills (Sundays in Phase 2, Phase 3 DSA rotation), re-engineering reps, BFS/backtracking/trie/bitmask practice'],
-  ['Microsoft', '3–6 rounds: long machine-coding rounds (e.g. an Outlook or Teams-style UI), advanced JS, LLD, DSA, browser internals; growth mindset. Some teams add an AI-assisted round.', 'Machine coding (incl. email + chat clients), LLD Saturdays, growth-mindset stories'],
-  ['Amazon', 'OA (coding 70 min + work simulation + work style), DSA + Leadership Principles every round, LLD/HLD at SDE-2, bar raiser.', 'The Whimsical board track (see table above)'],
-  ['Forward-deployed (AI labs, Palantir, Databricks, startups)', 'Practical coding (often Python), system design with LLM/RAG/evals, decomposition, client simulation, behavioral, sometimes a 4–8 h take-home. Posts ask for Python/TS, SQL, cloud, containers, RAG/evals/agents, discovery skills.', 'FDE track (roadmap.sh stages + reps), AI block, flagship project'],
-  ['System design in 2026 (all companies)', 'LLM parts (gateways, vector stores, evals, agent sandboxes) are now normal design material; cost and latency reasoning is graded; "design an eval framework" is a common prompt.', 'AI system design days in the system design block + AI mocks'],
-  ['Apple (team-specific)', 'Varies by team. Deep frontend craft, accessibility, performance and privacy questions, plus a long deep dive into a past project.', 'Frontend block (a11y, performance), UX block (Apple HIG), project deep dives in the career block'],
-  ['Stripe', 'Bug squash, an integration round, API design and code review.', 'Re-engineering reps, API design (frontend and CS block), code-review reps, FDE integration engineering'],
+  ['Google (frontend SWE)', 'Phone screen: DSA. Onsite 4–5 rounds: mostly LeetCode medium–hard DSA, one frontend round (JS/async/DOM/React; large-scale frontend design at senior), Googleyness. Hiring committee + team match. At least one in-person round.', 'DSA every day + Google plain-doc sets in Phase 3; Frontend (senior); frontend system design; Googleyness stories'],
+  ['Meta (front-end / product)', 'Screen: 2 problems in ~35–45 min (vanilla JS for front-end). Loop: 2 coding (one may be AI-enabled), product architecture (user-facing product, sometimes diagrammed in Mermaid), behavioral.', 'Meta speed sets (2 in 40 min) in Phase 3; Frontend timed JS reps; AI-enabled coding drills on Saturdays; frontend system design'],
+  ['Meta AI-enabled round', '60 min, multi-file codebase in CoderPad: fix a bug → implement a feature (harder than medium) with an AI chat → optimize for bigger inputs. Graded on understanding, verification, communication.', 'AI-enabled coding drills (odd Saturdays, weeks 1–9); Platform re-engineering and learning rounds; AI core slot 70 (build with an AI assistant, review every line)'],
+  ['Microsoft', '3–6 rounds: long machine-coding rounds (e.g. an Outlook or Teams-style UI), advanced JS, LLD, DSA, browser internals; growth mindset. Some teams add an AI-assisted round.', 'Machine-coding rehearsal reps (Frontend, weeks 11–13); LLD Saturdays; Frontend browser internals; growth-mindset stories'],
+  ['Amazon', 'OA (coding 70 min + work simulation + work style), DSA + Leadership Principles every round, LLD/HLD at SDE-2, bar raiser.', 'The Whimsical board, mapped in the board table'],
+  ['Forward-deployed (AI labs, Palantir, Databricks, startups)', 'Practical coding (often Python), system design with LLM/RAG/evals, decomposition, client simulation, behavioral, sometimes a 4–8 h take-home. Posts ask for Python/TS, SQL, cloud, containers, RAG/evals/agents, discovery skills.', 'Career FDE stages and decomposition reps; AI engineering core; Platform (data, integration, practical reps in TypeScript); the flagship'],
+  ['System design in 2026 (all companies)', 'LLM parts (gateways, vector stores, evals, agent sandboxes) are now normal design material; cost and latency reasoning is graded; "design an eval framework" is a common prompt.', 'AI engineering core: 8 AI designs + 3 timed AI-design mocks; Systems HLD designs'],
+  ['Apple (team-specific)', 'Varies by team. Deep frontend craft, accessibility, performance and privacy questions, plus a long deep dive into a past project.', 'Frontend (accessibility, performance, browser security); project deep dives in Career'],
+  ['Stripe', 'Bug squash, an integration round, API design and code review.', 'Platform: re-engineering round, code-review reps, customer APIs and webhooks; Systems: API design and the Stripe idempotency case study'],
 ];
 
 // Product engineer prep (roadmap v2 §8): one teardown per target company with a consumer or developer product.
@@ -110,7 +110,7 @@ export const TEARDOWNS = [
   teardown('stripe', 'Stripe', 'https://stripe.com/payments/checkout'),
 ];
 
-// DECOMP (moved here from judgment.js, v3 §6): the 12 decomposition and client-simulation reps, laid out by CAREER below.
+// DECOMP (moved here from the v2 judgment.js, v3 §6): the 12 decomposition and client-simulation reps, laid out by CAREER below.
 // v2: Thu · Decomposition or client simulation, 45 min out loud.
 // §4 counts 11 existing prompts: the 6 FDE `Rep ·` decomposition and client-simulation items (`from`: the FDE item it moves here
 // from; its CAREER row lists that id in `covers`) and the 5 non-coding FDE_PROMPTS (`v1Prompt`: its
@@ -393,10 +393,10 @@ const loop = (n) => {
     row: { id: `beh:loop-${n}-round-1`, kind: 'mock', mins: 60, oa: 11 + n, url2: RUBRIC,
       text: `${head(1)}: coding, 60 min. Solve the 2 problems from this post, timed, talking out loud as in an onsite. Rounds 2 and 3 are tomorrow. Score each round on the rubric.${n === 1 ? ' Before your first big-tech onsite, book one paid mock with an experienced interviewer.' : ''}` },
     carry: [
-      { id: `beh:loop-${n}-round-2`, kind: 'mock', mins: 45, covers: [L.lld[0]], url: 'https://www.lldcoding.com/', url2: RUBRIC,
+      { id: `beh:loop-${n}-round-2`, kind: 'mock', mins: 45, covers: [L.lld[0]], url: 'https://www.lldcoding.com/',
         text: `${head(2)}: LLD, 45 min, timed, out loud. Design ${L.lld[1]}: the classes, interfaces and main flows in TypeScript, then one extension a partner or you add halfway.` },
-      { id: `beh:loop-${n}-round-3`, kind: L.r3.kind, mins: 45, url: L.r3.url, url2: RUBRIC,
-        text: `${head(3)}: ${L.r3.text} 45 min, timed, out loud. Then score the whole loop on the rubric and write down the one round you would fail today.` },
+      { id: `beh:loop-${n}-round-3`, kind: L.r3.kind, mins: 45, url: L.r3.url,
+        text: `${head(3)}: ${L.r3.text} 45 min, timed, out loud. Then score the whole loop on the rubric from round 1 and write down the one round you would fail today.` },
     ],
   };
 };

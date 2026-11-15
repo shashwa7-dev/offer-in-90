@@ -57,36 +57,36 @@ export const HLD_FRAMEWORK = [
 
 const RM = 'https://roadmap.sh/forward-deployed-engineer';
 export const FDE_STAGES = [
-  ['1 · Introduction', 'Roles, tiers, glossary (Delta, UAT, last-mile integration, Day 2 ops)', 'FDE sessions 1–2'],
-  ['2 · CS basics', 'Python, DSA & system design, Git, Linux', 'Daily DSA + system design blocks; FDE sessions on Python, Git, Linux'],
-  ['3 · Full stack', 'HTML, CSS, JS, React, Node, SQL, Postgres, NoSQL, API design, GraphQL', 'Daily frontend & CS block + machine coding'],
-  ['4 · Data engineering', 'Data modeling, pipelines, warehouses, Spark, Airflow', 'FDE sessions (data audit, SQL, pipelines, warehouses)'],
-  ['5 · AI engineering', 'LLM fundamentals, prompting, context engineering, RAG, vector DBs, providers, agents, MCP, AI coding tools, legacy integration', 'Evening AI block + FDE sessions on the gaps'],
-  ['6 · DevOps & cloud', 'AWS/GCP/Azure, Terraform, Docker, Kubernetes, CI/CD', 'FDE sessions (AWS, Terraform, containers, CI/CD)'],
-  ['7 · Production AI systems', 'Eval pipelines, debugging agents, inference optimization, security, AI governance, privacy, MLOps', 'FDE sessions + AI block (evals, observability)'],
-  ['8 · Customer delivery & field skills', 'Discovery, scoping, business acumen, stakeholders, technical writing, executive reporting', 'FDE sessions + interview reps (decomposition, client simulation)'],
+  ['1 · Introduction', 'Roles, tiers, glossary (Delta, UAT, last-mile integration, Day 2 ops)', 'Career, week 7: stage 1 intro and glossary (one slot)'],
+  ['2 · CS basics', 'Python, DSA & system design, Git, Linux', 'DSA every day; Systems; Platform weeks 1–3 (shell, git workflows and internals). The Python part is left out: the plan is TypeScript only'],
+  ['3 · Full stack', 'HTML, CSS, JS, React, Node, SQL, Postgres, NoSQL, API design, GraphQL', 'Frontend (senior, evenings); the flagship; Platform: SQL, Postgres, NoSQL, the Node runtime; Systems: API design'],
+  ['4 · Data engineering', 'Data modeling, pipelines, warehouses, Spark, Airflow', 'Platform depth: SQL analysis, pipelines and orchestration, warehouses, data audit and modeling'],
+  ['5 · AI engineering', 'LLM fundamentals, prompting, context engineering, RAG, vector DBs, providers, agents, MCP, AI coding tools, legacy integration', 'AI engineering core slots 18–42 (APIs, prompting and context, MCP, providers, RAG, vector indexes, agents) and 70 (AI-assisted coding); Platform: legacy integration'],
+  ['6 · DevOps & cloud', 'AWS/GCP/Azure, Terraform, Docker, Kubernetes, CI/CD', 'Platform: Docker, Kubernetes on kind, Terraform, CI/CD and safe rollouts, AWS core'],
+  ['7 · Production AI systems', 'Eval pipelines, debugging agents, inference optimization, security, AI governance, privacy, MLOps', 'AI engineering core: eval pipelines (34), debugging agents (42), inference optimization (50), guardrails, OWASP LLM, MLOps, governance and privacy (56–59)'],
+  ['8 · Customer delivery & field skills', 'Discovery, scoping, business acumen, stakeholders, technical writing, executive reporting', 'Career weeks 7–13: discovery, scoping, business acumen, stakeholders, communication, decomposition and client-simulation reps, the FDE take-home and mock loop'],
 ];
 
-// Where every section of the Whimsical board lives in this plan.
+// Where every section of the Whimsical board lives in this plan (v3 tracks).
 export const BOARD_MAP = [
-  ['Amazon interview structure (SDE-1 / SDE-2 rounds, bar raiser, HR)', 'Career block, week 1 (structure + all 16 Leadership Principles)'],
-  ['Amazon OA: coding 70 min, work simulation, work-style MCQs', 'Career block (format, work simulation, work-style); Phase 3 DSA: OA simulations using all 16 OA posts from the board'],
-  ['Amazon Leadership Principles + bar raiser reading links, STAR', 'Career block weeks 1–3: 2 LPs a day into the STAR story bank page'],
-  ['DSA fast track: Arrays & Strings → LinkedList/Stack/Queue → Trees → Graphs → DP', 'Morning DSA block: NeetCode 150 in that topic order (the board\'s go-to list), weeks 1–9'],
-  ['DSA resources: Blind 75, NeetCode 150, Striver A2Z, company-wise lists', 'NeetCode 150 daily (covers Blind 75); company-wise lists in Phase 3; Striver A2Z kept for filling gaps'],
+  ['Amazon interview structure (SDE-1 / SDE-2 rounds, bar raiser, HR)', 'Career, week 2 (structure), then weeks 2–4 (the 16 Leadership Principles)'],
+  ['Amazon OA: coding 70 min, work simulation, work-style MCQs', 'Career, week 1 (format, work simulation, work style); all 16 OA posts from the board: 8 DSA Phase 3 simulations and 8 Saturday coding rounds'],
+  ['Amazon Leadership Principles + bar raiser reading links, STAR', 'Career weeks 2–4: Leadership Principle stories into the STAR story bank page'],
+  ['DSA fast track: Arrays & Strings → LinkedList/Stack/Queue → Trees → Graphs → DP', 'DSA block: 27 patterns, 2 days each (a teach problem, then an unseen one), weeks 1–10'],
+  ['DSA resources: Blind 75, NeetCode 150, Striver A2Z, company-wise lists', 'Must-solves: a teach and an unseen problem per pattern; company-wise lists feed the Phase 3 Google and Meta sets; the rest is the optional pool on the DSA page'],
   ['Success tips (VVIP): patterns, think out loud, 45-min time-box, review solutions, consistency', 'Rules card; 45-min time-box and flagging on every DSA block; spaced re-solving every afternoon'],
-  ['Advanced DSA: DSU, difference array, line sweep, Fenwick, segment tree, DP on trees, digit DP', 'Revision block, every other day in weeks 7–9'],
-  ['Consolidation: review solved problems, 2–3 timed 45-min mocks', 'Sunday weekly mocks + Phase 3 timed sets'],
-  ['LLD roadmap: OOP, SOLID, design patterns, multithreading, LLD questions, 2+ mocks', 'Saturdays in the machine-coding block (13 sessions) + 8 LLD mocks in Phase 3 + LLD question bank page'],
-  ['HLD roadmap: fundamentals, storage, communication, messaging, performance, reliability, observability, security', 'System design block, days 1–13 (day 1: how the internet works)'],
-  ['HLD concepts to master + common mistakes', 'System design day 14 + framework card'],
-  ['HLD delivery framework', 'System design day 15 + Roadmap card'],
-  ['HLD questions: Easy / Medium / Hard (26 designs)', 'System design block, weeks 6–10 + Phase 3 mocks'],
-  ['HLD learning resources (Primer, ByteByteGo, Hello Interview, Neo Kim, HighScalability)', 'Linked from each system design day + evening reading'],
-  ['Frontend system design (Namaste FSD)', 'System design block, weeks 3–5 (framework + 12 frontend designs)'],
-  ['(Not on the board) Forward-deployed engineer roadmap from roadmap.sh, 8 stages', 'FDE track in the career block, weeks 7–13; see the FDE roadmap card'],
-  ['(Added) Flagship product, product & UX, AI system design, AI-enabled coding drills', 'Machine-coding block weeks 7–11, career block weeks 1–5, system design block, Sundays + Phase 3'],
-  ['Mock interviews: Exponent free peer mocks, Topmate paid mocks', 'Sunday mock loops in Phase 3 + FDE mock; one paid Topmate mock before your first big-tech onsite'],
+  ['Advanced DSA: DSU, difference array, line sweep, Fenwick, segment tree, DP on trees, digit DP', 'DSA Phase 3: 3 awareness slots (difference array + line sweep, Fenwick + segment tree, DP on trees + digit DP); DSU is the union-find pattern'],
+  ['Consolidation: review solved problems, 2–3 timed 45-min mocks', 'DSA Phase 3: timed Google, Meta and revisit sets and OA simulations; Saturday mock day'],
+  ['LLD roadmap: OOP, SOLID, design patterns, multithreading, LLD questions, 2+ mocks', 'Product, Saturdays: 13 LLD sessions; the LLD round of each Phase 3 mock loop; LLD question bank page'],
+  ['HLD roadmap: fundamentals, storage, communication, messaging, performance, reliability, observability, security', 'Systems, weeks 1–2 (computers, networking, HLD fundamentals), then DDIA and the building blocks'],
+  ['HLD concepts to master + common mistakes', 'Systems slot 11 + framework card'],
+  ['HLD delivery framework', 'Systems slot 10 + Roadmap card'],
+  ['HLD questions: Easy / Medium / Hard (26 designs)', 'Systems: Bitly at slot 12, 17 more designs in weeks 3–9, the last 8 as timed mocks in weeks 10–13'],
+  ['HLD learning resources (Primer, ByteByteGo, Hello Interview, Neo Kim, HighScalability)', 'Linked from each Systems slot (the System Design Primer as the free second link)'],
+  ['Frontend system design (Namaste FSD)', 'Frontend (evenings): 4 concept slots, then 12 designs, 2 slots each'],
+  ['(Not on the board) Forward-deployed engineer roadmap from roadmap.sh, 8 stages', 'Career (weeks 7–13), Platform and the AI engineering core; see the FDE roadmap card'],
+  ['(Added) Flagship product, product & UX, AI system design, AI-enabled coding drills', 'Product: the flagship, with the 6 product basics; AI engineering core: 8 AI designs and 3 timed mocks; Career: 5 AI-enabled coding drills on odd Saturdays'],
+  ['Mock interviews: Exponent free peer mocks, Topmate paid mocks', 'Saturday mock day: peer mocks every 2 weeks from week 4, 4 full mock loops in weeks 10–13; one paid Topmate mock before your first big-tech onsite'],
 ];
 
 // Amazon OA posts from the board, used by the Phase 3 OA simulations.
@@ -111,8 +111,8 @@ export const OA_LINKS = [
 
 // §13 depth areas: where to know things inside out. Tasks in them carry the system label Depth. `test` is the "deep enough when you can…" bar.
 export const DEPTH_AREAS = [
-  { id: 'depth:data-state', area: 'Data and state', where: 'FE/CS SQL, NoSQL, Redis, queues, API design; SD concepts; practical coding; decision memos', test: 'Name the race condition or stale-data bug in a design, and pick the fix and its cost' },
-  { id: 'depth:realtime-sync', area: 'Real-time and sync', where: 'Flagship real-time and offline steps; how-it-works reads (Figma, Linear, Slack); chat, doc and whiteboard designs', test: 'Explain what happens when two people edit offline and reconnect, and why your design handles it' },
-  { id: 'depth:llm-apps', area: 'Building LLM applications', where: 'AI build slot, AI evening, FDE stages 5 and 7, AI designs, flagship AI steps', test: 'Take an AI feature that "sometimes gives wrong answers", find the cause with evals and traces, and fix it, with numbers' },
-  { id: 'depth:debugging', area: 'Debugging and reading unfamiliar code', where: 'Open-source fixes, re-engineering reps, the Meta AI drill, code-review reps', test: 'Find and explain a bug in a codebase you\'ve never seen, in under an hour, with a clear write-up' },
+  { id: 'depth:data-state', area: 'Data and state', where: 'Platform SQL, NoSQL, Redis and queues; Systems HLD fundamentals and DDIA; Platform practical reps', test: 'Name the race condition or stale-data bug in a design, and pick the fix and its cost' },
+  { id: 'depth:realtime-sync', area: 'Real-time and sync', where: 'Flagship real-time and offline steps; Systems case studies (Figma, Linear, Slack); Frontend chat, collaborative editor and whiteboard designs', test: 'Explain what happens when two people edit offline and reconnect, and why your design handles it' },
+  { id: 'depth:llm-apps', area: 'Building LLM applications', where: 'AI engineering core, the 8 AI designs, the flagship AI steps', test: 'Take an AI feature that "sometimes gives wrong answers", find the cause with evals and traces, and fix it, with numbers' },
+  { id: 'depth:debugging', area: 'Debugging and reading unfamiliar code', where: 'Platform re-engineering round and code-review reps, the AI-enabled coding drills, Frontend real-world debugging slots', test: 'Find and explain a bug in a codebase you\'ve never seen, in under an hour, with a clear write-up' },
 ];

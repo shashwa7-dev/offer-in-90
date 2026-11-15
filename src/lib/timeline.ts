@@ -26,30 +26,35 @@ export interface Stage {
   match: (t: { id: string; cat: string; pattern?: string }) => boolean;
 }
 
-/** The first 12 DSA patterns (arrays to tries); the other 12 are heaps to bits. */
-const EARLY_PATTERNS = new Set(['hash-map', 'prefix-sum', 'two-pointers', 'sliding-window', 'stack-monotonic', 'binary-search', 'cyclic-sort', 'fast-slow', 'll-reversal', 'tree-bfs', 'tree-dfs', 'trie']);
 /** A morning pattern task: a problem, its pattern card or explain-back (not a re-solve or drill). */
 const morning = (t: { id: string; pattern?: string }) => !!t.pattern && /^(p-|dsa:card-|dsa:explain-back-)/.test(t.id);
-const FE_REVISION = /^fe:(revise|bfe)-/;
-const FE_SD = /^sd:(internet|fe-)/;
+/** Generated tasks (recall, news, drills, re-solves, revisits, own tasks, updates) are not content: no stage counts them. */
+const GENERATED = /^(d:|rs:|rv:|u-|upd-)/;
+type T = { id: string; cat: string; pattern?: string };
+/** Content of one category (the v3 tracks are keyed by category, like trackOfCat in task-filter.ts). */
+const of = (t: T, ...cats: string[]) => cats.includes(t.cat) && !GENERATED.test(t.id);
+const DSA_PHASE3 = /^(adv:|env:|dsa:(oa|google|meta|revisit)-)/;
+const AI_DESIGN = /^(sd:ai-|sdm:ai-|ai:design-|ai:teach-back-)/;
+const HLD = /^(sd:hld-|sdm:)/;
+const MOCK_DAY = /^beh:(ai-drill|oa-round|peer-|mock-|loop-)/;
+const FE_SD = /^sd:fe-/;
 
+/** One or two stages per v3 track, labels from the spec's group names. Each content task matches at most one stage:
+ * the take-home parts are flagship (cat proj), never LLD (cat mc). */
 export const STAGES: Stage[] = [
-  { track: 'dsa', label: 'Foundations, arrays → tries', match: (t) => t.id.startsWith('dsa:foundations-') || (morning(t) && EARLY_PATTERNS.has(t.pattern!)) },
-  { track: 'dsa', label: 'Heaps, graphs, DP, greedy', match: (t) => morning(t) && !EARLY_PATTERNS.has(t.pattern!) },
-  { track: 'dsa', label: 'Advanced + timed sets + OA', match: (t) => /^(adv:|dsa:(timed-|oa-|google-|meta-|revisit-|ai-drill-))/.test(t.id) },
-  { track: 'fe', label: 'JS, browser, React, web', match: (t) => t.id.startsWith('fe:') && !FE_REVISION.test(t.id) },
-  { track: 'fe', label: 'Revision + quizzes', match: (t) => FE_REVISION.test(t.id) },
-  { track: 'sd', label: 'Frontend system design', match: (t) => FE_SD.test(t.id) },
-  { track: 'sd', label: 'HLD concepts + design problems', match: (t) => t.id.startsWith('sd:') && !FE_SD.test(t.id) },
-  { track: 'sd', label: 'Mocks', match: (t) => t.id.startsWith('sdm:') },
-  { track: 'mc', label: 'Builds + LLD Saturdays', match: (t) => /^(mc:|lld:)/.test(t.id) && !t.id.endsWith(':timed') },
-  { track: 'mc', label: 'Flagship product', match: (t) => t.cat === 'proj' },
-  { track: 'mc', label: 'Timed rebuilds', match: (t) => t.id.endsWith(':timed') },
-  { track: 'ai', label: 'AI build', match: (t) => t.id.startsWith('aib:') },
-  { track: 'ai', label: 'Papers, courses, AI design', match: (t) => t.id.startsWith('ai:') && !t.id.startsWith('ai:review-') && !t.id.startsWith('ai:revisit-') },
-  { track: 'ai', label: 'Explain-it-back reviews', match: (t) => t.id.startsWith('ai:review-') || t.id.startsWith('ai:revisit-') },
-  { track: 'career', label: 'Resume, LP stories, UX', match: (t) => t.id.startsWith('beh:') || t.id.startsWith('ux:') },
-  { track: 'career', label: 'Forward-deployed', match: (t) => t.id.startsWith('fde:') },
+  { track: 'dsa', label: 'Foundations + 27 patterns', match: (t) => of(t, 'dsa') && (t.id.startsWith('dsa:foundations-') || morning(t)) },
+  { track: 'dsa', label: 'Phase 3: timed sets, OA, advanced', match: (t) => of(t, 'dsa') && DSA_PHASE3.test(t.id) },
+  { track: 'ai', label: 'LLMs, RAG, evals, agents, serving', match: (t) => of(t, 'ai') && !AI_DESIGN.test(t.id) },
+  { track: 'ai', label: 'AI designs, teach-backs, mocks', match: (t) => of(t, 'ai') && AI_DESIGN.test(t.id) },
+  { track: 'sd', label: 'Fundamentals, DDIA, case studies', match: (t) => of(t, 'sd') && !HLD.test(t.id) },
+  { track: 'sd', label: 'HLD designs + mocks', match: (t) => of(t, 'sd') && HLD.test(t.id) },
+  { track: 'mc', label: 'Flagship + take-homes', match: (t) => of(t, 'proj') },
+  { track: 'mc', label: 'LLD Saturdays', match: (t) => of(t, 'mc') },
+  { track: 'platform', label: 'Platform, data and DevOps', match: (t) => of(t, 'platform') },
+  { track: 'career', label: 'Career and FDE', match: (t) => of(t, 'beh', 'fde', 'ux') && !MOCK_DAY.test(t.id) },
+  { track: 'career', label: 'Mock day', match: (t) => of(t, 'beh', 'fde') && MOCK_DAY.test(t.id) },
+  { track: 'fe', label: 'Senior frontend + timed reps', match: (t) => of(t, 'fe') && !FE_SD.test(t.id) },
+  { track: 'fe', label: 'Frontend system design', match: (t) => of(t, 'fe') && FE_SD.test(t.id) },
 ];
 
 export interface StageBar {

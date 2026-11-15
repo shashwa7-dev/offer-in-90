@@ -1,18 +1,12 @@
 // Run: node --experimental-strip-types scripts/test-layout.ts
 import assert from 'node:assert/strict';
 import * as dsa from '../src/lib/content/dsa.js';
-import * as fe from '../src/lib/content/fe.js';
-import * as ux from '../src/lib/content/ux.js';
 import * as career from '../src/lib/content/career.js';
-import * as ai from '../src/lib/content/ai.js';
 import * as aiCore from '../src/lib/content/ai-core.js';
 import * as frontend from '../src/lib/content/frontend.js';
 import * as systems from '../src/lib/content/systems.js';
 import * as platform from '../src/lib/content/platform.js';
-import * as mc from '../src/lib/content/mc.js';
 import * as product from '../src/lib/content/product.js';
-import * as sd from '../src/lib/content/sd.js';
-import * as judgment from '../src/lib/content/judgment.js';
 import * as reference from '../src/lib/content/reference.js';
 import { buildTracks } from '../src/lib/tracks.ts';
 import { MODE_INFO, modeOn, switchMode, steadyWeek, grindWeekOf } from '../src/lib/modes.ts';
@@ -20,7 +14,7 @@ import { steadyRuns, layoutDays, cursorsAt, WEEKS } from '../src/lib/layout.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
-const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...aiCore, ...frontend, ...mc, ...product, ...sd, ...systems, ...platform, ...judgment, ...reference };
+const content: Any = { ...dsa, ...career, ...aiCore, ...frontend, ...product, ...systems, ...platform, ...reference };
 const tracks: Any = buildTracks(content);
 const TRACKS = ['dsa', 'fe', 'mc', 'sd', 'jt', 'beh', 'ai'];
 const ZERO: Any = Object.fromEntries(TRACKS.map((t) => [t, 0]));

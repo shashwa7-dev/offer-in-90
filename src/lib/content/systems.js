@@ -143,7 +143,7 @@ export const SYSTEMS = [
   hld('youtube', 'YouTube', 'upload and transcoding pipeline, adaptive streaming',
     'explain the path of a video from upload to the first play, and where the CDN fits',
     hi('problem-breakdowns/youtube')),
-  // 24 (this is also JT_DEPTH_READS[0]; placed here once)
+  // 24 (v2 also listed it as a Platform depth read, JT_DEPTH_READS; placed here once)
   { id: 'jt:hiw-stripe-idempotency', url: 'https://stripe.com/blog/idempotency',
     understand: 'How real systems work · Stripe idempotency keys ("Designing robust and predictable APIs with idempotency", Brandur Leach). Read the post.',
     do: 'In a TS scratch file, write idempotency-key middleware for a fake charge endpoint: store the key with a hash of the request and the response, replay the stored response on a retry, and reject the same key with a different body. Test a retry after a timeout.',
@@ -199,7 +199,7 @@ export const SYSTEMS = [
     hi('problem-breakdowns/yelp')),
   // 36
   caseStudy('jt:hiw-discord-message-storage', 'Discord message storage (trillions of messages, Cassandra to ScyllaDB).', 'https://discord.com/blog/how-discord-stores-trillions-of-messages',
-    'Out loud, 3 min: why hot partitions hurt them, and how the data model and the data services fix it. Deep enough when you can explain their partition key (channel plus time bucket) and what request coalescing saves.'),
+    'Out loud, 3 min: why hot partitions hurt Discord\'s message store, and how Discord\'s data model and data services fix it. Deep enough when you can explain Discord\'s partition key (channel plus time bucket) and what request coalescing saves.'),
   // 37
   hld('live-comments', 'YouTube live comments', 'real-time fan-out to millions of viewers',
     'explain how a comment reaches every viewer of a live video within 2 seconds, and how you scale the open connections',
@@ -223,8 +223,8 @@ export const SYSTEMS = [
     'explain how new articles show up within minutes while the feed stays fast for every reader',
     hi('problem-breakdowns/google-news')),
   // 42
-  { id: 'sd:observability-security', url: 'https://newsletter.systemdesign.one/', url2: 'https://sre.google/sre-book/monitoring-distributed-systems/',
-    understand: 'Later fundamentals · Observability (SLIs, logs, metrics, traces, alerts) and security basics (authentication vs authorisation, TLS, secrets). Search the System Design newsletter for its observability and security posts, then read the SRE book chapter on monitoring.',
+  { id: 'sd:observability-security', url: 'https://sre.google/sre-book/monitoring-distributed-systems/', url2: 'https://github.com/donnemartin/system-design-primer#security',
+    understand: 'Later fundamentals · Observability (SLIs, logs, metrics, traces, alerts) and security basics (authentication vs authorisation, TLS, secrets). Read the SRE book chapter "Monitoring Distributed Systems" (the four golden signals), then the System Design Primer\'s security section.',
     do: 'In a TS scratch file, wrap a fake HTTP handler with middleware that logs one JSON line per request (trace id, route, status, duration) and counts errors. Add a check that returns 401 with no token and 403 with the wrong role.',
     explain: 'Out loud, 3 min: the four golden signals, and which alert should wake someone up. Deep enough when you can explain authentication vs authorisation, and where a secret must never be (code, logs, the client).' },
   // 43
@@ -330,12 +330,12 @@ export const SYSTEMS = [
   mock('sd:hld-google-docs', 'Google Docs', hi('problem-breakdowns/google-docs'), { covers: ['sdm:hld-google-docs'] }),
   // 70
   caseStudy('jt:hiw-shopify-bfcm', 'Shopify Black Friday scale (how they prepare for BFCM).', 'https://shopify.engineering/bfcm-readiness-2025',
-    'Out loud, 3 min: how Shopify gets ready for its biggest traffic weekend: load tests, capacity and what they freeze. Deep enough when you can name 3 things you would copy for your own launch day.'),
+    'Out loud, 3 min: how Shopify gets ready for its biggest traffic weekend: load tests, capacity and what Shopify freezes. Deep enough when you can name 3 things you would copy for your own launch day.'),
   // 71
   mock('sdm:hld-rate-limiter', 'a rate limiter', hi('problem-breakdowns/distributed-rate-limiter'), { second: true }),
   // 72
   caseStudy('jt:hiw-cloudflare-nov-2025', "Cloudflare's 18 November 2025 outage postmortem.", 'https://blog.cloudflare.com/18-november-2025-outage/',
-    'Out loud, 3 min: what failed, how it spread and how they recovered. Deep enough when you can name the root cause and 2 changes that would have stopped it spreading.'),
+    'Out loud, 3 min: what failed at Cloudflare, how it spread and how Cloudflare recovered. Deep enough when you can name the root cause and 2 changes that would have stopped it spreading.'),
   // 73
   mock('sdm:hld-whatsapp', 'WhatsApp', hi('problem-breakdowns/whatsapp'), { second: true }),
   // 74

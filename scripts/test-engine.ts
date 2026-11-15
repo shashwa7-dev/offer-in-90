@@ -2,18 +2,12 @@
 // engine.ts has extensionless runtime imports, so this tests the pure builder (plan-build.ts) with the same wiring.
 import assert from 'node:assert/strict';
 import * as dsa from '../src/lib/content/dsa.js';
-import * as fe from '../src/lib/content/fe.js';
-import * as ux from '../src/lib/content/ux.js';
 import * as career from '../src/lib/content/career.js';
-import * as ai from '../src/lib/content/ai.js';
 import * as aiCore from '../src/lib/content/ai-core.js';
 import * as frontend from '../src/lib/content/frontend.js';
 import * as systems from '../src/lib/content/systems.js';
 import * as platform from '../src/lib/content/platform.js';
-import * as mc from '../src/lib/content/mc.js';
 import * as product from '../src/lib/content/product.js';
-import * as sd from '../src/lib/content/sd.js';
-import * as judgment from '../src/lib/content/judgment.js';
 import * as reference from '../src/lib/content/reference.js';
 import * as sundays from '../src/lib/content/sundays.js';
 import { buildTracks } from '../src/lib/tracks.ts';
@@ -26,7 +20,7 @@ import { counts } from '../src/lib/task-status.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
-const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...aiCore, ...frontend, ...mc, ...product, ...sd, ...systems, ...platform, ...judgment, ...reference, ...sundays };
+const content: Any = { ...dsa, ...career, ...aiCore, ...frontend, ...product, ...systems, ...platform, ...reference, ...sundays };
 const tracks: Any = buildTracks(content);
 const lib: Any = { content, tracks, layoutDays, cursorsAt, placeDay, resolveRoutine, WEEKDAY_BLOCKS, BUFFER_BLOCK, SUNDAY_BLOCKS };
 const START = '2026-11-16'; // a Monday
@@ -400,10 +394,19 @@ for (const [tr, plan, early] of [[tracks, S, false], [tracksEarly, SEarly, true]
     for (const x of L[i].slots.dsa?.items ?? []) if (x.pattern) covered.add(x.pattern);
   });
   assert.ok(revisits >= 20, `Steady has ${revisits} revisit days`);
+  // The spec's count: 23 (the last DSA rest day falls after DSA's final slot, so it is a buffer).
+  if (!early) assert.equal(revisits, 23, 'Steady has 23 revisit days');
   if (early) assert.ok(flaggedDays >= 1, 'early revisit day with nothing covered: re-solve a flagged problem');
   assert.ok(nonHardDays >= 1, 'before any hard pattern: picks from any covered pattern');
   // Grind never revisits
   assert.ok(!G.some((d) => d.tasks.some((t) => t.id.startsWith('rv:') || t.id.endsWith(':revisit-flagged'))));
+}
+// A revisit problem without a url gets no `url` key (not `url: undefined`).
+{
+  const noUrl: Any = { ...content, PROBLEMS: (content.PROBLEMS as Any[]).map(({ url, ...p }: Any) => (p.role === 'var' || p.tier === 'optional' ? p : { ...p, url })) };
+  const rv = buildPlanFrom({ ...base, modes: {} }, [], {}, { ...lib, content: noUrl }).flatMap((d) => d.tasks).filter((t: Any) => t.id.startsWith('rv:'));
+  assert.ok(rv.length > 0, 'revisits built');
+  assert.ok(rv.every((t: Any) => !('url' in t)), 'no url key on a url-less revisit');
 }
 
 console.log('test-engine: ok');

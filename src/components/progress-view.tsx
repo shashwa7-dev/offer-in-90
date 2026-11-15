@@ -30,7 +30,7 @@ export function ProgressView() {
   const todayGood = ti >= 0 && ti < days.length && (rates[ti] ?? 0) >= 0.8;
   const streak = goodStreak(rates.slice(0, Math.max(0, Math.min(ti, days.length)))) + (todayGood ? 1 : 0);
 
-  const cats = ['dsa', 'sd', 'fe', 'mc', 'proj', 'ai', 'ux', 'fde', 'beh'];
+  const cats = ['dsa', 'ai', 'sd', 'mc', 'proj', 'platform', 'beh', 'fde', 'fe'];
   const byCat = cats.map(c => {
     let due = 0, dn = 0, all = 0, allDone = 0;
     days.forEach(d => d.tasks.filter(t => t.cat === c && !isSkipped(t.id, done, state.status)).forEach(t => { all++; if (done[t.id]) allDone++; if (d.i < ti) { due++; if (done[t.id]) dn++; } }));

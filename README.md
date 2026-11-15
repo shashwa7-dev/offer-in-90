@@ -6,7 +6,7 @@ Built with Next.js (static export), Tailwind and shadcn/ui. Hosted on GitHub Pag
 
 ## How it fits together
 
-- **Curriculum:** the content files in `src/lib/content/` hold the resources, `src/lib/plan-data.js` re-exports them in the shape the engine reads, and `src/lib/engine.ts` turns them into days, then computes hours and progress. Item IDs are content-based (`fe:closures`, `p-two-sum`) and never change.
+- **Curriculum:** the content files in `src/lib/content/` hold the resources, `src/lib/plan-data.js` re-exports them in the shape the engine reads, and `src/lib/engine.ts` turns them into days, then computes hours and progress. Item IDs are content-based (`fe:rendering-path`, `p-two-sum`) and never change.
 - **Your data:** saved in the browser, and synced to a **private GitHub Gist** once you paste a gist-only token in Setup. The code in this repo holds no personal data.
 - **Update engine:** `.github/workflows/refresh-engine.yml`
   - The weekly cron (`30 23 * * 6`, Sunday 05:00 IST) runs a `full` audit.
@@ -16,20 +16,37 @@ Built with Next.js (static export), Tailwind and shadcn/ui. Hosted on GitHub Pag
   - The workflow commits the feed and redeploys.
   - The dashboard marks outdated tasks and adds must-reads to your Sunday catch-up.
 
+## Plan
+
+Seven tracks of 78 slots each, plus a generated recall block. Times are the default weekday (wake-up at 05:00 shifts them all).
+
+| Time | Track | What |
+| --- | --- | --- |
+| 05:15–06:15 | **DSA** (60 min) | Foundations, then 27 patterns × 2 days (teach problem, then an unseen one), then Phase 3: OA simulations, Google and Meta sets, revisits, advanced awareness |
+| 06:15–07:15 | **Recall + AI news** (60 min, generated) | Explain the last AI-core slot from memory (30 min), a Systems slot from 3–7 days ago (20 min), then the News tab (10 min) |
+| 08:00–10:00 | **AI engineering core** (2 h) | How LLMs work, using models, RAG, evals, agents, fine-tuning, inference, production AI, 8 AI designs and 3 timed mocks |
+| 10:15–11:45 | **Product** (1.5 h) | Mon–Fri: one real AI product, built and launched (59 steps + 2 take-homes). Saturdays: low-level design |
+| 13:00–14:30 | **Systems** (1.5 h) | Computers, networking, HLD fundamentals, DDIA, case studies, building blocks, 26 HLD designs and mocks |
+| 15:15–16:00 | **Platform, data and DevOps** (45 min) | DevOps basics, then SQL, Postgres, Docker, Kubernetes, Terraform, AWS, observability, data engineering, practical coding reps |
+| 16:00–17:00 | **Career and FDE** (1 h) | Behavioral, FDE stages, decomposition reps, teardowns, applications. Saturdays: mock day |
+| 20:00–21:00 | **Frontend, senior** (60 min) | Browser, React internals, data, security, architecture, frontend system design. Saturdays: a timed interview rep |
+
+The DSA revision block (14:45–15:15, re-solves and a recognition drill) and the daily review (21:00–21:30) are generated too. Sundays hold the weekly self-check, a read, and rest or revision.
+
 ## Content files (`src/lib/content/*.js`)
 
 | File | Holds |
 | --- | --- |
-| `dsa.js` | 27 patterns in teaching order, the tiered and flagged problem set, advanced topics |
-| `fe.js` | Frontend and CS core, one topic per item |
-| `mc.js` | Machine-coding builds, timed second passes, take-home simulations, the flagship project, LLD |
-| `sd.js` | System design sequence and the mock rotation |
-| `ai.js` | The evening AI hour and the 30-minute AI-build track |
-| `judgment.js` | The judgment thread (how it works, decision memo, practical coding, decomposition, code you did not write), depth reads, interview-environment tasks |
-| `ux.js` | Product and UX |
-| `career.js` | Behavioral and resume, forward-deployed track, company map |
+| `dsa.js` | 27 patterns in teaching order, the tiered and flagged problem set, foundations, advanced awareness, interview-environment tasks |
+| `ai-core.js` | The AI engineering core (78 rows) and the AI news sources |
+| `systems.js` | Systems and architecture (78 rows) |
+| `platform.js` | Platform, data and DevOps (76 rows, 78 slots) |
+| `product.js` | The flagship steps, the 2 take-homes and the 13 LLD sessions |
+| `career.js` | Career and FDE (65 weekday rows), the Saturday mock days, company map |
+| `frontend.js` | Frontend, senior (78 rows) |
 | `sundays.js` | The fixed Sunday core, readiness checks, rest and revision modes |
 | `reference.js` | Roadmap > Reference page, OA posts, "Explore later" |
+| `v3-dropped.js` | The v2 ids v3 does not place, and why (read by the coverage test only) |
 
 ## Modes
 

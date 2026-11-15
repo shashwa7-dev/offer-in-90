@@ -319,7 +319,7 @@ export const FLAGSHIP = [
     explain: 'Out loud, 3 min: the retro, as you would tell it in an interview. Deep enough when you can say what you now do differently when an AI writes your code.' },
 ];
 
-// Product engineer take-home simulations (v3 §5, moved from mc.js): weeks 7 and 10, Mon–Wed (3 × 90 min plus optional
+// Product engineer take-home simulations (v3 §5, moved from the v2 mc.js): weeks 7 and 10, Mon–Wed (3 × 90 min plus optional
 // Sunday time). Written in the style of the Linear and PostHog take-homes. The brief's link is on part 1. URLs checked 2026-11-15.
 export const TAKE_HOMES = [
   {
@@ -342,7 +342,7 @@ export const TAKE_HOMES = [
   },
 ];
 
-// LLD (v3 §5, moved from mc.js): the 13 Saturdays, the sessions from the board, unchanged.
+// LLD (v3 §5, moved from the v2 mc.js): the 13 Saturdays, the sessions from the board, unchanged.
 export const LLD = [
   { id: 'lld:oop-solid', text: 'LLD foundations: OOP principles + SOLID', url: 'https://www.baeldung.com/solid-principles' },
   { id: 'lld:creational-structural-patterns', text: 'LLD foundations: design patterns, creational + structural (use the masterclass video)', url: 'https://refactoring.guru/design-patterns' },

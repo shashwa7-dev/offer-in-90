@@ -1,5 +1,5 @@
 /* eslint-disable */
-// Sundays (roadmap v2 §17) and readiness checks (§11). The fixed core runs every Sunday (09:00–10:30): weekly self-check,
+// Sundays (roadmap v2 §17) and readiness checks (roadmap v3, "Assessments"). The fixed core runs every Sunday (09:00–10:30): weekly self-check,
 // reflection with a listen-back, next-week preview, and the readiness check or week-8 review when due. Then active rest or
 // revision mode (per-Sunday toggle, laid out by the engine). The Sunday read and optional items never count as "behind".
 // Item shape: { id, text, url?, mins?, depth?, slots? } plus extra keys. IDs are content-based (<prefix>:<slug>) and must never change.
@@ -56,19 +56,19 @@ export const SUNDAY_READS = [
   read('amazon-middle-mile', 'industry', "Amazon Science: navigating uncertainty in Amazon's middle-mile network (2026; logistics: truck routes and inventory under uncertain demand)", 'https://www.amazon.science/blog/navigating-uncertainty-in-amazons-middle-mile-network', false, true),
 ];
 
-// §11 readiness checks, shown as Sunday checks on the Sunday that ends Grind week `week`; applying is never required.
-// A failed check is suggested first in the next revision Sunday (engine). Text exactly as §11.
+// Readiness checks (roadmap v3, "Assessments"), shown as Sunday checks on the Sunday that ends Grind week `week`; applying
+// is never required. A failed check is suggested first in the next revision Sunday (engine). Text exactly as the spec.
 const ready = (week, text) => ({ id: `sun:readiness-w${week}`, week, text });
 export const READINESS = [
-  ready(4, '3 past-project deep dives rehearsed; story bank of 12 stories; pitch recorded; unseen checks passed for the hash map, prefix sum, two pointers, sliding window, cyclic sort and stack patterns; 3 decision memos; weekly test ≥ 70%.'),
-  ready(8, 'Linked List, Trees and Heaps green; 4 open-source fixes submitted; flagship has real-time and 1 AI feature working; take-home 1 done.'),
-  ready(10, 'unseen checks passed for 20 of the 27 patterns; 6 decomposition reps.'),
-  ready(12, 'all 27 patterns green (the second unseen solve comes from Phase 3 timed sets and mocks); the top-12 machine-coding builds done in ≤ 45 min.'),
-  ready(13, '3 full mock loops (product engineer, FDE, frontend SDE-2); flagship case study published; weekly test ≥ 80% for 3 weeks running.'),
+  ready(4, 'Explain from memory in 3 minutes how a transformer turns a prompt into the next token (tokens, embeddings, attention, MLP, logits, sampling), and what your tool-calling loop does when a tool fails. DSA: 11 patterns covered, each unseen problem solved in 45 minutes or flagged and re-solved. Systems: estimate QPS and storage for a URL shortener in 10 minutes and say where the cache, the replicas and the queue go. Platform: your product is deployed with a domain, HTTPS, CI on every PR, a database backup you have restored, and one alert.'),
+  ready(8, 'Design RAG over company docs in 45 minutes out loud, with an eval plan and permission-aware retrieval. Your product\'s Ask feature has an eval set gating CI, traces and one alert. 20 of the 23 patterns taught so far passed their unseen check.'),
+  ready(10, 'Your product has an agent action with tool permissions and an eval suite. One fine-tune vs RAG decision is written up with numbers. All 27 patterns are taught and at least 23 passed their unseen check; the rest are flagged.'),
+  ready(12, 'Two full mock loops done and passed by your own rubric. AI: design RAG, an inference platform and a ChatGPT-style product in 45 minutes each without notes. Your product has real users.'),
+  ready(13, 'You can teach each area of the fundamentals map in 3 minutes without notes. Your case study and demo video are published.'),
 ];
 
-// §11 week-8 review (Grind week 8 / Steady week 10), a fixed Sunday task. The spec's "(§13)" pointer is left out of the task text.
+// Week-8 review (Grind week 8 / Steady week 10), a fixed Sunday task, read against the week-8 readiness check.
 export const WEEK8_REVIEW = {
   id: 'sun:week8-review', week: 8,
-  text: 'Week-8 review: read the weekly-test trend, which patterns are green, the readiness checks, and the four depth tests. Then rebalance the remaining weeks: move optional reps into weak areas and note what to drop to optional. Write the result as a Notes page.',
+  text: 'Week-8 review: read the weekly-test trend, the week-8 readiness check (the RAG design, the Ask feature\'s eval gate, 20 of the 23 patterns taught so far), and the four depth tests. Then rebalance the remaining weeks: put extra time into the weakest area and note what to drop to optional. Write the result as a Notes page.',
 };

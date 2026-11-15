@@ -69,7 +69,8 @@ export const hrs = (m: number) => { const h = m / 60; return h >= 10 ? Math.roun
 /** Calendar days from `start` (day 1) to `date`. The days array index is this plus 1 when the prep day is on. */
 export const dayIndexOf = (start: string, date = new Date()) => Math.round((new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime() - parseISO(start).getTime()) / DAY_MS);
 export const phaseName = (p: number) => ['', 'Foundations', 'Depth', 'Interview mode'][p];
-export const catName: Record<string, string> = { dsa: 'DSA', fe: 'Frontend & CS', mc: 'Machine coding & LLD', proj: 'Flagship project', sd: 'System design', ux: 'Product & UX', beh: 'Career', fde: 'Forward-deployed', ai: 'AI', platform: 'Platform & DevOps', review: 'Review', update: 'Updates' };
+/** Category labels, aligned with the v3 track names (timeline.ts TRACKS): mc is the Product track's LLD Saturdays, proj its flagship. */
+export const catName: Record<string, string> = { dsa: 'DSA', ai: 'AI engineering', sd: 'Systems', mc: 'Product', proj: 'Product · flagship', platform: 'Platform & DevOps', beh: 'Career', fde: 'Career · FDE', ux: 'Career · UX', fe: 'Frontend', review: 'Review', update: 'Updates' };
 
 const LIB: PlanLib = {
   content: CONTENT, tracks: buildTracks(CONTENT), layoutDays, cursorsAt, placeDay, resolveRoutine,

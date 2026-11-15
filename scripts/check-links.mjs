@@ -7,7 +7,7 @@ const contentFiles = readdirSync('src/lib/content').filter(f => f.endsWith('.js'
 // tracks.ts and plan-build.ts hold the few URLs written outside the content files (prep-day and filler tasks).
 const sources = ['src/lib/plan-data.js', 'src/lib/engine.ts', 'src/lib/tracks.ts', 'src/lib/plan-build.ts', ...contentFiles];
 const scanned = sources.flatMap(f => readFileSync(f, 'utf8').match(/https?:\/\/[^\s'"`)<>\]]+/g) || []);
-// URLs built at runtime (template literals such as gh(...) in judgment.js) are skipped by the scan above, so the
+// URLs built at runtime (template literals in the content modules) are skipped by the scan above, so the
 // content modules are also imported and every exported string that is a URL is collected, already expanded.
 const walk = (v, out, seen = new Set()) => {
   if (typeof v === 'string') { if (/^https?:\/\/\S+$/.test(v)) out.push(v); return; }
@@ -17,9 +17,6 @@ const walk = (v, out, seen = new Set()) => {
 };
 const evaluated = [];
 for (const f of [...contentFiles, 'src/lib/plan-data.js']) walk(await import(pathToFileURL(f).href), evaluated);
-// tracks.ts builds the OSS setup fillers' links as https://github.com/${repo} (a .ts file, so not imported here).
-const { OSS_REPOS = [] } = await import(pathToFileURL('src/lib/content/judgment.js').href);
-for (const r of OSS_REPOS) if (r.repo) evaluated.push(`https://github.com/${r.repo}`);
 const urls = [...new Set([...scanned, ...evaluated])]
   .map(u => u.replace(/[.,;]+$/, ''))
   .filter(u => !u.includes('${') && !u.includes('…'));

@@ -2,15 +2,9 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import * as dsa from '../src/lib/content/dsa.js';
-import * as fe from '../src/lib/content/fe.js';
-import * as ux from '../src/lib/content/ux.js';
 import * as career from '../src/lib/content/career.js';
-import * as ai from '../src/lib/content/ai.js';
 import * as aiCore from '../src/lib/content/ai-core.js';
-import * as mc from '../src/lib/content/mc.js';
 import * as product from '../src/lib/content/product.js';
-import * as sd from '../src/lib/content/sd.js';
-import * as judgment from '../src/lib/content/judgment.js';
 import * as systems from '../src/lib/content/systems.js';
 import * as platform from '../src/lib/content/platform.js';
 import * as reference from '../src/lib/content/reference.js';
@@ -19,7 +13,9 @@ import { buildTracks, expandRow, GRIND_DOW, SLOTS } from '../src/lib/tracks.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
-const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...aiCore, ...mc, ...product, ...sd, ...systems, ...platform, ...judgment, ...reference, ...frontend };
+const content: Any = { ...dsa, ...career, ...aiCore, ...product, ...systems, ...platform, ...reference, ...frontend };
+// The v2 ids, frozen from e9600f2 (scripts/gen-v2-ids.mjs); test-v3-coverage.ts checks every one is placed or dropped.
+const V2: Record<string, string[]> = JSON.parse(readFileSync(new URL('./fixtures/v2-ids.json', import.meta.url), 'utf8'));
 // AI core (v3) absorbs v2 ids: each row's primary id is laid out in the AI core track; its `covers` ids are not laid out anywhere.
 const CORE: Any[] = aiCore.AI_CORE as Any[];
 const CORE_PLACED = new Set<string>(CORE.map((r) => r.id));
@@ -77,20 +73,20 @@ const MD_ROWS: Any[] = MD.flatMap((d) => [d.row, ...(d.carry ?? [])]);
 const CR_COVERS = new Set<string>([...CR, ...MD_ROWS].flatMap((r) => r.covers ?? []));
 const expected: string[] = [
   ...(dsa.PROBLEMS as Any[]).filter((p) => p.tier === 'must').map((p) => `p-${p.slug}`),
-  // v2 FE (fe.js), the sd:fe-* items, the FE mocks and the kept mc builds are laid out through FRONTEND (primary ids;
+  // v2 FE (the v2 fe.js), the sd:fe-* items, the FE mocks and the kept mc builds are laid out through FRONTEND (primary ids;
   // `covers` ids are not laid out anywhere).
   ...FR.map((r) => r.id),
-  // v2 UX is not laid out (dropped by owner choice; Task 9 deletes the module). BEH, FDE, DECOMP and TEARDOWNS are laid
+  // v2 UX is not laid out (dropped by owner choice, see v3-dropped.js). BEH, FDE, DECOMP and TEARDOWNS are laid
   // out through CAREER (primary ids; `covers` ids are not laid out anywhere).
   ...CR.map((r) => r.id), ...MD_ROWS.map((r) => r.id),
   ...CORE.map((r) => r.id),
   // Product (v3 §5): the flagship rows, the take-home parts and LLD. The v2 builds, timed passes and screenshot builds
-  // are not laid out (a few live on in Frontend; Task 9 deletes the rest).
+  // are not laid out (a few live on in Frontend; the rest are in v3-dropped.js).
   ...FLAG_ROWS.map((r) => r.id), ...(product.TAKE_HOMES as Any[]).flatMap((x) => x.parts), ...(product.LLD as Any[]),
   // v2 SD / SD_MOCKS / HOW_IT_WORKS are laid out through SYSTEMS (the sd:fe-* items through FRONTEND).
   ...SYS.map((r) => r.id),
   // v2 PRACTICAL, CODE_REVIEWS and the SRE read are laid out through PLATFORM. MEMOS and OSS_FIXES are dropped (spec).
-  ...PF.flatMap((r) => (r.parts === 2 ? [`${r.id}#1`, `${r.id}#2`] : [r.id])), ...(judgment.INTERVIEW_ENV as Any[]),
+  ...PF.flatMap((r) => (r.parts === 2 ? [`${r.id}#1`, `${r.id}#2`] : [r.id])), ...(dsa.INTERVIEW_ENV as Any[]),
 ].map((x: Any) => (typeof x === 'string' ? x : x.id));
 // Items that take 2 slots appear once per part, keyed by id + part.
 const seen = all.filter((x) => !x.filler).map((x) => (x.part ? `${x.id.replace(/:part-\d$/, '')}#${x.part[0]}` : x.id));
@@ -157,9 +153,9 @@ ORDER.forEach((o, j) => {
     assert.equal(T.dsa[i].items.filter((x: Any) => !x.id.startsWith('env:')).length, 1);
     assert.equal(head.url, (reference.OA_LINKS as string[])[+n - 1]);
     assert.match(head.text, /60 minutes/);
-  } else if (kind === 'google') { assert.equal(probs.length, 2); assert.match(head.text, /60 min/); assert.match(head.text, /Google Doc/);
-  } else if (kind === 'meta') { assert.equal(probs.length, 2); assert.match(head.text, /40 min/);
-  } else { assert.equal(probs.length, 2, `${o} 2 problems`); for (const p of probs) { const q = P.find((r) => r.slug === p.slug); assert.equal(q.role, 'var'); assert.ok(HARD.includes(q.pattern), `${p.slug} from a hard pattern`); } }
+  } else if (kind === 'google') { assert.equal(probs.length, 2); assert.match(head.text, /60 min/); assert.match(head.text, /Google Doc/); assert.equal(head.mins, 60);
+  } else if (kind === 'meta') { assert.equal(probs.length, 2); assert.match(head.text, /40 min/); assert.equal(head.mins, 40);
+  } else { assert.equal(probs.length, 2, `${o} 2 problems`); assert.match(head.text, /^Revisit \(45 min\): 2 problems from the hardest patterns/); assert.equal(head.mins, 45); for (const p of probs) { const q = P.find((r) => r.slug === p.slug); assert.equal(q.role, 'var'); assert.ok(HARD.includes(q.pattern), `${p.slug} from a hard pattern`); } }
   for (const p of probs) { const q = P.find((r) => r.slug === p.slug); assert.ok(q, p.id); assert.equal(p.id, `${head.id}:${p.slug}`); if (kind !== 'revisit') assert.notEqual(q.d, 'E', `${p.slug} medium or hard`); }
 });
 // Google and Meta sets draw the 16 tagged problems first; untagged medium/hard problems fill what is left.
@@ -183,7 +179,7 @@ const p3slugs = p3.filter((x: Any) => x.slug).map((x: Any) => x.slug);
 assert.equal(p3slugs.length, 22);
 assert.equal(new Set(p3slugs).size, 22, 'no problem twice in Phase 3');
 assert.ok(p3slugs.every((s: string) => !mustAll.some((p) => p.slug === s)), 'Phase 3 problems are not must-solves');
-for (const [n, env] of (judgment.INTERVIEW_ENV as Any[]).entries()) {
+for (const [n, env] of (dsa.INTERVIEW_ENV as Any[]).entries()) {
   const i = slotOf('dsa', env.id);
   assert.equal(Math.floor(i / 6) + 1, 10 + n, `${env.id} in week ${10 + n}`);
   assert.equal(Math.floor(i / 6) + 1, env.week);
@@ -246,15 +242,12 @@ for (const t of TRACKS.filter((t) => t !== 'dsa')) assert.ok(!T[t].some((s: Any)
     'aib:evals-test-cases', 'aib:evals-llm-judge', 'aib:llm-observability', 'aib:react-build-agent', 'aib:agents-sdk-build', 'aib:agents-long-running',
     'aib:transformers-js', 'aib:llm-gateway', 'aib:prompt-injection-attack', 'aib:multimodal-upload', 'aib:ai-assisted-feature'];
   assert.equal(AIB_HERE.length, 22);
-  for (const id of AIB_HERE) assert.ok((ai.AIB as Any[]).some((x) => x.id === id), `${id} is a v2 AIB id`);
-  const mustCover = [...(ai.AI_EVENING as Any[]).map((x) => x.id).filter((id) => !id.startsWith('ai:depth-ddia-')), ...(ai.AI_REVIEW as Any[]).map((x) => x.id), ...AIB_HERE];
+  for (const id of AIB_HERE) assert.ok(V2['ai.AIB'].includes(id), `${id} is a v2 AIB id`);
+  const mustCover = [...V2['ai.AI_EVENING'].filter((id) => !id.startsWith('ai:depth-ddia-')), ...V2['ai.AI_REVIEW'], ...AIB_HERE];
   for (const id of mustCover) assert.equal(counts.get(id), 1, `${id} once in AI core (primary or covers)`);
   for (const [id, k] of counts) assert.equal(k, 1, `${id} named once in AI core`);
   assert.equal(counts.get('ai:review-rag') && CORE[28].covers.includes('ai:review-rag'), true, 'slot 29 covers ai:review-rag');
   assert.ok(CORE[55].covers.includes('ai:constitutional-ai'), 'slot 56 covers ai:constitutional-ai');
-  // v2 urls reused: a slot whose primary id is a v2 item keeps that item's url.
-  const v2 = new Map<string, Any>([...(ai.AI_EVENING as Any[]), ...(ai.AIB as Any[]), ...(career.FDE as Any[]), ...(sd.SD as Any[])].map((x) => [x.id, x]));
-  for (const r of CORE) if (v2.get(r.id)?.url) assert.equal(r.url, v2.get(r.id).url, `${r.id} keeps its v2 url`);
   // Copy rules.
   for (const r of CORE) {
     assert.ok(!('after' in r), `${r.id} has no after`);
@@ -263,6 +256,9 @@ for (const t of TRACKS.filter((t) => t !== 'dsa')) assert.ok(!T[t].some((s: Any)
     assert.ok(!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(text), `${r.id} no emoji`);
   }
   for (const n of [10, 11]) assert.match(CORE[n - 1].understand, /read the code, no retyping/, `Karpathy GPT slot ${n}`);
+  // Slot 37 (the RAG design) has its own system-design source, not slot 27's contextual-retrieval post.
+  assert.ok(![CORE[26].url, CORE[26].url2].includes(CORE[36].url), 'slot 37 primary link differs from slot 27');
+  assert.match(CORE[36].url, /rag-solution-design/);
 }
 
 // ---------- sd (v3 Systems) ----------
@@ -346,10 +342,9 @@ for (const t of TRACKS.filter((t) => t !== 'dsa')) assert.ok(!T[t].some((s: Any)
     'sd:ddia-9a': ['sd:reliability'], 'sd:hld-robinhood': ['sdm:hld-robinhood'], 'sd:hld-instagram': ['sdm:hld-instagram'], 'sd:hld-google-docs': ['sdm:hld-google-docs'],
   };
   for (const r of SYS) assert.deepEqual([...(r.covers ?? [])].sort(), [...(COVERS[r.id] ?? [])].sort(), `${r.id} covers`);
-  // v2 ids keep their url.
-  const v2 = new Map<string, Any>([...(sd.SD as Any[]), ...(sd.SD_MOCKS as Any[]), ...(judgment.HOW_IT_WORKS as Any[])].map((x) => [x.id, x]));
-  for (const r of SYS) if (v2.get(r.id)?.url) assert.equal(r.url, v2.get(r.id).url, `${r.id} keeps its v2 url`);
-  assert.equal(SYS.find((r) => r.id === 'jt:hiw-stripe-idempotency').url, (judgment.JT_DEPTH_READS as Any[])[0].url);
+  // Every Understand pins a concrete source, and each case study's Explain names the company (no unclear "them").
+  assert.ok(!SYS.some((r) => /\bsearch the\b/i.test(r.understand ?? '')), 'no "search the …" Understand');
+  for (const r of SYS.filter((x) => x.id.startsWith('jt:hiw-'))) assert.ok(!/\b(them|they|their)\b/.test(r.explain), `${r.id} explain names the company`);
 }
 
 // ---------- ai: Frontend, senior (v3 §7; track key `ai`, cat `fe`) ----------
@@ -413,14 +408,14 @@ for (const t of TRACKS.filter((t) => t !== 'dsa')) assert.ok(!T[t].some((s: Any)
   const MOCKS: Record<string, string> = { 'sdm:fe-news-feed': 'news-feed', 'sdm:fe-chat-app': 'chat-app', 'sdm:fe-autocomplete': 'autocomplete',
     'sdm:fe-ecommerce': 'ecommerce', 'sdm:fe-google-sheets': 'spreadsheet', 'sdm:fe-video-player': 'video-player', 'sdm:fe-calendar': 'calendar',
     'sdm:fe-photo-gallery': 'photo-gallery' };
-  assert.deepEqual(Object.keys(MOCKS).sort(), (sd.SD_MOCKS as Any[]).map((m) => m.id).filter((id) => id.startsWith('sdm:fe-')).sort());
+  assert.deepEqual(Object.keys(MOCKS).sort(), V2['sd.SD_MOCKS'].filter((id) => id.startsWith('sdm:fe-')).sort());
   for (const [m, d] of Object.entries(MOCKS)) assert.ok((FR[at(`sd:fe-${d}`)].covers ?? []).includes(m), `sd:fe-${d} covers ${m}`);
   // Coverage: every FE id the spec maps to Frontend, the 18 sd:fe-* items and the 9 kept mc builds, once each (primary or covers).
   const NOT_HERE = ['fe:node-runtime', 'fe:sql', 'fe:nosql', 'fe:redis', 'fe:queues', 'fe:docker-ci', 'fe:api-design', 'fe:os-networking'];
   const counts = new Map<string, number>();
   for (const r of FR) for (const id of [r.id, ...(r.covers ?? [])]) counts.set(id, (counts.get(id) ?? 0) + 1);
-  const MUST = [...(fe.FE as Any[]).map((x) => x.id).filter((id) => !NOT_HERE.includes(id)),
-    ...(sd.SD as Any[]).map((x) => x.id).filter((id) => id.startsWith('sd:fe-')), ...Object.keys(MOCKS),
+  const MUST = [...V2['fe.FE'].filter((id) => !NOT_HERE.includes(id)),
+    ...V2['sd.SD'].filter((id) => id.startsWith('sd:fe-')), ...Object.keys(MOCKS),
     'mc:mini-react', 'mc:vdom-diff', 'mc:redux-store', 'mc:event-emitter', 'mc:promise-pool', 'mc:use-fetch', ...REHEARSALS];
   assert.equal(MUST.length, 41 + 18 + 8 + 12);
   for (const id of MUST) assert.equal(counts.get(id), 1, `${id} once in Frontend`);
@@ -432,8 +427,7 @@ for (const t of TRACKS.filter((t) => t !== 'dsa')) assert.ok(!T[t].some((s: Any)
   assert.ok(FR[at('sd:fe-micro-frontends')].covers.includes('fe:web-components'));
   assert.ok(FR[at('fe:state-management')].covers.includes('mc:redux-store'));
   assert.ok(FR[at('mc:mini-react')].covers.includes('mc:vdom-diff'));
-  // Learning rows: Understand (one https link) + Do + Explain ("Deep enough when you can"); v2 ids keep their v2 url.
-  const v2 = new Map<string, Any>([...(fe.FE as Any[]), ...(sd.SD as Any[])].map((x) => [x.id, x]));
+  // Learning rows: Understand (one https link) + Do + Explain ("Deep enough when you can").
   FR.forEach((r, i) => {
     const s = T.ai[i].items;
     assert.match(r.url, /^https:\/\//, `${r.id} url`);
@@ -442,17 +436,18 @@ for (const t of TRACKS.filter((t) => t !== 'dsa')) assert.ok(!T[t].some((s: Any)
     if (!r.kind) {
       assert.deepEqual(s.map((x: Any) => x.id), [r.id, `${r.id}:do`, `${r.id}:explain`], `slot ${i + 1} has 3 tasks`);
       assert.match(r.explain, /Deep enough when you can/, `${r.id} explain`);
-      if (v2.get(r.id)?.url) assert.equal(r.url, v2.get(r.id).url, `${r.id} keeps its v2 url`);
     }
     const text = [r.understand, r.do, r.explain, r.text].filter(Boolean).join(' ');
     assert.ok(!/basics/i.test(text), `${r.id} no "basics"`);
     assert.ok(!/python|pandas|notebook/i.test(text), `${r.id} no Python/pandas/notebook`);
     assert.ok(!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(text), `${r.id} no emoji`);
   });
+  // Browser security rows carry their own prefix (not Platform's name).
+  assert.ok(!FR.some((r) => /^Platform and security/.test(r.understand ?? '')), 'no "Platform and security" prefix');
   // No news task (that is the recall block's), no v2 AI evening or review item.
   const fr = T.ai.flatMap((s: Any) => s.items);
   assert.ok(!fr.some((x: Any) => /^ai:/.test(x.id) || x.filler), 'no ai:* item or filler in Frontend');
-  for (const n of (ai.AI_NEWS as Any[])) assert.equal(slotOf('ai', n.id), -1, `${n.id} not in Frontend`);
+  for (const n of (aiCore.AI_NEWS as Any[])) assert.equal(slotOf('ai', n.id), -1, `${n.id} not in Frontend`);
 }
 
 // ---------- mc: Product, the flagship (v3 §5) ----------
@@ -516,16 +511,11 @@ for (const t of TRACKS.filter((t) => t !== 'dsa')) assert.ok(!T[t].some((s: Any)
     55: 'proj:case-study', 56: 'proj:demo-video',
   };
   for (const [n, id] of Object.entries(STEP_IDS)) assert.equal(FLAG_ROWS[Number(n) - 1].id, id, `step ${n} is ${id}`);
-  // Every v2 PROJECT step and the local-first read keep their id and url.
-  for (const v2 of [...(mc.PROJECT as Any[]), ...(mc.PROJECT_DEPTH_READS as Any[])]) {
-    const r = FLAG_ROWS.find((x) => x.id === v2.id);
-    assert.ok(r, `${v2.id} reused`);
-    if (v2.url) assert.ok(FLAG_ROWS.some((x) => x.url === v2.url || x.url2 === v2.url), `${v2.id} url reused`);
-  }
-  // Step 19: the first AI feature absorbs aib:ai-sdk-react and keeps its url.
+  // Every v2 PROJECT step and the local-first read keep their id.
+  for (const id of [...V2['mc.PROJECT'], ...V2['mc.PROJECT_DEPTH_READS']]) assert.ok(FLAG_ROWS.some((x) => x.id === id), `${id} reused`);
+  // Step 19: the first AI feature absorbs aib:ai-sdk-react.
   const s19 = FLAG_ROWS[18];
   assert.deepEqual(s19.covers, ['aib:ai-sdk-react']);
-  assert.equal(s19.url, (ai.AIB as Any[]).find((x) => x.id === 'aib:ai-sdk-react').url);
   // The 6 product basics (◆).
   assert.deepEqual(FLAG_ROWS.map((r, k) => (r.basics === true ? k + 1 : 0)).filter(Boolean), [2, 3, 10, 20, 37, 49], 'basics at steps 2, 3, 10, 20, 37, 49');
   // The spec table's `after` links (17 steps, 16 distinct AI-core slots; steps 39 and 40 both wait for AI 24): product step → AI-core slot, as the first item id of that AI-core slot, at a lower Grind index.
@@ -547,7 +537,7 @@ for (const t of TRACKS.filter((t) => t !== 'dsa')) assert.ok(!T[t].some((s: Any)
   const KEPT = ['mc:mini-react', 'mc:autocomplete', 'mc:data-table', 'mc:infinite-scroll', 'mc:file-explorer', 'mc:modal', 'mc:nested-comments'];
   for (const t of TRACKS) for (const x of T[t].flatMap((s: Any) => s.items)) {
     if (t === 'ai' && KEPT.some((k) => x.id === k || x.id.startsWith(`${k}:`))) continue;
-    assert.ok(!(mc.MC as Any[]).some((m) => m.id === x.id) && !x.id.endsWith(':timed') && !x.id.startsWith('mc:screenshot-') && !x.id.startsWith('mc:revisit'), `${x.id} is not a v2 build`);
+    assert.ok(!V2['mc.MC'].includes(x.id) && !x.id.endsWith(':timed') && !x.id.startsWith('mc:screenshot-') && !x.id.startsWith('mc:revisit'), `${x.id} is not a v2 build`);
   }
 }
 
@@ -598,7 +588,7 @@ for (const t of TRACKS.filter((t) => t !== 'dsa')) assert.ok(!T[t].some((s: Any)
   const prac = T.jt.map((s: Any, i: number) => [i + 1, s] as [number, Any]).filter(([, s]) => s.items[0].id.startsWith('jt:practical-'));
   assert.deepEqual(prac.map(([n]) => n), [24, 28, 32, 38, 44, 47, 53, 58, 63, 67, 73, 78], 'practical slots');
   prac.forEach(([n], k) => assert.ok(Math.abs(n - (23 + 5 * k)) <= 2, `practical ${k + 1} at slot ${n}, within 2 of ${23 + 5 * k}`));
-  assert.deepEqual(prac.map(([, s]) => s.items[0].id).sort(), (judgment.PRACTICAL as Any[]).map((x) => x.id).sort(), 'the 12 v2 practical ids');
+  assert.deepEqual(prac.map(([, s]) => s.items[0].id).sort(), [...V2['judgment.PRACTICAL']].sort(), 'the 12 v2 practical ids');
   assert.equal(T.jt.flatMap((s: Any) => s.items).filter((x: Any) => x.id.startsWith('jt:practical-')).length, 12, 'exactly 12 practicals');
   for (const [n, s] of prac) {
     const r = PF.find((x) => x.id === s.items[0].id);
@@ -614,12 +604,11 @@ for (const t of TRACKS.filter((t) => t !== 'dsa')) assert.ok(!T[t].some((s: Any)
   const pairs = PF.filter((r) => r.parts === 2);
   assert.deepEqual(pairs.map((r) => r.id).sort(), ['fde:learning-round', 'fde:reengineering-round']);
   for (const r of pairs) assert.equal(slotOf('jt', `${r.id}:part-2`), slotOf('jt', `${r.id}:part-1`) + 1, `${r.id} on consecutive slots`);
-  // The 4 code-review reps keep their v2 ids and urls.
-  for (const v of judgment.CODE_REVIEWS as Any[]) {
-    const i = slotOf('jt', v.id), r = PF.find((x) => x.id === v.id);
-    assert.ok(i >= 0, `${v.id} placed`);
+  // The 4 code-review reps keep their v2 ids.
+  for (const id of V2['judgment.CODE_REVIEWS']) {
+    const i = slotOf('jt', id), r = PF.find((x) => x.id === id);
+    assert.ok(i >= 0, `${id} placed`);
     assert.equal(r.kind, 'rep');
-    assert.equal(T.jt[i].items[0].url, v.url, `${v.id} keeps its v2 url`);
   }
   // Auth and secrets (week 3) before Kubernetes and Terraform (from week 5).
   const firstInfra = Math.min(...T.jt.map((s: Any, i: number) => (s.items.some((x: Any) => /^(aib:containers|aib:terraform|pf:k8s-|pf:terraform-)/.test(x.id)) ? i : 99)));
@@ -628,7 +617,7 @@ for (const t of TRACKS.filter((t) => t !== 'dsa')) assert.ok(!T[t].some((s: Any)
   // Sourcing rule: the primer's "Scaling AWS to millions of users" on the AWS slot.
   assert.equal(T.jt[slotOf('jt', 'aib:aws')].items[0].url2, 'https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/scaling_aws/README.md');
   // SRE ch. 12 lives here, with its v2 url.
-  assert.equal(T.jt[slotOf('jt', 'jt:depth-sre-troubleshooting')].items[0].url, (judgment.JT_DEPTH_READS as Any[])[1].url);
+  assert.equal(T.jt[slotOf('jt', 'jt:depth-sre-troubleshooting')].items[0].url, 'https://sre.google/sre-book/effective-troubleshooting/');
   // No memo, OSS, how-it-works, decomposition or v2 Saturday mock item in this track.
   for (const x of T.jt.flatMap((s: Any) => s.items)) {
     assert.ok(!/^jt:(memo|oss|hiw|decomp|client-sim|ai-drill|mock|peer-mock|speed-pair|mock-loop)-/.test(x.id), `${x.id} not in Platform`);
@@ -643,7 +632,7 @@ for (const t of TRACKS.filter((t) => t !== 'dsa')) assert.ok(!T[t].some((s: Any)
   const V2_HERE = ['fde:linux-shell', 'fde:git-beyond-basics', 'fde:security', 'fe:sql', 'fe:use-the-index-luke-1', 'fe:use-the-index-luke-2', 'fde:sql-analysis',
     'fe:nosql', 'fe:redis', 'fe:queues', 'fe:node-runtime', 'aib:containers', 'aib:terraform', 'aib:devops', 'fe:docker-ci', 'jt:depth-sre-troubleshooting', 'aib:aws',
     'fde:data-pipelines', 'fde:data-warehouses', 'fde:data-audit-modeling', 'fde:integration-engineering', 'fde:reengineering-round', 'fde:learning-round',
-    'fde:practical-coding-log', ...(judgment.PRACTICAL as Any[]).map((x) => x.id), ...(judgment.CODE_REVIEWS as Any[]).map((x) => x.id)];
+    'fde:practical-coding-log', ...V2['judgment.PRACTICAL'], ...V2['judgment.CODE_REVIEWS']];
   const named = PF.flatMap((r) => [r.id, ...(r.covers ?? [])]);
   for (const id of V2_HERE) assert.equal(named.filter((x) => x === id).length, 1, `${id} named once in Platform`);
   assert.equal(new Set(named).size, named.length, 'no id named twice in Platform');
@@ -718,10 +707,12 @@ for (const t of TRACKS.filter((t) => t !== 'dsa')) assert.ok(!T[t].some((s: Any)
   const dsaOa = T.dsa.flatMap((s: Any) => s.items).filter((x: Any) => /^dsa:oa-\d+$/.test(x.id)).map((x: Any) => x.url);
   assert.deepEqual([...dsaOa].sort(), OA.slice(0, 8).sort(), 'DSA uses OA_LINKS[0..7]');
   assert.ok(codingUrls.every((u) => !dsaOa.includes(u)), 'disjoint from DSA');
-  const loopIds = [1, 2, 3, 4].flatMap((n) => [1, 2, 3].map((k) => `beh:loop-${n}-round-${k}`));
-  for (const id of [...coding, ...loopIds, ...[1, 2, 3, 4, 5].map((n) => `beh:ai-drill-${n}`)]) {
-    assert.equal(T.beh[slotOf('beh', id)].items.find((x: Any) => x.id === id).url2, RUBRIC, `${id} cites the coding rubric`);
+  // The coding rubric is the second link of the coding rounds only: OA rounds, AI drills and loop round 1 (not LLD or design rounds 2–3).
+  const item = (id: string) => T.beh[slotOf('beh', id)].items.find((x: Any) => x.id === id);
+  for (const id of [...coding, ...[1, 2, 3, 4].map((n) => `beh:loop-${n}-round-1`), ...[1, 2, 3, 4, 5].map((n) => `beh:ai-drill-${n}`)]) {
+    assert.equal(item(id).url2, RUBRIC, `${id} cites the coding rubric`);
   }
+  for (const id of [1, 2, 3, 4].flatMap((n) => [2, 3].map((k) => `beh:loop-${n}-round-${k}`))) assert.notEqual(item(id).url2, RUBRIC, `${id}: no coding rubric`);
   // covers on the Saturday rows
   const mdRow = (id: string) => MD_ROWS.find((r) => r.id === id);
   assert.deepEqual(mdRow('beh:ai-drill-1').covers, ['aib:ai-assisted-coding-round'], 'drill 1 covers the v2 AI-assisted round');
@@ -735,7 +726,6 @@ for (const t of TRACKS.filter((t) => t !== 'dsa')) assert.ok(!T[t].some((s: Any)
   assert.equal(new Set(named).size, named.length, 'no id named twice in Career');
   const DECOMP: Any[] = (career as Any).DECOMP;
   assert.equal(DECOMP?.length, 12, 'DECOMP lives in career.js');
-  assert.equal((judgment as Any).DECOMP, undefined, 'DECOMP moved out of judgment.js');
   for (const id of [...(career.BEH as Any[]), ...DECOMP, ...(career.TEARDOWNS as Any[])].map((x) => x.id).concat(FDE_KEPT)) {
     assert.equal(named.filter((x) => x === id).length, 1, `${id} once in Career`);
   }
