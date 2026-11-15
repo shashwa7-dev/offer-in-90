@@ -62,8 +62,8 @@ const ready = (week, text) => ({ id: `sun:readiness-w${week}`, week, text });
 export const READINESS = [
   ready(4, '3 past-project deep dives rehearsed; story bank of 12 stories; pitch recorded; unseen checks passed for the Arrays and Stack patterns; 3 decision memos; weekly test ≥ 70%.'),
   ready(8, 'Linked List, Trees and Heaps green; 4 open-source fixes submitted; flagship has real-time and 1 AI feature working; take-home 1 done.'),
-  ready(10, 'unseen checks passed for 18 of the 24 patterns; 6 decomposition reps.'),
-  ready(12, 'all 24 patterns green (the second unseen solve comes from Phase 3 timed sets and mocks); the top-12 machine-coding builds done in ≤ 45 min.'),
+  ready(10, 'unseen checks passed for 20 of the 27 patterns; 6 decomposition reps.'),
+  ready(12, 'all 27 patterns green (the second unseen solve comes from Phase 3 timed sets and mocks); the top-12 machine-coding builds done in ≤ 45 min.'),
   ready(13, '3 full mock loops (product engineer, FDE, frontend SDE-2); flagship case study published; weekly test ≥ 80% for 3 weeks running.'),
 ];
 

@@ -2,11 +2,10 @@
 import type { SolveLog } from './state-types';
 
 export type Dot = 'none' | 'check' | 'green';
-/** ○ none, ◐ the unseen check passed, ● green. Green wins. */
+/** none, the unseen check passed, green (the page draws each as a lucide icon). Green wins. */
 export function readinessDot(g: { green: boolean; unseenCheckPassed: boolean }): Dot {
   return g.green ? 'green' : g.unseenCheckPassed ? 'check' : 'none';
 }
-export const DOT_GLYPH: Record<Dot, string> = { none: '○', check: '◐', green: '●' };
 export const DOT_LABEL: Record<Dot, string> = { none: 'Not started', check: 'Unseen check passed', green: 'Green' };
 
 export const namePrompt = 'Unseen problem · press Start';
@@ -67,6 +66,28 @@ export function planDayMap(days: PlanDays): Map<string, number> {
   for (const d of days) for (const b of d.blocks) for (const t of b.tasks) if (t.id.startsWith('p-') && !t.superseded && !m.has(t.id.slice(2))) m.set(t.id.slice(2), d.no);
   return m;
 }
+/** slug → the day numbers of its live re-solve copies (`rs:<slug>:<k>`), sorted and unique. */
+export function resolveDayMap(days: PlanDays): Map<string, number[]> {
+  const m = new Map<string, number[]>();
+  for (const d of days) for (const b of d.blocks) for (const t of b.tasks) {
+    if (!t.id.startsWith('rs:') || t.superseded) continue;
+    const slug = t.id.split(':')[1];
+    if (!slug) continue;
+    const xs = m.get(slug) ?? [];
+    if (!xs.includes(d.no)) xs.push(d.no);
+    m.set(slug, xs);
+  }
+  for (const xs of m.values()) xs.sort((a, b) => a - b);
+  return m;
+}
+
+/** The pattern the plan teaches on day index `idx` (its card or a must-solve, live copies only), or null. */
+export function todayPattern(days: { blocks: { tasks: { id: string; pattern?: string; superseded?: true }[] }[] }[], idx: number): string | null {
+  for (const b of days[idx]?.blocks ?? []) for (const t of b.tasks)
+    if (t.pattern && !t.superseded && (t.id.startsWith('p-') || t.id.startsWith('dsa:card-') || t.id.startsWith('dsa:explain-back-'))) return t.pattern;
+  return null;
+}
+
 /** Day number of a problem in the plan (first live copy), or null. */
 export const planDayOf = (days: PlanDays, slug: string): number | null => planDayMap(days).get(slug) ?? null;
 

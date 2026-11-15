@@ -2,7 +2,7 @@
 /* Labels in the UI: swatches, chips, the apply popover, and the label list a task shows.
    Owner labels live in State.labels / State.itemLabels; system labels are derived (labelsOf) and read-only. */
 import { useState } from 'react';
-import { Check, Tag } from 'lucide-react';
+import { Check, Flame, Star, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useStore, type State } from '@/lib/store';
 import { labelsOf, type TaskMeta } from '@/lib/labels';
@@ -19,7 +19,7 @@ export const DEFAULT_SWATCH = SWATCHES[0];
 export interface LabelView { id: string; name: string; color?: string; system: boolean; group?: string }
 
 const TIER_NAME: Record<string, string> = { must: 'Must-solve', optional: 'Optional' };
-const FREQ_NAME: Record<string, string> = { hot: '🔥 Frequent', 'hard-hot': '⭐ Hard but frequent' };
+const FREQ_NAME: Record<string, string> = { hot: 'Frequent', 'hard-hot': 'Hard but frequent' };
 const GROUP_NAME: Record<string, string> = { pattern: 'Pattern', tier: 'Tier', freq: 'Frequency', source: 'Source', flagged: 'Flagged', depth: 'Depth' };
 
 /** Display name of a system label id, or null if it is not one. */
@@ -70,8 +70,12 @@ export function LabelDot({ color }: { color?: string }) {
   return color ? <span aria-hidden="true" className="size-2 shrink-0 rounded-full" style={{ background: color }} /> : null;
 }
 
+/** The frequency flags are drawn as lucide icons (Flame, Star), never emoji. */
+const FREQ_ICON: Record<string, typeof Flame> = { 'sys:freq:hot': Flame, 'sys:freq:hard-hot': Star };
+
 export function LabelChip({ v, className }: { v: LabelView; className?: string }) {
-  return <Chip data-label-chip={v.id} className={cn('max-w-40', className)} title={v.system ? `${v.group}: ${v.name}` : v.name}><LabelDot color={v.color} /><span className="truncate">{v.name}</span></Chip>;
+  const Icon = FREQ_ICON[v.id];
+  return <Chip data-label-chip={v.id} className={cn('max-w-40', className)} title={v.system ? `${v.group}: ${v.name}` : v.name}>{Icon && <Icon aria-hidden="true" data-flag-icon={v.id.slice(9)} className="size-3 shrink-0" />}<LabelDot color={v.color} /><span className="truncate">{v.name}</span></Chip>;
 }
 
 /** Owner labels with a checkbox each, grouped; a single-choice group acts as radio. Callers apply the change with applyLabel / removeLabel. */

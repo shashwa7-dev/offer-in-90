@@ -1,13 +1,15 @@
 // Run: node --experimental-strip-types scripts/test-patterns.ts
 import assert from 'node:assert/strict';
-import { PATTERNS, PROBLEMS, FLAG_SOURCE, ADV_DSA } from '../src/lib/content/dsa.js';
+import { PATTERNS, PROBLEMS, FLAG_SOURCE, ADV_DSA, TOPICS } from '../src/lib/content/dsa.js';
 import { addOwnProblem, greenStatus, PATTERN_IDS } from '../src/lib/patterns.ts';
 
-const IDS = ['hash-map', 'prefix-sum', 'two-pointers', 'sliding-window', 'stack-monotonic', 'binary-search', 'cyclic-sort', 'fast-slow', 'll-reversal', 'tree-bfs', 'tree-dfs', 'trie', 'top-k', 'two-heaps', 'k-way-merge', 'backtracking', 'graph-traversal', 'topo-sort', 'union-find', 'shortest-path-mst', 'intervals', 'greedy', 'dp', 'bits'];
+// Task 14: 27 patterns. matrix after graph-traversal, design-ds after trie, math before bits.
+const IDS = ['hash-map', 'prefix-sum', 'two-pointers', 'sliding-window', 'stack-monotonic', 'binary-search', 'cyclic-sort', 'fast-slow', 'll-reversal', 'tree-bfs', 'tree-dfs', 'trie', 'design-ds', 'top-k', 'two-heaps', 'k-way-merge', 'backtracking', 'graph-traversal', 'matrix', 'topo-sort', 'union-find', 'shortest-path-mst', 'intervals', 'greedy', 'dp', 'math', 'bits'];
+const NEW = ['matrix', 'design-ds', 'math'];
 const NO_LINK = ['cyclic-sort', 'hash-map', 'bits', 'shortest-path-mst'];
 
 // pattern list
-assert.equal(PATTERNS.length, 24);
+assert.equal(PATTERNS.length, 27);
 assert.deepEqual(PATTERNS.map((p: any) => p.id), IDS);
 assert.deepEqual([...PATTERN_IDS], IDS);
 for (const p of PATTERNS as any[]) {
@@ -17,6 +19,21 @@ for (const p of PATTERNS as any[]) {
   else assert.ok(typeof p.link === 'string' && p.link.startsWith('https://'), `${p.id}.link`);
 }
 assert.deepEqual(PATTERNS.find((p: any) => p.id === 'dp').sub, ['fibonacci', '0-1-knapsack', 'unbounded-knapsack', 'lcs-strings', 'palindromes', 'grid']);
+const subOf = (id: string) => PATTERNS.find((p: any) => p.id === id).sub;
+assert.deepEqual(subOf('binary-search'), ['on-answer']);
+assert.deepEqual(subOf('top-k'), ['quickselect']);
+assert.deepEqual(subOf('graph-traversal'), ['multi-source-bfs']);
+assert.deepEqual(subOf('stack-monotonic'), ['monotonic-queue']);
+assert.deepEqual(subOf('two-pointers'), ['dutch-flag', 'strings']);
+const pat = (id: string) => PATTERNS.find((p: any) => p.id === id);
+assert.deepEqual(NEW.map((id) => [pat(id).name, pat(id).topic]), [['Matrix and simulation', 'Arrays and strings'], ['Design a data structure', 'Design'], ['Math and number tricks', 'Math']]);
+for (const id of NEW) assert.ok(typeof pat(id).link === 'string', `${id} has one free link`);
+
+// topics: 13 + Design + Math, in order of first appearance in the teaching order; old names merged away
+const TOPIC_LIST = ['Arrays and strings', 'Stack', 'Binary search', 'Linked list', 'Trees', 'Tries', 'Design', 'Heap', 'Backtracking', 'Graphs', 'Intervals', 'Greedy', 'Dynamic programming', 'Math', 'Bit manipulation'];
+assert.deepEqual(TOPICS, TOPIC_LIST);
+assert.deepEqual([...new Set(PATTERNS.map((p: any) => p.topic))], TOPIC_LIST);
+for (const t of ['Arrays and hashing', 'Arrays', 'Advanced graphs']) assert.ok(!PATTERNS.some((p: any) => p.topic === t), `${t} merged`);
 assert.deepEqual(FLAG_SOURCE, { name: 'liquidslr/leetcode-company-wise-problems', asOf: '2025-10' });
 assert.ok(Array.isArray(ADV_DSA) && ADV_DSA.length === 8);
 
@@ -31,8 +48,27 @@ for (const p of PROBLEMS as any[]) {
   assert.ok(p.name && p.url.startsWith('https://'), `${p.slug} name/url`);
   if (p.tier === 'optional') assert.equal(p.role, undefined, `${p.slug} optional has no role`);
   else assert.ok(['teach', 'var', 'unseen'].includes(p.role), `${p.slug} role`);
-  if (p.sub !== undefined) { assert.equal(p.pattern, 'dp'); assert.ok(DP_SUBS.includes(p.sub), p.slug); }
+  if (p.sub !== undefined) assert.ok((pat(p.pattern).sub ?? []).includes(p.sub), `${p.slug} sub ${p.sub}`);
 }
+void DP_SUBS;
+// every declared sub-tag has at least one problem
+for (const pt of PATTERNS as any[]) for (const sub of pt.sub ?? []) assert.ok(PROBLEMS.some((p: any) => p.pattern === pt.id && p.sub === sub), `${pt.id}/${sub} has a problem`);
+const bySlug = (s: string) => PROBLEMS.find((p: any) => p.slug === s);
+assert.equal(bySlug('koko-eating-bananas').sub, 'on-answer');
+assert.equal(bySlug('kth-largest-element-in-an-array').sub, 'quickselect');
+assert.equal(bySlug('rotting-oranges').sub, 'multi-source-bfs');
+
+// refiles (happy-number stays under fast-slow) and new problems
+const REFILE: Record<string, string> = { 'spiral-matrix': 'matrix', 'rotate-image': 'matrix', 'set-matrix-zeroes': 'matrix', 'game-of-life': 'matrix',
+  'lru-cache': 'design-ds', 'min-stack': 'design-ds', 'design-twitter': 'design-ds', 'insert-delete-getrandom-o1': 'design-ds',
+  'powx-n': 'math', 'multiply-strings': 'math', 'sqrtx': 'math', 'happy-number': 'fast-slow', 'sort-colors': 'two-pointers',
+  'find-the-index-of-the-first-occurrence-in-a-string': 'two-pointers' };
+for (const [s, p] of Object.entries(REFILE)) assert.equal(bySlug(s)?.pattern, p, `${s} → ${p}`);
+assert.equal(bySlug('sort-colors').sub, 'dutch-flag');
+assert.equal(bySlug('find-the-index-of-the-first-occurrence-in-a-string').sub, 'strings');
+assert.equal(bySlug('find-the-index-of-the-first-occurrence-in-a-string').tier, 'optional', 'KMP is optional');
+assert.equal(bySlug('sqrtx').name, 'Sqrt(x)');
+assert.equal(bySlug('insert-delete-getrandom-o1').name, 'Insert Delete GetRandom O(1)');
 
 // must-solve set
 const must = PROBLEMS.filter((p: any) => p.tier === 'must');
@@ -41,8 +77,15 @@ for (const id of IDS) {
   assert.ok(m.length >= 3 && m.length <= 5, `${id} has ${m.length} must`);
   assert.equal(m.filter((p: any) => p.role === 'teach').length, 1, `${id} teach`);
   assert.equal(m.filter((p: any) => p.role === 'unseen').length, 1, `${id} unseen`);
+  assert.ok(m.some((p: any) => p.role === 'var'), `${id} var`);
+  if (NEW.includes(id)) assert.deepEqual(m.map((p: any) => p.role).sort(), ['teach', 'unseen', 'var'], `${id}: exactly one teach, var, unseen`);
 }
 assert.ok(must.length >= 90 && must.length <= 100, `must total ${must.length}`);
+// demoted to optional to keep the must-solve total ≤ 100 (never a hot/hard-hot problem; nothing deleted)
+const DEMOTED = ['longest-repeating-character-replacement', 'middle-of-the-linked-list', 'reverse-linked-list-ii', 'k-closest-points-to-origin', 'find-k-pairs-with-smallest-sums', 'number-of-connected-components-in-an-undirected-graph', 'counting-bits'];
+for (const s of DEMOTED) { assert.equal(bySlug(s).tier, 'optional', `${s} demoted`); assert.deepEqual(bySlug(s).flags, [], `${s} not flagged`); }
+// every flagged must-solve stays must (the two flagged frequent extras were optional already)
+for (const p of PROBLEMS as any[]) if (p.flags.length && !['majority-element', 'longest-common-prefix'].includes(p.slug)) assert.equal(p.tier, 'must', `${p.slug} flagged stays must`);
 const mustSlugs = new Set(must.map((p: any) => p.slug));
 for (const s of ['trapping-rain-water', 'minimum-window-substring', 'merge-k-sorted-lists', 'find-median-from-data-stream', 'word-ladder',
   'subarray-sum-equals-k', 'minimum-remove-to-make-valid-parentheses', 'lowest-common-ancestor-of-a-binary-tree', 'basic-calculator-ii', 'next-permutation', 'find-peak-element', 'merge-sorted-array'])
@@ -77,6 +120,7 @@ assert.deepEqual(addOwnProblem({}, plan, { url: 'https://leetcode.com/problems/T
 assert.deepEqual(addOwnProblem({}, plan, { url: 'https://example.com', name: 'X', diff: 'E', pattern: 'hash-map' }), { error: 'not-leetcode' });
 assert.deepEqual(addOwnProblem({}, plan, { url: 'https://example.com/problems/foo', name: 'X', diff: 'E', pattern: 'hash-map' }), { error: 'not-leetcode' });
 assert.deepEqual(addOwnProblem({}, plan, { url: 'https://leetcode.com/problems/', name: 'X', diff: 'E', pattern: 'hash-map' }), { error: 'not-leetcode' });
+assert.ok(PATTERN_IDS.includes('matrix' as any) && PATTERN_IDS.includes('design-ds' as any) && PATTERN_IDS.includes('math' as any));
 const r1: any = addOwnProblem({}, plan, { url: 'https://leetcode.com/problems/4sum/description/', name: '4Sum', diff: 'M', pattern: 'two-pointers' }, 1000);
 assert.deepEqual(r1, { own: { '4sum': { slug: '4sum', url: 'https://leetcode.com/problems/4sum/', name: '4Sum', diff: 'M', pattern: 'two-pointers', at: 1000 } } });
 // adding the same slug again keeps one entry

@@ -1,6 +1,7 @@
 // Run: node --experimental-strip-types scripts/test-dsa-page.ts
 import assert from 'node:assert/strict';
-import { readinessDot, solveKeyOf, solveOnStatus, patchSolve, planDayOf, planDayMap } from '../src/lib/dsa-page.ts';
+import { readinessDot, solveKeyOf, solveOnStatus, patchSolve, planDayOf, planDayMap, resolveDayMap, todayPattern, DOT_LABEL } from '../src/lib/dsa-page.ts';
+import * as dsaPage from '../src/lib/dsa-page.ts';
 
 // readiness dot: none / unseen check passed / green
 assert.equal(readinessDot({ unseenSolved: 0, blankResolve: false, green: false, unseenCheckPassed: false }), 'none');
@@ -75,5 +76,30 @@ assert.equal(planDayOf(days, 'two-sum'), 4);
 assert.equal(planDayOf(days, 'old'), 4);
 assert.equal(planDayOf(days, 'nope'), null);
 
-console.log('test-dsa-page: ok');
 assert.deepEqual([...planDayMap(days)], [['two-sum', 4], ['old', 4]]);
+
+// re-solve days: every live rs:<slug>:<k> copy, sorted, superseded copies skipped
+const rdays = [
+  { no: 4, blocks: [{ tasks: [{ id: 'p-two-sum' }] }] },
+  { no: 7, blocks: [{ tasks: [{ id: 'rs:two-sum:3' }, { id: 'rs:old:3', superseded: true as const }] }] },
+  { no: 25, blocks: [{ tasks: [{ id: 'rs:two-sum:21' }] }] },
+  { no: 11, blocks: [{ tasks: [{ id: 'rs:two-sum:7' }, { id: 'rs:two-sum:7' }] }] },
+];
+assert.deepEqual([...resolveDayMap(rdays)], [['two-sum', [7, 11, 25]]]);
+
+// default pattern on open: the pattern the plan teaches today (live copies only), else null
+const tdays = [
+  { no: 0, blocks: [{ tasks: [{ id: 'k-wo' }] }] },
+  { no: 1, blocks: [{ tasks: [{ id: 'p-two-sum', pattern: 'hash-map', superseded: true as const }, { id: 'dsa:card-prefix-sum', pattern: 'prefix-sum' }, { id: 'p-range-sum-query-immutable', pattern: 'prefix-sum' }] }] },
+  { no: 2, blocks: [{ tasks: [{ id: 'dsa:timed-meta-1' }, { id: 'rs:two-sum:3', pattern: 'hash-map' }] }] },
+];
+assert.equal(todayPattern(tdays, 1), 'prefix-sum');
+assert.equal(todayPattern(tdays, 0), null);
+assert.equal(todayPattern(tdays, 2), null, 're-solves and timed sets do not pick a pattern');
+assert.equal(todayPattern(tdays, 9), null);
+
+// icons, not glyphs: the page maps each dot to a lucide icon; only the labels live here
+assert.equal('DOT_GLYPH' in dsaPage, false);
+assert.deepEqual(DOT_LABEL, { none: 'Not started', check: 'Unseen check passed', green: 'Green' });
+
+console.log('test-dsa-page: ok');

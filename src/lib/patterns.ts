@@ -1,7 +1,7 @@
 /* DSA patterns: own problems and the per-pattern "green" rule (roadmap v2 §2). Pure: type-only imports. */
 import type { OwnProblem, SolveLog } from './state-types';
 
-export const PATTERN_IDS = ['hash-map', 'prefix-sum', 'two-pointers', 'sliding-window', 'stack-monotonic', 'binary-search', 'cyclic-sort', 'fast-slow', 'll-reversal', 'tree-bfs', 'tree-dfs', 'trie', 'top-k', 'two-heaps', 'k-way-merge', 'backtracking', 'graph-traversal', 'topo-sort', 'union-find', 'shortest-path-mst', 'intervals', 'greedy', 'dp', 'bits'] as const;
+export const PATTERN_IDS = ['hash-map', 'prefix-sum', 'two-pointers', 'sliding-window', 'stack-monotonic', 'binary-search', 'cyclic-sort', 'fast-slow', 'll-reversal', 'tree-bfs', 'tree-dfs', 'trie', 'design-ds', 'top-k', 'two-heaps', 'k-way-merge', 'backtracking', 'graph-traversal', 'matrix', 'topo-sort', 'union-find', 'shortest-path-mst', 'intervals', 'greedy', 'dp', 'math', 'bits'] as const;
 export type PatternId = (typeof PATTERN_IDS)[number];
 type Diff = 'E' | 'M' | 'H';
 type PlanProblem = { slug: string; d: Diff | string; pattern: string; role?: string };

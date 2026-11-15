@@ -1,7 +1,7 @@
 // Content assertions (roadmap v2 Task 4). Run: node --experimental-strip-types scripts/test-content.ts
 import assert from 'node:assert/strict';
 import { FE, FE_DEPTH_READS } from '../src/lib/content/fe.js';
-import { FOUNDATIONS } from '../src/lib/content/dsa.js';
+import { FOUNDATIONS, PATTERNS as DSA_PATTERNS } from '../src/lib/content/dsa.js';
 import { UX } from '../src/lib/content/ux.js';
 import { BEH, FDE, COMPANY_MAP, TEARDOWNS } from '../src/lib/content/career.js';
 import { AIB_MOVED, AIB, AI_EVENING, AI_REVIEW, AI_NEWS } from '../src/lib/content/ai.js';
@@ -14,6 +14,13 @@ import { EXPLORE_LATER, FOCUS_RULES } from '../src/lib/content/reference.js';
 
 // AIB contains the AIB_MOVED items, so AIB_MOVED itself is not listed again.
 // TAKE_HOMES briefs and their parts are listed alongside so their ids are checked too.
+// Task 14: the three new DSA patterns each keep one free source link (curl 200 on 2026-11-15)
+{
+  const link = (id: string) => (DSA_PATTERNS as any[]).find((p) => p.id === id)?.link;
+  assert.equal(link('matrix'), 'https://www.techinterviewhandbook.org/algorithms/matrix/');
+  assert.equal(link('design-ds'), 'https://www.geeksforgeeks.org/system-design/lru-cache-implementation/');
+  assert.equal(link('math'), 'https://www.techinterviewhandbook.org/algorithms/math/');
+}
 const ALL_ID_LISTS: any[][] = [FOUNDATIONS, FE, FE_DEPTH_READS, UX, BEH, FDE, TEARDOWNS, AIB, AI_EVENING, AI_REVIEW, AI_NEWS,
   MC, MC_SCREENSHOT, TAKE_HOMES, TAKE_HOMES.flatMap((b: any) => b.parts), PROJECT, PROJECT_DEPTH_READS, LLD, SD, SD_MOCKS,
   // JT_DEPTH_READS[0] is the Stripe item of HOW_IT_WORKS (the same object), so only the SRE read is listed again.
@@ -404,8 +411,8 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
   const READY = {
     4: '3 past-project deep dives rehearsed; story bank of 12 stories; pitch recorded; unseen checks passed for the Arrays and Stack patterns; 3 decision memos; weekly test ≥ 70%.',
     8: 'Linked List, Trees and Heaps green; 4 open-source fixes submitted; flagship has real-time and 1 AI feature working; take-home 1 done.',
-    10: 'unseen checks passed for 18 of the 24 patterns; 6 decomposition reps.',
-    12: 'all 24 patterns green (the second unseen solve comes from Phase 3 timed sets and mocks); the top-12 machine-coding builds done in ≤ 45 min.',
+    10: 'unseen checks passed for 20 of the 27 patterns; 6 decomposition reps.',
+    12: 'all 27 patterns green (the second unseen solve comes from Phase 3 timed sets and mocks); the top-12 machine-coding builds done in ≤ 45 min.',
     13: '3 full mock loops (product engineer, FDE, frontend SDE-2); flagship case study published; weekly test ≥ 80% for 3 weeks running.',
   };
   assert.deepEqual(READINESS.map((x) => x.week), [4, 8, 10, 12, 13]);

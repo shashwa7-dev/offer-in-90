@@ -10,7 +10,7 @@ import * as mc from '../src/lib/content/mc.js';
 import * as sd from '../src/lib/content/sd.js';
 import * as judgment from '../src/lib/content/judgment.js';
 import * as reference from '../src/lib/content/reference.js';
-import { buildTracks, GRIND_DOW } from '../src/lib/tracks.ts';
+import { buildTracks, GRIND_DOW, SLOTS } from '../src/lib/tracks.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
@@ -83,10 +83,20 @@ const PATS = (dsa.PATTERNS as Any[]).map((p) => p.id);
 assert.deepEqual(T.dsa.slice(0, 5).map((s: Any) => s.items.map((x: Any) => x.id)), (dsa.FOUNDATIONS as Any[]).map((x) => [x.id]), 'foundations from content in slots 0–4');
 assert.notEqual(T.dsa[0].items[0], (dsa.FOUNDATIONS as Any[])[0], 'slot items are copies');
 assert.notEqual(all.find((x) => x.flags)?.flags, (dsa.PROBLEMS as Any[]).find((p) => all.find((x) => x.flags)?.slug === p.slug).flags, 'flags copied');
-const dsaProblems = T.dsa.slice(0, 54).flatMap((s: Any) => s.items).filter((x: Any) => x.id.startsWith('p-')).map((x: Any) => x.id);
-assert.deepEqual(dsaProblems, (dsa.PROBLEMS as Any[]).filter((p) => p.tier === 'must').map((p) => `p-${p.slug}`), '24 patterns in order, must-solve only');
 const lastPatternSlot = Math.max(...T.dsa.map((s: Any, i: number) => (s.items.some((x: Any) => x.id.startsWith('p-') || x.id.startsWith('dsa:card-')) ? i : -1)));
-assert.ok(lastPatternSlot <= 53, `patterns end by slot 53 (got ${lastPatternSlot})`);
+assert.ok(lastPatternSlot <= 57, `patterns end by slot 57 (got ${lastPatternSlot})`);
+const dsaProblems = T.dsa.slice(0, lastPatternSlot + 1).flatMap((s: Any) => s.items).filter((x: Any) => x.id.startsWith('p-')).map((x: Any) => x.id);
+// must-solve problems in the pattern teaching order (not ROWS order)
+const mustInOrder = PATS.flatMap((id: string) => (dsa.PROBLEMS as Any[]).filter((p) => p.tier === 'must' && p.pattern === id)).map((p) => `p-${p.slug}`);
+assert.deepEqual(dsaProblems, mustInOrder, '27 patterns in order, must-solve only');
+assert.equal(PATS.length, 27);
+const perSlot = T.dsa.slice(5, lastPatternSlot + 1).map((s: Any) => s.items.filter((x: Any) => x.id.startsWith('p-')).length);
+assert.ok(perSlot.slice(0, -1).every((n: number) => n === 2) && [1, 2].includes(perSlot[perSlot.length - 1]), '2 problems per pattern block (the last may hold 1)');
+// the three new patterns sit where the teaching order puts them
+const firstSlot = (p: string) => T.dsa.findIndex((s: Any) => s.items.some((x: Any) => x.id === `dsa:card-${p}`));
+assert.ok(firstSlot('trie') < firstSlot('design-ds') && firstSlot('design-ds') <= firstSlot('top-k'), 'design-ds after trie');
+assert.ok(firstSlot('graph-traversal') < firstSlot('matrix') && firstSlot('matrix') <= firstSlot('topo-sort'), 'matrix after graph-traversal');
+assert.ok(firstSlot('dp') < firstSlot('math') && firstSlot('math') <= firstSlot('bits'), 'math before bits');
 for (const p of PATS) {
   const slots = T.dsa.map((s: Any, i: number) => (s.items.some((x: Any) => x.id.startsWith('p-') && x.pattern === p) ? i : -1)).filter((i: number) => i >= 0);
   assert.ok(has('dsa', slots[0], new RegExp(`^dsa:card-${p}$`)), `${p} card on first slot`);
@@ -98,10 +108,14 @@ for (const p of PATS) {
 }
 for (const x of all.filter((x) => x.role === 'unseen')) assert.equal(x.hiddenUntilStart, true, `${x.id} hiddenUntilStart`);
 assert.ok(all.filter((x) => x.hiddenUntilStart).every((x) => x.role === 'unseen'), 'only unseen checks hidden');
-for (let i = 54; i < 62; i++) assert.ok(has('dsa', i, /^adv:/), `dsa[${i}] ADV_DSA`);
+// ADV_DSA follows the patterns, 8 slots; the Phase 3 timed sets fill the rest (the 3 new patterns took their slots).
+const ADV0 = lastPatternSlot + 1, P3 = ADV0 + 8;
+for (let i = ADV0; i < P3; i++) assert.ok(has('dsa', i, /^adv:/), `dsa[${i}] ADV_DSA`);
+assert.equal(T.dsa.flatMap((s: Any) => s.items).filter((x: Any) => x.id.startsWith('adv:')).length, 8, 'ADV_DSA 8 slots');
+assert.ok(SLOTS - P3 >= 12, `Phase 3 keeps at least 12 timed slots (got ${SLOTS - P3})`);
 const KINDS = ['meta', 'google', 'oa', 'ai-drill'];
-for (let i = 62; i < 78; i++) {
-  const k = KINDS[(i - 62) % 4], head = T.dsa[i].items[0];
+for (let i = P3; i < 78; i++) {
+  const k = KINDS[(i - P3) % 4], head = T.dsa[i].items[0];
   if (k === 'meta') assert.match(head.text, /^Meta speed set/);
   if (k === 'google') assert.match(head.text, /^Google set/);
   if (k === 'oa') assert.match(head.text, /^Amazon OA simulation/);

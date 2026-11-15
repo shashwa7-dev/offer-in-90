@@ -1550,14 +1550,51 @@ try {
     await page.locator('[data-slot="sidebar"] [data-nav="dsa"]').first().click();
     await page.waitForTimeout(400);
     const n = await page.locator('[data-pattern]').count();
-    if (n === 24) ok(`${W}: 24 patterns listed`); else fail(`${W}: ${n} patterns listed`);
-    if (await page.locator('[data-pattern="hash-map"]').getAttribute('data-dot') === 'none') ok(`${W}: dot starts at ○`); else fail(`${W}: dot did not start at none`);
+    if (n === 27) ok(`${W}: 27 patterns listed`); else fail(`${W}: ${n} patterns listed`);
+    // Task 14: the page opens on the pattern the plan teaches today (else the first); topics are headings, patterns rows
+    const opened = await page.locator('[data-pattern][aria-current="true"]').getAttribute('data-pattern').catch(() => null);
+    if (opened && await page.locator(`[data-card="${opened}"]`).count()) ok(`${W}: opens on a pattern (${opened})`); else fail(`${W}: no pattern open on load`);
+    const topics = await page.locator('[data-topic]').evaluateAll(els => els.map(e => [e.getAttribute('data-topic'), !!e.querySelector('svg.lucide-layers'), /\d+ patterns?$/.test(e.textContent.trim())]));
+    if (topics.length === 15 && topics.every(([, icon, count]) => icon && count) && topics[0][0] === 'Arrays and strings') ok(`${W}: 15 topic headings with icon and pattern count`); else fail(`${W}: topics ${JSON.stringify(topics)}`);
+    if (await page.locator('[data-pattern] svg.lucide-puzzle').count() === 27 && await page.locator('[data-nav-all]').count() === 1) ok(`${W}: pattern rows carry the Puzzle icon; All problems on top`); else fail(`${W}: pattern icons or All row missing`);
+    if (!(await page.getByRole('radio', { name: 'Topic', exact: true }).count()) && !(await page.getByRole('radio', { name: 'Pattern', exact: true }).count())) ok(`${W}: no Group by switch`); else fail(`${W}: Group by switch still shown`);
+    await page.locator('[data-pattern="hash-map"]').click(); await page.waitForTimeout(200);
+    if (await page.locator('[data-pattern="hash-map"]').getAttribute('data-dot') === 'none' && await page.locator('[data-pattern="hash-map"] [data-readiness="none"] svg').count()) ok(`${W}: readiness starts at none (icon)`); else fail(`${W}: dot did not start at none`);
+    const emoji = await page.locator('main, body').first().evaluate(e => /[\u{1F525}\u{2B50}\u25CB\u25D0\u25CF]/u.test(e.innerText));
+    if (!emoji) ok(`${W}: no emoji glyphs on the page`); else fail(`${W}: emoji glyphs still on the page`);
+    if (await page.locator('[data-problem="two-sum"] [data-flag-icon="hot"][aria-label="Frequent"] svg').count()) ok(`${W}: hot flag is a Flame icon with a label`); else fail(`${W}: hot icon missing`);
+    const planLine = await page.locator('[data-problem="two-sum"] [data-plan-line]').innerText().catch(() => '');
+    if (/^Day \d+/.test(planLine) && /re-solves Day \d+(, \d+)*/.test(planLine)) ok(`${W}: row shows plan day and re-solve days ("${planLine.replace(/\s+/g, ' ')}")`); else fail(`${W}: plan line is "${planLine}"`);
+    // topic view: its problems grouped by pattern, no card; All: grouped by topic
+    await page.locator('[data-topic="Graphs"]').click(); await page.waitForTimeout(200);
+    const gp = await page.locator('[data-section-pattern]').evaluateAll(els => els.map(e => e.getAttribute('data-section-pattern')));
+    if (JSON.stringify(gp) === JSON.stringify(['graph-traversal', 'topo-sort', 'union-find', 'shortest-path-mst']) && !(await page.locator('[data-card]').count())) ok(`${W}: topic shows its problems by pattern`); else fail(`${W}: topic view groups ${gp.join(',')}`);
+    await page.locator('[data-nav-all]').click(); await page.waitForTimeout(300);
+    if (await page.locator('[data-section-topic]').count() === 15 && await page.locator('[data-section-pattern]').count() === 27) ok(`${W}: All problems grouped by topic, then pattern`); else fail(`${W}: All view sections wrong`);
+    // filters: counts, AND across facets, search never finds a hidden unseen problem, remembered on reload, one Clear
+    await page.locator('[data-dsa-facet="diff"]').click(); await page.waitForTimeout(150);
+    const hardCount = Number(await page.locator('[data-dsa-option="diff:H"]').getAttribute('data-count'));
+    await page.locator('[data-dsa-option="diff:H"]').click(); await page.keyboard.press('Escape'); await page.waitForTimeout(250);
+    const hardRows = await page.locator('[data-problems] [data-problem], [data-problems] [data-unseen-row]').count();
+    if (hardCount > 0 && hardRows === hardCount && await page.locator('[data-problems] [data-unseen-row]').count() === 0) ok(`${W}: Hard filter shows ${hardRows} (= its count), no hidden rows`); else fail(`${W}: Hard filter ${hardRows} rows vs count ${hardCount}`);
+    await page.locator('[data-dsa-search]').fill('rain'); await page.waitForTimeout(250);
+    const rain = await page.locator('[data-problems] [data-problem]').evaluateAll(els => els.map(e => e.getAttribute('data-problem')));
+    if (JSON.stringify(rain) === '["trapping-rain-water"]') ok(`${W}: name search + difficulty narrow together`); else fail(`${W}: search gave ${rain.join(',')}`);
+    await page.reload({ waitUntil: 'networkidle' }); await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' }); await page.waitForTimeout(500);
+    await page.locator('[data-nav-all]').click(); await page.waitForTimeout(250);
+    if (await page.locator('[data-dsa-search]').inputValue() === 'rain' && /Hard/.test(await page.locator('[data-dsa-facet="diff"]').innerText())) ok(`${W}: filters remembered after reload`); else fail(`${W}: filters not remembered`);
+    await page.locator('[data-dsa-clear]').click(); await page.waitForTimeout(200);
+    await page.locator('[data-dsa-search]').fill('consecutive'); await page.waitForTimeout(250);
+    if (await page.locator('[data-no-match]').count() && !(await page.locator('[data-problems] [data-unseen-row]').count())) ok(`${W}: hidden unseen problem never matches the name search`); else fail(`${W}: search found the hidden unseen problem`);
+    await page.locator('[data-dsa-clear]').click(); await page.waitForTimeout(200);
+    if (await page.evaluate(() => localStorage.getItem('offer90.dsaFilter')) === null && !(await page.locator('[data-dsa-clear]').count())) ok(`${W}: Clear empties the filters`); else fail(`${W}: Clear left filters behind`);
+    await page.locator('[data-pattern="hash-map"]').click(); await page.waitForTimeout(200);
     // optional problems show here as Pool; the unseen check keeps its name back
     if (await page.locator('[data-problem="contains-duplicate"] [data-plan-day]').textContent() === 'Pool') ok(`${W}: optional problem is Pool`); else fail(`${W}: optional problem not Pool`);
     if (await page.locator('[data-unseen-row] [data-unseen-hidden]').count() === 1 && !(await page.locator('[data-problem="longest-consecutive-sequence"]').count()) && !(await page.locator('[data-patterns] ~ * [data-unseen-row]').evaluateAll(els => els.some(e => /consecutive/i.test(e.outerHTML))))) ok(`${W}: unseen check is anonymous before Start`); else fail(`${W}: unseen check shows its name`);
     // add a problem that is already in the plan
     await page.locator('[data-add-problem]').click();
-    await page.getByLabel('LeetCode URL').fill('https://leetcode.com/problems/two-sum/');
+    await page.locator('[data-add-dialog]').getByLabel('LeetCode URL').fill('https://leetcode.com/problems/two-sum/');
     await page.getByRole('button', { name: 'Add', exact: true }).click();
     await page.waitForTimeout(200);
     if (await page.locator('[data-in-plan]').count()) ok(`${W}: plan URL gives the in-plan prompt`); else fail(`${W}: no in-plan prompt`);
@@ -1568,16 +1605,16 @@ try {
     if (!st.own['two-sum']) ok(`${W}: a plan problem is not stored as own`); else fail(`${W}: plan problem stored as own`);
     // add an own problem
     await page.locator('[data-add-problem]').click();
-    await page.getByLabel('LeetCode URL').fill('https://leetcode.com/problems/smoke-own-problem/');
-    await page.getByLabel('Name').fill('Smoke own problem');
-    await page.getByLabel('Difficulty').selectOption('H');
+    await page.locator('[data-add-dialog]').getByLabel('LeetCode URL').fill('https://leetcode.com/problems/smoke-own-problem/');
+    await page.locator('[data-add-dialog]').getByLabel('Name').fill('Smoke own problem');
+    await page.locator('[data-add-dialog]').getByLabel('Difficulty').selectOption('H');
     await page.getByRole('button', { name: 'Add', exact: true }).click();
     await page.waitForTimeout(300);
     const own = page.locator('[data-problem="smoke-own-problem"]');
     if (await own.count() && (await own.locator('[data-plan-day]').textContent()) === 'Pool') ok(`${W}: own problem joins the pattern pool`); else fail(`${W}: own problem missing`);
     st = await page.evaluate(() => JSON.parse(localStorage.getItem('offer90.v1') || '{}'));
     if (st.own['smoke-own-problem']?.diff === 'H' && st.own['smoke-own-problem']?.pattern === 'hash-map') ok(`${W}: own problem saved with pattern and difficulty`); else fail(`${W}: own problem not saved right`);
-    // tick the unseen check with 20 minutes: the dot turns ◐
+    // tick the unseen check with 20 minutes: the readiness icon turns half (check)
     await page.locator('[data-unseen-row] [data-status-icon]').click();
     await page.waitForTimeout(300);
     const row = page.locator('[data-problem="longest-consecutive-sequence"]');
@@ -1585,7 +1622,7 @@ try {
     await row.locator('[data-solve-minutes]').blur();
     await page.waitForTimeout(300);
     const dot = await page.locator('[data-pattern="hash-map"]').getAttribute('data-dot');
-    if (dot === 'check') ok(`${W}: unseen check in time turns the dot to ◐`); else fail(`${W}: dot is ${dot} after the unseen check`);
+    if (dot === 'check') ok(`${W}: unseen check in time turns the readiness to half (check)`); else fail(`${W}: dot is ${dot} after the unseen check`);
     st = await page.evaluate(() => JSON.parse(localStorage.getItem('offer90.v1') || '{}'));
     const lg = st.solves['p-longest-consecutive-sequence'];
     if (lg && lg.unseen === true && lg.minutes === 20 && typeof lg.at === 'number') ok(`${W}: solve log {unseen, minutes, at} written`); else fail(`${W}: solve log is ${JSON.stringify(lg)}`);

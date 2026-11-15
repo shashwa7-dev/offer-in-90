@@ -69,11 +69,12 @@ function toSlots(track: string, slots: SlotItem[][]): Slot[] {
   return slots.map((items) => ({ items }));
 }
 
-// ---------- dsa (§2, §3, §18): foundations, 24 patterns, ADV_DSA, Phase 3 timed sets ----------
+// ---------- dsa (§2, §3, §18, Task 14): foundations, 27 patterns, ADV_DSA, Phase 3 timed sets ----------
 const AI_DRILL = 'AI-enabled coding drill (Meta-style, 60 min): read a small multi-file repo for 5 min, fix one bug without AI, add a feature using AI chat only (no autocomplete), then optimize for a 10× input. Narrate everything.';
 const AI_DRILL_URL = 'https://www.hellointerview.com/blog/meta-ai-enabled-coding';
 const PROBLEMS_PER_SLOT = 2;
-const PATTERNS_END = 53; // last slot of week 9
+// Patterns may run to slot 57 (week 10 Thu); the 3 patterns added in Task 14 took their slots from the Phase 3 timed sets.
+const PATTERNS_END = 57;
 
 const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const problemItem = (p: Row): SlotItem => ({
@@ -100,14 +101,14 @@ function dsaTrack(c: TrackContent): Slot[] {
     });
     slots.push(items);
   }
-  mustFit('dsa (patterns by week 9)', slots.length - (PATTERNS_END + 1), PATTERNS_END + 1);
+  mustFit('dsa (patterns by slot 57)', slots.length - (PATTERNS_END + 1), PATTERNS_END + 1);
   // ADV_DSA at full length, one morning block each.
   for (const [text, url] of c.ADV_DSA as [string, string][]) {
     const adv = text.startsWith('Advanced DSA: ');
     slots.push([{ id: `adv:${slugify(adv ? text.slice('Advanced DSA: '.length) : text.split(':')[0])}`, cat: 'dsa', url,
       text: adv ? `${text} (learn it + solve 1 problem)` : text }]);
   }
-  // Phase 3: timed sets rotating Meta speed / Google doc / Amazon OA / AI-enabled drill, from must-solve + 🔥 problems
+  // Phase 3: timed sets rotating Meta speed / Google doc / Amazon OA / AI-enabled drill, from must-solve + hot problems
   // (medium and hard), spread across patterns. The day's patterns are hidden: no pattern field, no pattern in the text.
   const byPattern = pats.map((pt) => c.PROBLEMS.filter((p: Row) => p.pattern === pt.id && p.d !== 'E' && (p.tier === 'must' || p.flags.includes('hot'))));
   const pool: Row[] = [];

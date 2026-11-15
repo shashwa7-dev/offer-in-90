@@ -1,5 +1,5 @@
 /* eslint-disable */
-// DSA content (roadmap v2 §2): 24 patterns in teaching order, the tiered and flagged problem set, advanced topics.
+// DSA content (roadmap v2 §2, Task 14): 27 patterns in teaching order, the tiered and flagged problem set, advanced topics.
 // Problem IDs stay `p-<slug>`. Card text is short and follows each pattern's linked explainer.
 
 const LC = s => `https://leetcode.com/problems/${s}/`;
@@ -8,14 +8,14 @@ const HI = p => `https://www.hellointerview.com/learn/code/${p}`;
 
 // Card fields: signal (cue in the question), template (one line), why (the invariant), complexity, traps (1–2), notWhen, link.
 export const PATTERNS = [
-  { id: 'hash-map', name: 'Hash map and counting', topic: 'Arrays and hashing', link: null,
+  { id: 'hash-map', name: 'Hash map and counting', topic: 'Arrays and strings', link: null,
     signal: 'Need to find a pair, a duplicate, or a count in one pass; "have I seen X before?"',
     template: 'for x in input: check map for the complement/key, then record x (count or index).',
     why: 'The map holds every earlier element, so each lookup answers "seen before?" in O(1).',
     complexity: 'O(n) time, O(n) space.',
     traps: ['Inserting before checking (pairs an element with itself).', 'Using a mutable or unsorted key for grouping (sort or count the letters first).'],
     notWhen: 'Input is sorted and O(1) space is wanted: use two pointers.' },
-  { id: 'prefix-sum', name: 'Prefix sum', topic: 'Arrays and hashing', link: HI('prefix-sum/overview'),
+  { id: 'prefix-sum', name: 'Prefix sum', topic: 'Arrays and strings', link: HI('prefix-sum/overview'),
     signal: 'Many range-sum queries, or "subarray whose sum equals / is divisible by k".',
     template: 'pre[i+1] = pre[i] + a[i]; sum(l..r) = pre[r+1] - pre[l]; for "sum = k" count earlier prefixes equal to pre - k in a map.',
     why: 'Any subarray sum is the difference of two prefix sums.',
@@ -23,6 +23,7 @@ export const PATTERNS = [
     traps: ['Forget to seed the map with prefix 0 (count 1).', 'Off-by-one between pre[r+1] and pre[l].'],
     notWhen: 'All numbers are positive and you need a window: a sliding window uses O(1) space.' },
   { id: 'two-pointers', name: 'Two pointers', topic: 'Arrays and strings', link: HI('two-pointers/overview'),
+    sub: ['dutch-flag', 'strings'],
     signal: 'Sorted array or string, pairs/triplets with a target, palindromes, in-place partition.',
     template: 'l = 0, r = n - 1; while l < r: compare a[l] + a[r] with target and move the pointer that can improve it.',
     why: 'Sortedness tells you which pointer\'s every remaining pairing is impossible, so each step discards a whole row of pairs.',
@@ -37,6 +38,7 @@ export const PATTERNS = [
     traps: ['Updating the answer before the window is valid again.', 'Negative numbers break the "shrink restores validity" rule.'],
     notWhen: 'Elements can be negative and the condition is a sum: use prefix sum + hash map.' },
   { id: 'stack-monotonic', name: 'Stack and monotonic stack/queue', topic: 'Stack', link: HI('stack/monotonic-stack'),
+    sub: ['monotonic-queue'],
     signal: 'Matching brackets, nested expressions, or "next greater/smaller element", spans, max in every window.',
     template: 'for i: while stack and a[stack.top] < a[i]: pop j and resolve answer[j] = i; push i.',
     why: 'The stack keeps only candidates still waiting for their answer, in sorted order, so each index is pushed and popped once.',
@@ -44,13 +46,14 @@ export const PATTERNS = [
     traps: ['Storing values instead of indices when you need distances or widths.', 'Forgetting to flush what is left on the stack at the end.'],
     notWhen: 'You need arbitrary range min/max queries, not next-greater: use a sparse table or segment tree.' },
   { id: 'binary-search', name: 'Modified binary search', topic: 'Binary search', link: HI('binary-search/overview'),
+    sub: ['on-answer'],
     signal: 'Sorted or rotated input, a monotonic yes/no condition, or "minimum value such that…" (search on the answer).',
     template: 'lo, hi = bounds; while lo < hi: mid = (lo + hi) // 2; if ok(mid): hi = mid else: lo = mid + 1.',
     why: 'ok() is monotonic (false…false true…true), so each check halves the range that can hold the first true.',
     complexity: 'O(log n) checks, times the cost of ok().',
     traps: ['Infinite loop from mid rounding with lo = mid.', 'Wrong bounds when searching on the answer (min and max possible answer).'],
     notWhen: 'No monotonic condition exists: scan or use another pattern.' },
-  { id: 'cyclic-sort', name: 'Cyclic sort', topic: 'Arrays', link: null,
+  { id: 'cyclic-sort', name: 'Cyclic sort', topic: 'Arrays and strings', link: null,
     signal: 'Array of n numbers in range 1..n (or 0..n); find missing, duplicate or misplaced numbers in O(1) space.',
     template: 'i = 0; while i < n: j = a[i] - 1; if a[i] in range and a[j] != a[i]: swap(a[i], a[j]) else: i += 1. Then scan for a[i] != i + 1.',
     why: 'Each swap puts one value in its home slot for good, so there are at most n swaps.',
@@ -92,7 +95,16 @@ export const PATTERNS = [
     complexity: 'O(L) per insert/search; O(total characters) space.',
     traps: ['Forgetting the end-of-word flag (prefix vs whole word).', 'Not pruning found words in Word Search II (TLE).'],
     notWhen: 'Only exact-match lookups are needed: a hash set is simpler.' },
+  // Task 14 (2026-11-15): three patterns added. Links checked with curl on 2026-11-15 (200).
+  { id: 'design-ds', name: 'Design a data structure', topic: 'Design', link: 'https://www.geeksforgeeks.org/system-design/lru-cache-implementation/',
+    signal: '"Implement a class" whose operations must each be O(1) or O(log n): get/put with eviction, min in O(1), a random element, a feed.',
+    template: 'List the operations and their target costs; pick one structure per need and keep them in sync: hash map + doubly linked list (LRU), stack of (value, min) pairs, array + index map (delete by swapping with the last).',
+    why: 'Each structure answers one operation fast; updating all of them on every write keeps every invariant true, so every read stays cheap.',
+    complexity: 'Usually O(1) per operation (O(log n) with a heap), O(n) space.',
+    traps: ['Forgetting to update the second structure on delete or evict (stale map entries).', 'Edge cases: capacity 1, a repeated key, removing the last element.'],
+    notWhen: 'Only one operation matters: use the single structure that answers it (heap, hash map) directly.' },
   { id: 'top-k', name: 'Top K (heap)', topic: 'Heap', link: HI('heap/overview'),
+    sub: ['quickselect'],
     signal: '"K largest / smallest / most frequent / closest".',
     template: 'min-heap of size k: for x: push x; if len > k: pop. The heap holds the top k.',
     why: 'The heap root is the weakest of the current best k, so anything worse is discarded at once.',
@@ -121,12 +133,20 @@ export const PATTERNS = [
     traps: ['Appending path instead of a copy.', 'Duplicates: sort first and skip equal siblings.'],
     notWhen: 'Only a count or best value is asked and subproblems repeat: use DP.' },
   { id: 'graph-traversal', name: 'Graph traversal and islands', topic: 'Graphs', link: HI('depth-first-search/fundamentals'),
+    sub: ['multi-source-bfs'],
     signal: 'Grid of cells or nodes and edges: count components, flood fill, shortest steps in an unweighted graph.',
     template: 'for each unvisited cell: count += 1; DFS/BFS marking neighbours visited. Multi-source BFS: push all sources first.',
     why: 'Marking on visit guarantees each node is expanded once; BFS reaches nodes in order of distance.',
     complexity: 'O(V + E) (O(rows × cols) for grids).',
     traps: ['Marking visited on pop instead of push (duplicates in the queue).', 'Recursion depth on large grids.'],
     notWhen: 'Edges have different weights: Dijkstra.' },
+  { id: 'matrix', name: 'Matrix and simulation', topic: 'Arrays and strings', link: 'https://www.techinterviewhandbook.org/algorithms/matrix/',
+    signal: 'A 2D grid you walk in a fixed order (spiral, diagonal), rotate or transform in place, or update by rules that read the old state.',
+    template: 'Spiral: keep top/bottom/left/right bounds and shrink one after each side. Rotate: transpose, then reverse each row. Rule updates: keep old and new state in the same cell (two bits) or work on a copy.',
+    why: 'Shrinking bounds visit each cell exactly once; transpose + reverse is a 90° rotation; storing both states means no update reads an already-changed neighbour.',
+    complexity: 'O(rows × cols) time; O(1) extra space for the in-place versions.',
+    traps: ['Off-by-one when a single row or column is left (the spiral visits it twice).', 'Overwriting a cell before its neighbours have read the old value (Game of Life, set zeroes).'],
+    notWhen: 'You need connected regions or the fewest steps across the grid: graph traversal (DFS/BFS).' },
   { id: 'topo-sort', name: 'Topological sort', topic: 'Graphs', link: HI('graphs/topological-sort'),
     signal: 'Prerequisites, dependencies, build order, or "is there a cycle in this directed graph?"',
     template: 'indegree for each node; queue all with 0; pop u, append to order, decrement neighbours, push new zeros.',
@@ -141,7 +161,7 @@ export const PATTERNS = [
     complexity: 'Near O(1) amortised per operation (inverse Ackermann).',
     traps: ['Comparing x with parent[x] instead of the roots.', 'Forgetting to count components down on each successful union.'],
     notWhen: 'You need paths or distances, not just connectivity: BFS/DFS.' },
-  { id: 'shortest-path-mst', name: 'Shortest path and MST', topic: 'Advanced graphs', link: null,
+  { id: 'shortest-path-mst', name: 'Shortest path and MST', topic: 'Graphs', link: null,
     signal: 'Weighted edges: cheapest route, network delay, or connect all points at minimum cost.',
     template: 'Dijkstra: heap of (dist, node); pop, skip if stale, relax neighbours. MST: Prim (heap) or Kruskal (sorted edges + union find).',
     why: 'With non-negative weights the popped node\'s distance is final; MST: the cheapest edge crossing any cut is safe.',
@@ -170,6 +190,13 @@ export const PATTERNS = [
     complexity: 'O(number of states × transitions per state).',
     traps: ['A state that does not capture everything the future needs.', 'Wrong loop order (0/1 knapsack iterates capacity backwards).'],
     notWhen: 'Subproblems do not repeat (plain recursion/backtracking), or a greedy choice is provably safe.' },
+  { id: 'math', name: 'Math and number tricks', topic: 'Math', link: 'https://www.techinterviewhandbook.org/algorithms/math/',
+    signal: 'Powers, roots, arithmetic on number strings, digits, primes or GCD, where halving or a formula beats simulating.',
+    template: 'Fast power: while n: if n & 1: res *= x; x *= x; n >>= 1. Digits: d = n % 10, n = floor(n / 10). String arithmetic: right to left with a carry, as on paper.',
+    why: 'Squaring halves the exponent at each step, so x^n takes O(log n) multiplications; digit-by-digit arithmetic is exact at any length.',
+    complexity: 'O(log n) for fast power and a binary-searched root; O(m × n) for schoolbook multiplication.',
+    traps: ['Negative exponents and overflow (−2^31 has no 32-bit negation).', 'Leading zeros and the final carry in string arithmetic.'],
+    notWhen: 'The answer counts choices with overlaps: DP or combinatorics, not a closed formula.' },
   { id: 'bits', name: 'Bits and XOR', topic: 'Bit manipulation', link: null,
     signal: 'Find the single/missing number, count set bits, add without +, or O(1) space over integers.',
     template: 'x ^ x = 0 and x ^ 0 = x; x & (x - 1) clears the lowest set bit; (x >> i) & 1 reads bit i.',
@@ -179,18 +206,24 @@ export const PATTERNS = [
     notWhen: 'Memory is not a concern and clarity matters: a hash set is fine.' },
 ];
 
+/** Topic headings on the DSA page, in order of first appearance in the teaching order. */
+export const TOPICS = [...new Set(PATTERNS.map(p => p.topic))];
+
 // §2 flags, from LeetCode company tags (Google, Meta, Amazon, Microsoft).
 export const FLAG_SOURCE = { name: 'liquidslr/leetcode-company-wise-problems', asOf: '2025-10' };
 const HOT = ['two-sum', 'best-time-to-buy-and-sell-stock', 'subarray-sum-equals-k', 'merge-intervals', 'add-two-numbers', 'longest-substring-without-repeating-characters', 'longest-palindromic-substring', '3sum', 'lru-cache', 'number-of-islands', 'container-with-most-water', 'longest-common-prefix', 'valid-parentheses', 'merge-sorted-array', 'majority-element', 'maximum-subarray', 'next-permutation', 'trapping-rain-water', 'median-of-two-sorted-arrays'];
 const HARD_HOT = ['trapping-rain-water', 'median-of-two-sorted-arrays', 'merge-k-sorted-lists', 'sliding-window-maximum', 'minimum-window-substring', 'n-queens', 'largest-rectangle-in-histogram', 'find-median-from-data-stream', 'word-ladder', 'binary-tree-maximum-path-sum'];
 
-// [slug, difficulty, role ('teach' | 'var' | 'unseen' = must-solve; '' = optional pool), extra { nc: premium NeetCode slug, sub: DP sub-pattern, lcPremium }]
+// [slug, difficulty, role ('teach' | 'var' | 'unseen' = must-solve; '' = optional pool), extra { nc: premium NeetCode slug, sub: sub-pattern (the pattern's `sub` list), lcPremium }]
+// Task 14 demoted 7 overlapping var must-solves to optional (never a flagged one, never a teach/unseen) so the 3 new patterns
+// keep the must-solve total ≤ 100: longest-repeating-character-replacement, middle-of-the-linked-list, reverse-linked-list-ii,
+// k-closest-points-to-origin, find-k-pairs-with-smallest-sums, number-of-connected-components-in-an-undirected-graph, counting-bits.
 const ROWS = {
   'hash-map': [
-    ['two-sum', 'E', 'teach'], ['group-anagrams', 'M', 'var'], ['lru-cache', 'M', 'var'], ['longest-consecutive-sequence', 'M', 'unseen'],
+    ['two-sum', 'E', 'teach'], ['group-anagrams', 'M', 'var'], ['longest-consecutive-sequence', 'M', 'unseen'],
     ['contains-duplicate', 'E', ''], ['valid-anagram', 'E', ''], ['majority-element', 'E', ''], ['longest-common-prefix', 'E', ''],
     ['encode-and-decode-strings', 'M', '', { nc: 'string-encode-and-decode' }], ['valid-sudoku', 'M', ''], ['copy-list-with-random-pointer', 'M', ''],
-    ['set-matrix-zeroes', 'M', ''], ['detect-squares', 'M', ''],
+    ['detect-squares', 'M', ''],
   ],
   'prefix-sum': [
     ['range-sum-query-immutable', 'E', 'teach'], ['subarray-sum-equals-k', 'M', 'var'], ['product-of-array-except-self', 'M', 'var'], ['continuous-subarray-sum', 'M', 'unseen'],
@@ -198,28 +231,30 @@ const ROWS = {
   ],
   'two-pointers': [
     ['two-sum-ii-input-array-is-sorted', 'M', 'teach'], ['3sum', 'M', 'var'], ['container-with-most-water', 'M', 'var'], ['trapping-rain-water', 'H', 'var'], ['next-permutation', 'M', 'unseen'],
-    ['valid-palindrome', 'E', ''], ['valid-palindrome-ii', 'E', ''], ['plus-one', 'E', ''], ['rotate-image', 'M', ''], ['spiral-matrix', 'M', ''], ['multiply-strings', 'M', ''],
+    ['valid-palindrome', 'E', ''], ['valid-palindrome-ii', 'E', ''], ['plus-one', 'E', ''], ['sort-colors', 'M', '', { sub: 'dutch-flag' }],
+    ['find-the-index-of-the-first-occurrence-in-a-string', 'E', '', { sub: 'strings' }],
   ],
   'sliding-window': [
-    ['longest-substring-without-repeating-characters', 'M', 'teach'], ['longest-repeating-character-replacement', 'M', 'var'], ['minimum-window-substring', 'H', 'var'], ['sliding-window-maximum', 'H', 'var'], ['permutation-in-string', 'M', 'unseen'],
+    ['longest-substring-without-repeating-characters', 'M', 'teach'], ['longest-repeating-character-replacement', 'M', ''], ['minimum-window-substring', 'H', 'var'], ['sliding-window-maximum', 'H', 'var'], ['permutation-in-string', 'M', 'unseen'],
   ],
   'stack-monotonic': [
     ['daily-temperatures', 'M', 'teach'], ['valid-parentheses', 'E', 'var'], ['minimum-remove-to-make-valid-parentheses', 'M', 'var'], ['largest-rectangle-in-histogram', 'H', 'var'], ['basic-calculator-ii', 'M', 'unseen'],
-    ['min-stack', 'M', ''], ['evaluate-reverse-polish-notation', 'M', ''], ['car-fleet', 'M', ''], ['simplify-path', 'M', ''], ['next-greater-element-ii', 'M', ''], ['online-stock-span', 'M', ''],
+    ['evaluate-reverse-polish-notation', 'M', ''], ['car-fleet', 'M', ''], ['simplify-path', 'M', ''], ['next-greater-element-ii', 'M', ''], ['online-stock-span', 'M', ''],
+    ['shortest-subarray-with-sum-at-least-k', 'H', '', { sub: 'monotonic-queue' }],
   ],
   'binary-search': [
-    ['binary-search', 'E', 'teach'], ['search-in-rotated-sorted-array', 'M', 'var'], ['find-peak-element', 'M', 'var'], ['median-of-two-sorted-arrays', 'H', 'var'], ['koko-eating-bananas', 'M', 'unseen'],
+    ['binary-search', 'E', 'teach'], ['search-in-rotated-sorted-array', 'M', 'var'], ['find-peak-element', 'M', 'var'], ['median-of-two-sorted-arrays', 'H', 'var'], ['koko-eating-bananas', 'M', 'unseen', { sub: 'on-answer' }],
     ['search-a-2d-matrix', 'M', ''], ['find-minimum-in-rotated-sorted-array', 'M', ''], ['time-based-key-value-store', 'M', ''],
   ],
   'cyclic-sort': [
     ['find-all-numbers-disappeared-in-an-array', 'E', 'teach'], ['missing-number', 'E', 'var'], ['first-missing-positive', 'H', 'unseen'],
   ],
   'fast-slow': [
-    ['linked-list-cycle', 'E', 'teach'], ['middle-of-the-linked-list', 'E', 'var'], ['find-the-duplicate-number', 'M', 'var'], ['happy-number', 'E', 'unseen'],
+    ['linked-list-cycle', 'E', 'teach'], ['middle-of-the-linked-list', 'E', ''], ['find-the-duplicate-number', 'M', 'var'], ['happy-number', 'E', 'unseen'],
     ['remove-nth-node-from-end-of-list', 'M', ''],
   ],
   'll-reversal': [
-    ['reverse-linked-list', 'E', 'teach'], ['reverse-linked-list-ii', 'M', 'var'], ['reorder-list', 'M', 'var'], ['add-two-numbers', 'M', 'var'], ['palindrome-linked-list', 'E', 'unseen'],
+    ['reverse-linked-list', 'E', 'teach'], ['reverse-linked-list-ii', 'M', ''], ['reorder-list', 'M', 'var'], ['add-two-numbers', 'M', 'var'], ['palindrome-linked-list', 'E', 'unseen'],
     ['reverse-nodes-in-k-group', 'H', ''],
   ],
   'tree-bfs': [
@@ -234,31 +269,39 @@ const ROWS = {
   'trie': [
     ['implement-trie-prefix-tree', 'M', 'teach'], ['design-add-and-search-words-data-structure', 'M', 'var'], ['word-search-ii', 'H', 'unseen'],
   ],
+  'design-ds': [
+    ['min-stack', 'M', 'teach'], ['lru-cache', 'M', 'var'], ['insert-delete-getrandom-o1', 'M', 'unseen'],
+    ['design-twitter', 'M', ''],
+  ],
   'top-k': [
-    ['kth-largest-element-in-an-array', 'M', 'teach'], ['top-k-frequent-elements', 'M', 'var'], ['k-closest-points-to-origin', 'M', 'var'], ['task-scheduler', 'M', 'unseen'],
+    ['kth-largest-element-in-an-array', 'M', 'teach', { sub: 'quickselect' }], ['top-k-frequent-elements', 'M', 'var'], ['k-closest-points-to-origin', 'M', ''], ['task-scheduler', 'M', 'unseen'],
     ['kth-largest-element-in-a-stream', 'E', ''], ['last-stone-weight', 'E', ''], ['reorganize-string', 'M', ''],
   ],
   'two-heaps': [
     ['find-median-from-data-stream', 'H', 'teach'], ['sliding-window-median', 'H', 'var'], ['ipo', 'H', 'unseen'],
   ],
   'k-way-merge': [
-    ['merge-sorted-array', 'E', 'teach'], ['merge-k-sorted-lists', 'H', 'var'], ['find-k-pairs-with-smallest-sums', 'M', 'var'], ['kth-smallest-element-in-a-sorted-matrix', 'M', 'unseen'],
-    ['merge-two-sorted-lists', 'E', ''], ['design-twitter', 'M', ''],
+    ['merge-sorted-array', 'E', 'teach'], ['merge-k-sorted-lists', 'H', 'var'], ['find-k-pairs-with-smallest-sums', 'M', ''], ['kth-smallest-element-in-a-sorted-matrix', 'M', 'unseen'],
+    ['merge-two-sorted-lists', 'E', ''],
   ],
   'backtracking': [
     ['subsets', 'M', 'teach'], ['permutations', 'M', 'var'], ['n-queens', 'H', 'var'], ['word-search', 'M', 'unseen'],
     ['combination-sum', 'M', ''], ['combination-sum-ii', 'M', ''], ['subsets-ii', 'M', ''], ['palindrome-partitioning', 'M', ''], ['letter-combinations-of-a-phone-number', 'M', ''], ['generate-parentheses', 'M', ''],
   ],
   'graph-traversal': [
-    ['number-of-islands', 'M', 'teach'], ['rotting-oranges', 'M', 'var'], ['word-ladder', 'H', 'var'], ['pacific-atlantic-water-flow', 'M', 'unseen'],
-    ['max-area-of-island', 'M', ''], ['clone-graph', 'M', ''], ['walls-and-gates', 'M', '', { nc: 'islands-and-treasure' }], ['surrounded-regions', 'M', ''],
+    ['number-of-islands', 'M', 'teach'], ['rotting-oranges', 'M', 'var', { sub: 'multi-source-bfs' }], ['word-ladder', 'H', 'var'], ['pacific-atlantic-water-flow', 'M', 'unseen'],
+    ['max-area-of-island', 'M', ''], ['clone-graph', 'M', ''], ['walls-and-gates', 'M', '', { nc: 'islands-and-treasure', sub: 'multi-source-bfs' }], ['surrounded-regions', 'M', ''],
     ['shortest-path-in-binary-matrix', 'M', ''], ['reconstruct-itinerary', 'H', ''],
+  ],
+  'matrix': [
+    ['spiral-matrix', 'M', 'teach'], ['rotate-image', 'M', 'var'], ['game-of-life', 'M', 'unseen'],
+    ['set-matrix-zeroes', 'M', ''],
   ],
   'topo-sort': [
     ['course-schedule', 'M', 'teach'], ['course-schedule-ii', 'M', 'var'], ['alien-dictionary', 'H', 'unseen', { nc: 'foreign-dictionary' }],
   ],
   'union-find': [
-    ['redundant-connection', 'M', 'teach'], ['number-of-connected-components-in-an-undirected-graph', 'M', 'var', { nc: 'count-connected-components' }], ['accounts-merge', 'M', 'var'], ['graph-valid-tree', 'M', 'unseen', { nc: 'valid-tree' }],
+    ['redundant-connection', 'M', 'teach'], ['number-of-connected-components-in-an-undirected-graph', 'M', '', { nc: 'count-connected-components' }], ['accounts-merge', 'M', 'var'], ['graph-valid-tree', 'M', 'unseen', { nc: 'valid-tree' }],
   ],
   'shortest-path-mst': [
     ['network-delay-time', 'M', 'teach'], ['min-cost-to-connect-all-points', 'M', 'var'], ['cheapest-flights-within-k-stops', 'M', 'var'], ['swim-in-rising-water', 'H', 'unseen'],
@@ -281,13 +324,16 @@ const ROWS = {
     ['edit-distance', 'M', '', { sub: 'lcs-strings' }], ['distinct-subsequences', 'H', '', { sub: 'lcs-strings' }], ['regular-expression-matching', 'H', '', { sub: 'lcs-strings' }],
     ['unique-paths', 'M', '', { sub: 'grid' }], ['longest-increasing-path-in-a-matrix', 'H', '', { sub: 'grid' }], ['burst-balloons', 'H', ''],
   ],
+  'math': [
+    ['powx-n', 'M', 'teach'], ['multiply-strings', 'M', 'var'], ['sqrtx', 'E', 'unseen'],
+  ],
   'bits': [
-    ['single-number', 'E', 'teach'], ['number-of-1-bits', 'E', 'var'], ['counting-bits', 'E', 'var'], ['sum-of-two-integers', 'M', 'unseen'],
-    ['reverse-bits', 'E', ''], ['reverse-integer', 'M', ''], ['powx-n', 'M', ''],
+    ['single-number', 'E', 'teach'], ['number-of-1-bits', 'E', 'var'], ['sum-of-two-integers', 'M', 'unseen'],
+    ['reverse-bits', 'E', ''], ['reverse-integer', 'M', ''], ['counting-bits', 'E', ''],
   ],
 };
 
-const NAME_FIX = { '3sum': '3Sum', 'powx-n': 'Pow(x, n)', 'implement-trie-prefix-tree': 'Implement Trie (Prefix Tree)', 'two-sum-ii-input-array-is-sorted': 'Two Sum II (Sorted Input)', 'lru-cache': 'LRU Cache', 'kth-smallest-element-in-a-bst': 'Kth Smallest Element in a BST', 'number-of-1-bits': 'Number of 1 Bits', 'n-queens': 'N-Queens', 'ipo': 'IPO', 'range-sum-query-immutable': 'Range Sum Query – Immutable' };
+const NAME_FIX = { 'sqrtx': 'Sqrt(x)', 'insert-delete-getrandom-o1': 'Insert Delete GetRandom O(1)', '3sum': '3Sum', 'powx-n': 'Pow(x, n)', 'implement-trie-prefix-tree': 'Implement Trie (Prefix Tree)', 'two-sum-ii-input-array-is-sorted': 'Two Sum II (Sorted Input)', 'lru-cache': 'LRU Cache', 'kth-smallest-element-in-a-bst': 'Kth Smallest Element in a BST', 'number-of-1-bits': 'Number of 1 Bits', 'n-queens': 'N-Queens', 'ipo': 'IPO', 'range-sum-query-immutable': 'Range Sum Query – Immutable' };
 const prettify = s => NAME_FIX[s] || s.split('-').map(w => w === 'ii' ? 'II' : w[0].toUpperCase() + w.slice(1)).join(' ').replace(/\b(Of|In|A|An|The|To|From|And|With|By|On)\b/g, m => m.toLowerCase()).replace(/^./, c => c.toUpperCase());
 
 export const PROBLEMS = [];
@@ -302,7 +348,7 @@ for (const [pattern, rows] of Object.entries(ROWS)) for (const [slug, d, role, x
   PROBLEMS.push(p);
 }
 
-// Advanced DSA from the board. Moves to morning DSA slots once the 24 patterns are done (§2).
+// Advanced DSA from the board. Moves to morning DSA slots once the 27 patterns are done (§2).
 export const ADV_DSA = [
   ['Advanced DSA: Union-Find / DSU', 'https://leetcode.com/discuss/post/1072418/disjoint-set-union-dsuunion-find-a-compl-2oqn/'],
   ['Advanced DSA: Difference array', 'https://medium.com/@p.thapar99/the-beauty-of-difference-array-technique-in-problem-solving-6d45eb726531'],
