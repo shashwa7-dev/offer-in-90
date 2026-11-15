@@ -8,6 +8,7 @@ import * as career from '../src/lib/content/career.js';
 import * as ai from '../src/lib/content/ai.js';
 import * as aiCore from '../src/lib/content/ai-core.js';
 import * as mc from '../src/lib/content/mc.js';
+import * as product from '../src/lib/content/product.js';
 import * as sd from '../src/lib/content/sd.js';
 import * as judgment from '../src/lib/content/judgment.js';
 import * as systems from '../src/lib/content/systems.js';
@@ -17,7 +18,7 @@ import { buildTracks, expandRow, GRIND_DOW, SLOTS } from '../src/lib/tracks.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
-const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...aiCore, ...mc, ...sd, ...systems, ...platform, ...judgment, ...reference };
+const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...aiCore, ...mc, ...product, ...sd, ...systems, ...platform, ...judgment, ...reference };
 // AI core (v3) absorbs v2 ids: each row's primary id is laid out in the AI core track; its `covers` ids are not laid out anywhere.
 const CORE: Any[] = aiCore.AI_CORE as Any[];
 const CORE_PLACED = new Set<string>(CORE.map((r) => r.id));
@@ -29,6 +30,8 @@ const SYS_COVERS = new Set<string>(SYS.flatMap((r) => r.covers ?? []));
 const PF: Any[] = ((platform as Any).PLATFORM ?? []) as Any[];
 const PF_PLACED = new Set<string>(PF.map((r) => r.id));
 const PF_COVERS = new Set<string>(PF.flatMap((r) => r.covers ?? []));
+// Product (v3) flagship rows, laid out in the mc track.
+const FLAG_ROWS: Any[] = ((product as Any).FLAGSHIP ?? []) as Any[];
 const T: Any = buildTracks(content);
 const TRACKS = ['dsa', 'fe', 'mc', 'sd', 'jt', 'beh', 'ai'];
 const idx = (w: number, d: number) => (w - 1) * 6 + (d - 1);
@@ -71,8 +74,9 @@ const expected: string[] = [
   ...(career.FDE as Any[]).filter((x) => !SKIP_FDE.has(x.id)), ...(career.TEARDOWNS as Any[]),
   ...(ai.AI_EVENING as Any[]).filter((x) => !CORE_PLACED.has(x.id) && !CORE_COVERS.has(x.id) && !SYS_COVERS.has(x.id)),
   ...CORE.map((r) => r.id),
-  ...(mc.MC as Any[]), ...(mc.MC_SCREENSHOT as Any[]), ...(mc.TAKE_HOMES as Any[]).flatMap((x) => x.parts),
-  ...(mc.PROJECT as Any[]), ...(mc.PROJECT_DEPTH_READS as Any[]), ...(mc.LLD as Any[]),
+  // Product (v3 §5): the flagship rows, the take-home parts and LLD. The v2 builds, timed passes and screenshot builds
+  // are not laid out (Task 8 moves a few into Frontend; Task 9 deletes the rest).
+  ...FLAG_ROWS.map((r) => r.id), ...(product.TAKE_HOMES as Any[]).flatMap((x) => x.parts), ...(product.LLD as Any[]),
   // v2 SD / SD_MOCKS / HOW_IT_WORKS are laid out through SYSTEMS (the sd:fe-* items wait for Task 8).
   ...SYS.map((r) => r.id),
   // v2 PRACTICAL, CODE_REVIEWS and the SRE read are laid out through PLATFORM. MEMOS and OSS_FIXES are dropped (spec);
@@ -85,10 +89,9 @@ for (const id of expected) assert.equal(seen.filter((s) => s === id).length, 1, 
 for (const id of CORE_COVERS) assert.equal(seen.filter((s) => s === id).length, 0, `${id} (absorbed by AI core) is not laid out`);
 for (const id of SYS_COVERS) assert.equal(seen.filter((s) => s === id).length, 0, `${id} (absorbed by Systems) is not laid out`);
 for (const id of PF_COVERS) assert.equal(seen.filter((s) => s === id).length, 0, `${id} (absorbed by Platform) is not laid out`);
-for (const id of (mc.MC_TIMED as string[])) assert.equal(allIds.filter((x) => x === `${id}:timed`).length, 1, `${id} timed pass once`);
 assert.equal(all.filter((x) => /^adv:[a-z-]+$/.test(x.id)).length, 3, 'ADV_DSA x3');
 const pfParts = PF.filter((r) => r.parts === 2).flatMap((r) => [1, 2].flatMap((k) => [`${r.id}:part-${k}:do#${k}`, `${r.id}:part-${k}:explain#${k}`]));
-const known = new Set([...expected, ...pfParts, ...[...CORE, ...SYS, ...PF.filter((r) => r.parts !== 2)].filter((r) => !r.kind).flatMap((r) => [`${r.id}:do`, `${r.id}:explain`]), ...(dsa.FOUNDATIONS as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`]), ...(dsa.ADV_DSA as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`]), ...(mc.MC_TIMED as string[]).map((id) => `${id}:timed`)]);
+const known = new Set([...expected, ...pfParts, ...[...CORE, ...SYS, ...FLAG_ROWS, ...PF.filter((r) => r.parts !== 2)].filter((r) => !r.kind).flatMap((r) => [`${r.id}:do`, `${r.id}:explain`]), ...(dsa.FOUNDATIONS as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`]), ...(dsa.ADV_DSA as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`])]);
 const extras = all.filter((x) => !x.filler && !known.has(x.part ? `${x.id.replace(/:part-\d$/, '')}#${x.part[0]}` : x.id));
 // Non-content items the builder adds on purpose: pattern cards, explain-backs, foundations, ADV_DSA, Phase 3 sets, FE revision, SD mocks.
 for (const x of extras) assert.match(x.id, /^(dsa:(card|explain-back|oa|google|meta|revisit)-|fe:revise-|fe:bfe-|sdm:)/, `unexpected item ${x.id}`);
@@ -354,43 +357,98 @@ for (const t of TRACKS.filter((t) => t !== 'dsa')) assert.ok(!T[t].some((s: Any)
   for (const id of [...CORE_PLACED, ...CORE_COVERS, ...SYS_COVERS]) assert.equal(slotOf('ai', id), -1, `${id} not in the v2 evening track`);
 }
 
-// ---------- mc ----------
-const MCI: Any[] = mc.MC as Any[];
-assert.deepEqual(ids('mc', 36), ['mc:take-home-issue-triage-1']);
-assert.deepEqual(ids('mc', 37), ['mc:take-home-issue-triage-2']);
-assert.deepEqual(ids('mc', 38), ['mc:take-home-issue-triage-3']);
-assert.deepEqual([54, 55, 56].map((i) => ids('mc', i)), [1, 2, 3].map((n) => [`mc:take-home-funnel-explorer-${n}`]));
-for (let w = 1; w <= 13; w++) assert.ok(T.mc[idx(w, 6)].items.every((x: Any) => x.id.startsWith('lld:')), `mc Sat wk${w} LLD`);
-assert.deepEqual(T.mc.filter((_: Any, i: number) => GRIND_DOW[i] === 6).map((s: Any) => s.items[0].id), (mc.LLD as Any[]).map((x) => x.id));
-// pairs: one block, at the first member's MC position
-for (const x of MCI.filter((x) => x.pair)) assert.equal(slotOf('mc', x.pair[0]), slotOf('mc', x.pair[1]), `${x.pair} one block`);
-const buildSlots = T.mc.map((s: Any, i: number) => ({ i, s })).filter(({ s }: Any) => s.items.some((x: Any) => MCI.some((m) => m.id === x.id)));
-assert.deepEqual(buildSlots.flatMap(({ s }: Any) => s.items.map((x: Any) => x.id)),
-  MCI.filter((x) => !x.pair || x.pair[0] === x.id).flatMap((x) => (x.pair ? x.pair : [x.id])), 'builds in MC order, pairs at first member');
-for (const { i } of buildSlots) assert.ok([1, 3, 5].includes(GRIND_DOW[i]) || i < 6, `build at ${i} on Mon/Wed/Fri (or week 1)`);
-for (const x of mc.MC_SCREENSHOT as Any[]) {
-  const i = slotOf('mc', x.id), w = Math.floor(i / 6) + 1;
-  assert.ok(w >= x.weeks[0] && w <= x.weeks[1] && [1, 3, 5].includes(GRIND_DOW[i]), `${x.id} Mon/Wed/Fri in weeks 4–8`);
-}
-// flagship: Tue/Thu from week 2, in order, the take-home Tuesday shifts it by one, local-first read in its own slot right after proj:editor
-const FLAG = [...(mc.PROJECT as Any[]).map((x) => x.id)];
-FLAG.splice(FLAG.indexOf('proj:editor') + 1, 0, 'proj:local-first-software');
-const tt = T.mc.map((s: Any, i: number) => ({ i, s })).filter(({ i }: Any) => i >= 6 && [2, 4].includes(GRIND_DOW[i]) && ![37, 55].includes(i));
-assert.deepEqual(tt.slice(0, FLAG.length).map(({ s }: Any) => s.items.map((x: Any) => x.id)), FLAG.map((id) => [id]));
-assert.ok(T.mc.slice(0, 6).every((s: Any) => !s.items.some((x: Any) => x.id.startsWith('proj:'))), 'no flagship in week 1');
-assert.equal(slotOf('mc', 'proj:local-first-software'), tt[FLAG.indexOf('proj:editor') + 1].i);
-assert.equal(T.mc[slotOf('mc', 'proj:local-first-software')].items.length, 1);
-// timed second passes: from week 9, Mon/Wed/Fri, 2 per slot, each after its build
-const timedSlots = T.mc.map((s: Any, i: number) => ({ i, s })).filter(({ s }: Any) => s.items.some((x: Any) => x.id.endsWith(':timed')));
-assert.deepEqual(timedSlots.flatMap(({ s }: Any) => s.items.map((x: Any) => x.id)), (mc.MC_TIMED as string[]).map((id) => `${id}:timed`));
-for (const { i, s } of timedSlots) {
-  assert.ok(i >= idx(9, 1) && [1, 3, 5].includes(GRIND_DOW[i]), `timed pass at ${i}`);
-  assert.equal(s.items.length, 2);
-  for (const x of s.items) assert.ok(slotOf('mc', x.id.replace(/:timed$/, '')) < i, `${x.id} after its build`);
-}
-for (const x of T.mc.flatMap((s: Any) => s.items)) {
-  if (x.id.startsWith('proj:')) assert.equal(x.cat, 'proj');
-  else assert.equal(x.cat, 'mc');
+// ---------- mc: Product, the flagship (v3 §5) ----------
+{
+  const TH: Any[] = product.TAKE_HOMES as Any[], LLDS: Any[] = product.LLD as Any[];
+  assert.equal(FLAG_ROWS.length, 59, '59 flagship steps');
+  assert.equal(LLDS.length, 13);
+  assert.equal(new Set(FLAG_ROWS.map((r) => r.id)).size, 59, 'flagship ids unique');
+  // Walk the 78 slots: Saturdays are LLD, weeks 7 and 10 Mon–Wed the take-homes, the other 59 weekday slots the flagship.
+  const lld = [...LLDS], flag = [...FLAG_ROWS];
+  const stepAt = new Map<number, number>(); // 1-based step → Grind index
+  for (let i = 0; i < 78; i++) {
+    const w = Math.floor(i / 6) + 1, d = GRIND_DOW[i], s = T.mc[i];
+    const th = TH.find((t) => t.week === w);
+    if (d === 6) {
+      const x = lld.shift();
+      assert.deepEqual(s.items.map((y: Any) => [y.id, y.cat]), [[x.id, 'mc']], `mc[${i}] Saturday LLD ${x.id}`);
+      assert.equal(s.items[0].text, x.text);
+    } else if (th && d <= 3) {
+      const p = th.parts[d - 1];
+      assert.deepEqual(s.items.map((y: Any) => [y.id, y.cat]), [[p.id, 'proj']], `mc[${i}] take-home ${p.id}`);
+      assert.equal(s.items[0].text, p.text);
+      if (d === 1) assert.equal(s.items[0].brief, th.text, `${p.id} carries the brief`);
+      else assert.equal(s.items[0].brief, undefined);
+    } else {
+      const r = flag.shift();
+      stepAt.set(FLAG_ROWS.length - flag.length, i);
+      assert.deepEqual(s.items, expandRow(r, 'proj')[0], `mc[${i}] flagship ${r.id}`);
+      assert.ok(s.items.every((y: Any) => y.cat === 'proj'));
+    }
+  }
+  assert.equal(lld.length + flag.length, 0, 'every row placed');
+  assert.deepEqual(TH.map((t) => t.week), [7, 10]);
+  assert.deepEqual([36, 37, 38, 54, 55, 56].map((i) => ids('mc', i)[0]), TH.flatMap((t) => t.parts.map((p: Any) => p.id)));
+  // Learning rows: Understand with one https link, Do (the engineer's part), Explain; TypeScript only, no widget builds.
+  for (const r of FLAG_ROWS) {
+    assert.match(r.id, /^proj:[a-z0-9-]+$/, `${r.id} id`);
+    assert.ok(!r.kind && r.understand && r.do && r.explain, `${r.id} is a learning row`);
+    assert.match(r.url, /^https:\/\//, `${r.id} url`);
+    if (r.url2) assert.match(r.url2, /^https:\/\//, `${r.id} url2`);
+    assert.match(r.explain, /Deep enough when you can/, `${r.id} explain`);
+    for (const t of [r.understand, r.do, r.explain]) assert.doesNotMatch(t, /python|pandas/i, `${r.id} no Python`);
+  }
+  for (const x of [...TH, ...TH.flatMap((t) => t.parts), ...LLDS]) assert.doesNotMatch(x.text, /python|pandas/i, `${x.id} no Python`);
+  // Step 1: pick the product; the default is the v2 AI workspace.
+  const s1 = FLAG_ROWS[0];
+  assert.equal(s1.id, 'proj:pick-scaffold');
+  const s1Text = `${s1.understand} ${s1.do}`;
+  assert.match(s1Text, /AI workspace/);
+  assert.match(s1Text, /real-time collaboration/);
+  assert.match(s1Text, /Ask your workspace/);
+  assert.match(s1Text, /pick another product/i);
+  // Reused v2 ids and the multi-part step ids, at the spec table's steps.
+  const STEP_IDS: Record<number, string> = {
+    1: 'proj:pick-scaffold', 2: 'proj:brief-wireframes', 4: 'proj:design-doc', 6: 'proj:setup', 7: 'proj:auth', 8: 'proj:auth-rls',
+    9: 'proj:editor', 11: 'proj:realtime', 12: 'proj:realtime-presence', 13: 'proj:local-first-software', 14: 'proj:offline',
+    15: 'proj:offline-tests', 16: 'proj:search-performance', 17: 'proj:perf-pass', 18: 'proj:a11y', 22: 'proj:ai-ingestion',
+    23: 'proj:ai-reindex', 25: 'proj:ai-ask-workspace', 26: 'proj:ai-ask-permissions', 28: 'proj:evals', 31: 'proj:ai-agent-actions',
+    32: 'proj:ai-agent-permissions', 33: 'proj:observability-security', 34: 'proj:rate-limits', 35: 'proj:integrations',
+    36: 'proj:webhooks-out', 41: 'proj:load-failure', 42: 'proj:failure-test', 46: 'proj:launch', 48: 'proj:launch-fix',
+    55: 'proj:case-study', 56: 'proj:demo-video',
+  };
+  for (const [n, id] of Object.entries(STEP_IDS)) assert.equal(FLAG_ROWS[Number(n) - 1].id, id, `step ${n} is ${id}`);
+  // Every v2 PROJECT step and the local-first read keep their id and url.
+  for (const v2 of [...(mc.PROJECT as Any[]), ...(mc.PROJECT_DEPTH_READS as Any[])]) {
+    const r = FLAG_ROWS.find((x) => x.id === v2.id);
+    assert.ok(r, `${v2.id} reused`);
+    if (v2.url) assert.ok(FLAG_ROWS.some((x) => x.url === v2.url || x.url2 === v2.url), `${v2.id} url reused`);
+  }
+  // Step 19: the first AI feature absorbs aib:ai-sdk-react and keeps its url.
+  const s19 = FLAG_ROWS[18];
+  assert.deepEqual(s19.covers, ['aib:ai-sdk-react']);
+  assert.equal(s19.url, (ai.AIB as Any[]).find((x) => x.id === 'aib:ai-sdk-react').url);
+  // The 6 product basics (◆).
+  assert.deepEqual(FLAG_ROWS.map((r, k) => (r.basics === true ? k + 1 : 0)).filter(Boolean), [2, 3, 10, 20, 37, 49], 'basics at steps 2, 3, 10, 20, 37, 49');
+  // The spec table's `after` links (17 steps, 16 distinct AI-core slots; steps 39 and 40 both wait for AI 24): product step → AI-core slot, as the first item id of that AI-core slot, at a lower Grind index.
+  const AFTER: Record<number, number> = { 19: 19, 21: 21, 22: 25, 23: 26, 24: 27, 25: 28, 28: 32, 29: 33, 30: 34, 31: 39, 32: 40, 38: 47, 39: 24, 40: 24, 43: 57, 44: 55, 53: 62 };
+  const AFTER_IDS: Record<number, string> = { 19: 'aib:stream-tokens-react', 21: 'aib:tool-call-loop', 24: 'ai:prompt-caching-cost', 25: 'aib:embeddings-neighbours',
+    26: 'aib:pgvector', 27: 'aib:retrieval-chunking-hybrid', 28: 'ai:rag-paper', 32: 'aib:evals-test-cases', 33: 'aib:evals-llm-judge', 34: 'fde:eval-pipelines',
+    39: 'aib:react-build-agent', 40: 'aib:agents-sdk-build', 47: 'ai:fine-tune-evaluate', 55: 'aib:llm-gateway', 57: 'ai:owasp-llm', 62: 'aib:multimodal-upload' };
+  const withAfter = FLAG_ROWS.map((r, k) => [k + 1, r] as const).filter(([, r]) => r.after !== undefined);
+  assert.deepEqual(withAfter.map(([n]) => n), Object.keys(AFTER).map(Number), 'after on exactly the spec steps');
+  for (const [n, r] of withAfter) {
+    const ai = AFTER[n];
+    assert.equal(T.fe[ai - 1].items[0].id, AFTER_IDS[ai], `AI-core slot ${ai} starts with ${AFTER_IDS[ai]}`);
+    assert.equal(r.after, AFTER_IDS[ai], `step ${n} after AI ${ai}`);
+    assert.ok(ai - 1 < stepAt.get(n)!, `step ${n} (index ${stepAt.get(n)}) after AI ${ai} (index ${ai - 1})`);
+    assert.equal(T.mc[stepAt.get(n)!].items[0].after, r.after, `step ${n}: after on the first item`);
+    assert.ok(T.mc[stepAt.get(n)!].items.slice(1).every((y: Any) => y.after === undefined));
+  }
+  // No v2 widget build, timed pass or screenshot build in the plan.
+  for (const t of TRACKS) for (const x of T[t].flatMap((s: Any) => s.items)) {
+    assert.ok(!(mc.MC as Any[]).some((m) => m.id === x.id) && !x.id.endsWith(':timed') && !x.id.startsWith('mc:screenshot-') && !x.id.startsWith('mc:revisit'), `${x.id} is not a v2 build`);
+  }
 }
 
 // ---------- jt: Platform, data and DevOps (v3 §4) ----------

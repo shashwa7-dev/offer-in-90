@@ -1,4 +1,4 @@
-/* Track sequences (roadmap v2 §1–§9, §14; v3 drops the aib track): the curriculum as 7 ordered tracks of 78 slots each, one track per study block.
+/* Track sequences (roadmap v2 §1–§9, §14; v3 drops the aib track; v3 Product replaces the v2 mc track): the curriculum as 7 ordered tracks of 78 slots each, one track per study block.
  * The Grind weekday rules are baked into the order: Grind slot i falls on week floor(i / 6) + 1, weekday GRIND_DOW[i].
  * Steady (Task 6) runs the same sequences on whichever days a track runs.
  * Pure: content comes in as an argument and only type imports are used (extensionless runtime imports don't resolve
@@ -35,7 +35,6 @@ const WEEKS = 13;
 export const GRIND_DOW: number[] = Array.from({ length: SLOTS }, (_, i) => (i % 6) + 1);
 const weekOf = (i: number) => Math.floor(i / 6) + 1;
 const at = (week: number, dow: number) => (week - 1) * 6 + (dow - 1);
-const MWF = [1, 3, 5];
 
 /** Content item → slot item: the shared fields only (content `part`, `day` etc. stay behind; `after` is kept so the
  * calendar layout can hold a slot back until its prerequisite is on an earlier day). */
@@ -48,11 +47,6 @@ function item(x: Row, cat: Cat, extra: Partial<SlotItem> = {}): SlotItem {
   return Object.assign(it, extra);
 }
 const filler = (id: string, text: string, cat: Cat, url?: string): SlotItem => ({ id, text, cat, ...(url ? { url } : {}), filler: true });
-/** Numbered fillers: `${prefix}-1`, `${prefix}-2`, … per prefix. */
-function fillers() {
-  const n: Record<string, number> = {};
-  return (prefix: string, text: string, cat: Cat) => filler(`${prefix}-${(n[prefix] = (n[prefix] ?? 0) + 1)}`, text, cat);
-}
 
 /** One v3 content row → its slots (the plan's "Content row format"). A rep / mock row (`kind`) is one task with its
  * `id`. A learning row is Understand (`id`, with `url`, `url2` and `after`), Do (`id:do`, when given) and Explain
@@ -175,51 +169,28 @@ const aiCoreIds = (c: TrackContent) => rowIds(c.AI_CORE);
  * (the how-it-works case studies and the 4 DDIA reads). */
 const systemsIds = (c: TrackContent) => rowIds(c.SYSTEMS);
 
-// ---------- mc (§5): builds Mon/Wed/Fri, flagship Tue/Thu from week 2, LLD Sat, take-homes, timed second passes ----------
-function mcTrack(c: TrackContent): Slot[] {
-  const MC: Row[] = c.MC;
-  const byId = (id: string) => MC.find((x) => x.id === id);
-  // A pair is one 90-min block (45 + 45) at its first member's MC position.
-  const blocks = queue(MC.filter((x) => !x.pair || x.pair[0] === x.id).map((x) => (x.pair ? x.pair.map(byId) : [x])));
-  const screenshots = queue(c.MC_SCREENSHOT as Row[]);
-  const flagship: Row[] = [];
-  // 18 steps + the local-first read = 19 items in 18 Tue/Thu slots of weeks 2–11, so the case study lands on week 12 Tue (Ruling R10).
-  for (const p of c.PROJECT as Row[]) flagship.push(p, ...(c.PROJECT_DEPTH_READS as Row[]).filter((d) => d.after === p.id));
-  const proj = queue(flagship);
-  const lld = queue(c.LLD as Row[]);
-  const timed: string[] = c.MC_TIMED;
-  const timedPairs = queue(Array.from({ length: Math.ceil(timed.length / 2) }, (_, k) => timed.slice(k * 2, k * 2 + 2)));
+// ---------- mc (v3 §5): Product, the flagship ----------
+/** Walk the 78 slots: Saturdays are the 13 LLD sessions, Mon–Wed of weeks 7 and 10 the take-home parts (part 1 carries the
+ * brief), and every other weekday slot the next flagship step. The v2 builds, timed passes and screenshot builds are gone. */
+function productTrack(c: TrackContent): Slot[] {
+  const flagship = queue(c.FLAGSHIP as Row[]), lld = queue(c.LLD as Row[]);
   const takeHome = (w: number) => (c.TAKE_HOMES as Row[]).find((t) => t.week === w);
-  const placed = new Set<string>();
-  const build = () => { const b = blocks.next()!; b.forEach((x: Row) => placed.add(x.id)); return b.map((x: Row) => item(x, 'mc')); };
-  const fill = fillers();
-  let lateMwf = 0;
   const slots: SlotItem[][] = [];
   for (let i = 0; i < SLOTS; i++) {
     const w = weekOf(i), d = GRIND_DOW[i], th = takeHome(w);
-    if (th && d <= 3) {
-      const p = th.parts[d - 1];
-      slots.push([item(p, 'mc', d === 1 ? { brief: th.text } : {})]);
-    } else if (d === 6) {
-      slots.push(lld.left ? [item(lld.next(), 'mc')] : [fill('mc:revisit-lld', 'Revisit: redo one LLD design from scratch, then compare', 'mc')]);
-    } else if (!MWF.includes(d)) {
-      // Tue/Thu: the flagship from week 2 (week 1 has no flagship yet, so it builds).
-      if (w === 1 && blocks.left) slots.push(build());
-      else if (w > 1 && proj.left) slots.push([item(proj.next(), 'proj')]);
-      else slots.push([fill('proj:revisit', 'Revisit: one flagship improvement from your launch feedback (fix, test, update the case study)', 'proj')]);
-    } else if (d === 5 && [4, 6, 8].includes(w) && screenshots.left) {
-      slots.push([item(screenshots.next(), 'mc')]);
-    } else if (w >= 9) {
-      // From week 9: timed second passes, 2 per block, alternating with the remaining builds (each pass after its build).
-      const pair = timedPairs.peek(), ready = pair && pair.every((id) => placed.has(id));
-      if (ready && (lateMwf++ % 2 === 0 || !blocks.left)) {
-        slots.push(timedPairs.next()!.map((id) => ({ id: `${id}:timed`, cat: 'mc' as Cat, text: `Timed second pass (30–45 min, from scratch, talking out loud): ${byId(id).text}` })));
-      } else if (blocks.left) slots.push(build());
-      else slots.push([fill('mc:revisit', 'Revisit: timed rebuild (45 min) of the earlier build you found hardest', 'mc')]);
-    } else if (blocks.left) slots.push(build());
-    else slots.push([fill('mc:revisit', 'Revisit: timed rebuild (45 min) of the earlier build you found hardest', 'mc')]);
+    if (d === 6) {
+      const x = lld.next();
+      if (!x) throw new Error('track mc: LLD ran out before the last Saturday');
+      slots.push([item(x, 'mc')]);
+    } else if (th && d <= 3) {
+      slots.push([item(th.parts[d - 1], 'proj', d === 1 ? { brief: th.text } : {})]);
+    } else {
+      const r = flagship.next();
+      if (!r) throw new Error('track mc: flagship ran out before the last weekday');
+      slots.push(...expandRow(r, 'proj'));
+    }
   }
-  mustFit('mc', blocks.left + screenshots.left + proj.left + lld.left + timedPairs.left);
+  mustFit('mc', flagship.left + lld.left);
   return toSlots('mc', slots);
 }
 
@@ -355,7 +326,7 @@ function aiTrack(c: TrackContent): Slot[] {
 export function buildTracks(content: TrackContent): Record<TrackId, Slot[]> {
   if (WEEKS * 6 !== SLOTS) throw new Error('Grind has 13 weeks of 6 study days');
   return {
-    dsa: dsaTrack(content), fe: aiCoreTrack(content), mc: mcTrack(content),
+    dsa: dsaTrack(content), fe: aiCoreTrack(content), mc: productTrack(content),
     sd: sdTrack(content), jt: platformTrack(content), beh: behTrack(content), ai: aiTrack(content),
   };
 }

@@ -1,6 +1,7 @@
 /* eslint-disable */
-// Machine-coding block content (roadmap v2 §5): builds (MC), timed second passes (MC_TIMED), screenshot builds, take-home
-// simulations, the flagship project (PROJECT) and LLD. System design lives in sd.js.
+// Machine-coding block content (roadmap v2 §5): builds (MC), timed second passes (MC_TIMED), screenshot builds and the v2
+// flagship project (PROJECT). v3 lays out none of these: the Product track (product.js) replaces them, reusing the PROJECT
+// ids; Task 8 moves a few builds into Frontend and Task 9 deletes the rest. TAKE_HOMES and LLD moved to product.js.
 // Item shape: { id, text, url?, mins?, depth?, slots? } plus extra keys. IDs are content-based (<prefix>:<slug>) and must never change.
 
 // The 34 builds, in the old order (provenance: the v1 order and text). 90 min each, except the
@@ -56,28 +57,7 @@ export const MC_SCREENSHOT = [
   { id: 'mc:screenshot-newsletter', text: 'Match this screenshot: newsletter sign-up form with validation and a success message. Build it pixel-accurate, responsive (the layout changes at mobile width), and accessible (labelled input, errors announced, focus moved to the success state). 45 min, then diff your build against the screenshot.', url: 'https://www.frontendmentor.io/challenges/newsletter-signup-form-with-success-message-3FC1AZbNrv', mins: 45, weeks: [4, 8] },
 ];
 
-// Product engineer take-home simulations (§5): weeks 7 and 10, Mon–Wed instead of the usual blocks (3 × 90 min plus optional
-// Sunday time). Written in the style of the Linear and PostHog take-homes. The brief's link is on part 1. URLs checked 2026-11-15.
-export const TAKE_HOMES = [
-  {
-    id: 'mc:take-home-issue-triage', week: 7, style: 'Linear',
-    text: 'Take-home (Linear style, 4–8 h): build an issue triage inbox. Seed 200 issues (title, status, priority, assignee, labels, created). The inbox lists them with filters and sort; you triage with the keyboard only: j/k to move, Enter to open a detail pane, s/p/a to set status, priority and assignee, e to archive, ⌘K for a command menu, and undo for the last action. Changes are optimistic and survive a reload. It must be polished, keyboard-first and accessible (focus management, ARIA roles, screen-reader announcements, visible focus). Hand in a README of trade-offs (what you cut and why, what you would do next) and a recorded walkthrough of 5 minutes or less.',
-    parts: [
-      { id: 'mc:take-home-issue-triage-1', text: 'Take-home 1/3 (issue triage inbox): read the brief, write a half-page plan (data model, state, keyboard map, what you will cut), scaffold, seed data, the list with filters and sort.', url: 'https://linear.app/docs/conceptual-model', mins: 90 },
-      { id: 'mc:take-home-issue-triage-2', text: 'Take-home 2/3 (issue triage inbox): the keyboard layer (j/k, Enter, s/p/a, e, ⌘K, undo), the detail pane, optimistic updates persisted across reloads, focus management and screen-reader announcements.', mins: 90 },
-      { id: 'mc:take-home-issue-triage-3', text: 'Take-home 3/3 (issue triage inbox): polish (empty and loading states, motion, contrast), an axe pass and a few tests, the README of trade-offs, and the recorded walkthrough. Use optional Sunday time to finish; stop at 8 h.', mins: 90 },
-    ],
-  },
-  {
-    id: 'mc:take-home-funnel-explorer', week: 10, style: 'PostHog',
-    text: 'Take-home (PostHog style, 4–8 h): build a product-analytics funnel explorer. Generate 50,000 events (user, event name, timestamp, properties). The user picks 2–5 steps and a date range and sees the conversion funnel: counts and drop-off per step, a breakdown by one property, and the list of users who dropped at a step. State lives in the URL so a funnel can be shared, and the event table stays fast (virtualized, filtering off the main thread or debounced). It must be polished, keyboard-first and accessible (every control reachable by keyboard, the chart has a table fallback, visible focus). Hand in a README of trade-offs (data shape, where you compute the funnel, what breaks at 10× the data) and a recorded walkthrough of 5 minutes or less.',
-    parts: [
-      { id: 'mc:take-home-funnel-explorer-1', text: 'Take-home 1/3 (funnel explorer): read the brief, write a half-page plan (event shape, where the funnel is computed, URL state, what you will cut), generate the data, the step picker and date range.', url: 'https://posthog.com/docs/product-analytics/funnels', mins: 90 },
-      { id: 'mc:take-home-funnel-explorer-2', text: 'Take-home 2/3 (funnel explorer): the funnel computation and chart with its table fallback, the property breakdown, drop-off users, shareable URL state, and the fast virtualized event table.', mins: 90 },
-      { id: 'mc:take-home-funnel-explorer-3', text: 'Take-home 3/3 (funnel explorer): polish, keyboard and screen-reader pass, a few tests on the funnel maths, the README of trade-offs, and the recorded walkthrough. Use optional Sunday time to finish; stop at 8 h.', mins: 90 },
-    ],
-  },
-];
+// TAKE_HOMES moved to product.js (v3 §5).
 
 // Flagship product (§5): Tue/Thu from week 2 to week 11. The old 20 steps fit 18 slots by merging "product brief" with
 // "UX wireframes" and "search + ⌘K" with "performance pass"; nothing else changes. You write the brief, the design doc and
@@ -115,21 +95,4 @@ export const PROJECT_DEPTH_READS = [
   { id: 'proj:local-first-software', after: 'proj:editor', depth: true, mins: 60, text: 'Read Ink & Switch, "Local-first software" (Kleppmann, Wiggins, van Hardenberg, McGranaghan, 2019): the seven ideals, why CRDTs, and what is still hard. Explain back what happens when two people edit offline and reconnect, and how a CRDT merges their changes.', url: 'https://www.inkandswitch.com/essay/local-first/' },
 ];
 
-// LLD (§5): Saturdays in the machine-coding block, the 13 from the board, unchanged.
-export const LLD = [
-  { id: 'lld:oop-solid', text: 'LLD foundations: OOP principles + SOLID', url: 'https://www.baeldung.com/solid-principles' },
-  { id: 'lld:creational-structural-patterns', text: 'LLD foundations: design patterns, creational + structural (use the masterclass video)', url: 'https://refactoring.guru/design-patterns' },
-  { id: 'lld:behavioral-patterns', text: 'LLD foundations: design patterns, behavioral (Observer, Strategy, Command, State)', url: 'https://youtu.be/vap9ACtc_tU' },
-  { id: 'lld:concurrency-task-scheduler', text: 'LLD foundations: multithreading & concurrency + design a multi-threaded task scheduler', url: 'https://akhiilgupta.medium.com/design-a-multi-threaded-task-scheduler-lld-multi-threaded-construct-eb090c5a8727' },
-  { id: 'lld:book-management', text: 'LLD: Design an online book management system', url: 'https://www.lldcoding.com/' },
-  { id: 'lld:google-authenticator', text: 'LLD: Design Google Authenticator', url: 'https://www.lldcoding.com/' },
-  { id: 'lld:android-unlock-pattern', text: 'LLD: Design the Android unlock pattern', url: 'https://www.lldcoding.com/' },
-  { id: 'lld:rate-limiter', text: 'LLD: Design a rate limiter', url: 'https://www.lldcoding.com/' },
-  { id: 'lld:google-calendar-db', text: 'LLD: Design the Google Calendar database model', url: 'https://www.lldcoding.com/' },
-  { id: 'lld:coupon-system', text: 'LLD: Design a coupon system (quick-commerce app)', url: 'https://www.lldcoding.com/' },
-  // The earlier Medium article on multithreading LLD questions was removed (410); replaced by AlgoMaster's free
-  // Concurrency Interview chapter on the thread-pool pattern. URL checked 2026-11-15 (HTTP 200, article body free).
-  { id: 'lld:thread-pool', text: 'LLD: Design a thread pool (task queue, workers, shutdown, rejection policy)', url: 'https://algomaster.io/learn/concurrency-interview/thread-pool-pattern' },
-  { id: 'lld:tetris', text: 'LLD: Design Tetris', url: 'https://www.lldcoding.com/' },
-  { id: 'lld:aws-alarm-service', text: 'LLD: Design an alarm / alert service for AWS', url: 'https://www.lldcoding.com/' },
-];
+// LLD moved to product.js (v3 §5).

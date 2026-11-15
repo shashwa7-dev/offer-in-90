@@ -8,7 +8,8 @@ import { AIB_MOVED, AIB, AI_EVENING, AI_REVIEW, AI_NEWS } from '../src/lib/conte
 import { AI_CORE } from '../src/lib/content/ai-core.js';
 import { SYSTEMS } from '../src/lib/content/systems.js';
 import { PLATFORM } from '../src/lib/content/platform.js';
-import { MC, MC_TIMED, MC_SCREENSHOT, TAKE_HOMES, PROJECT, PROJECT_DEPTH_READS, LLD } from '../src/lib/content/mc.js';
+import { MC, MC_TIMED, MC_SCREENSHOT, PROJECT, PROJECT_DEPTH_READS } from '../src/lib/content/mc.js';
+import { TAKE_HOMES, LLD } from '../src/lib/content/product.js';
 import { SD, SD_MOCKS } from '../src/lib/content/sd.js';
 import { PLAN } from '../src/lib/plan-data.js';
 import { HOW_IT_WORKS, MEMOS, PRACTICAL, DECOMP, OSS_REPOS, OSS_FIXES, CODE_REVIEWS, JT_DEPTH_READS, INTERVIEW_ENV } from '../src/lib/content/judgment.js';

@@ -9,6 +9,7 @@ import * as aiCore from '../src/lib/content/ai-core.js';
 import * as systems from '../src/lib/content/systems.js';
 import * as platform from '../src/lib/content/platform.js';
 import * as mc from '../src/lib/content/mc.js';
+import * as product from '../src/lib/content/product.js';
 import * as sd from '../src/lib/content/sd.js';
 import * as judgment from '../src/lib/content/judgment.js';
 import * as reference from '../src/lib/content/reference.js';
@@ -18,7 +19,7 @@ import { steadyRuns, layoutDays, cursorsAt, WEEKS } from '../src/lib/layout.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
-const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...aiCore, ...mc, ...sd, ...systems, ...platform, ...judgment, ...reference };
+const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...aiCore, ...mc, ...product, ...sd, ...systems, ...platform, ...judgment, ...reference };
 const tracks: Any = buildTracks(content);
 const TRACKS = ['dsa', 'fe', 'mc', 'sd', 'jt', 'beh', 'ai'];
 const ZERO: Any = Object.fromEntries(TRACKS.map((t) => [t, 0]));
@@ -158,11 +159,15 @@ assert.equal(steady.filter((d) => d.kind === 'study').length, 102);
 /** Every laid-out item with an `after` (the aib track is no longer laid out, so its content is not checked). */
 const afterItems = (ts: Any) => TRACKS.flatMap((t) => ts[t].flatMap((s: Any) => s.items)).filter((x: Any) => typeof x.after === 'string')
   .map((x: Any) => ({ id: x.id.replace(/:part-\d+$/, ''), after: x.after }));
-// Interim until Task 6: Platform slot 6 waits for `proj:pick-scaffold`, which Product creates. The layout treats an
-// unknown target as ready, so only prerequisites that are laid out are checked here; the waiting one is listed.
+// Every `after` target must be laid out (the layout treats an unknown target as ready, which would hide a broken link).
 const laidOut = new Set<string>(TRACKS.flatMap((t) => tracks[t].flatMap((s: Any) => s.items.map((x: Any) => x.id.replace(/:part-\d+$/, '')))));
-const withAfter: Any[] = afterItems(tracks).filter((x: Any) => laidOut.has(x.after));
-assert.deepEqual(afterItems(tracks).filter((x: Any) => !laidOut.has(x.after)).filter((x: Any) => x.after !== 'proj:pick-scaffold'), [], 'only proj:pick-scaffold may be missing');
+const withAfter: Any[] = afterItems(tracks);
+assert.deepEqual(withAfter.filter((x: Any) => !laidOut.has(x.after)), [], 'every after target is laid out');
+// The product's AI steps (v3 §5) and Platform slot 6 are the only items with `after`.
+const productAfter = withAfter.filter((x: Any) => x.id.startsWith('proj:'));
+assert.equal(productAfter.length, ((product as Any).FLAGSHIP as Any[]).filter((r) => r.after).length, 'every product after is laid out');
+assert.ok(productAfter.length >= 16);
+assert.deepEqual(withAfter.filter((x: Any) => !x.id.startsWith('proj:')).map((x: Any) => [x.id, x.after]), [['pf:environments', 'proj:pick-scaffold']]);
 function checkAfter(days: Any[], label: string, items: Any[] = withAfter) {
   const first = new Map<string, number>(), last = new Map<string, number>();
   for (const d of days) for (const t of TRACKS) for (const x of live(d, t)?.items ?? []) {
@@ -177,6 +182,8 @@ function checkAfter(days: Any[], label: string, items: Any[] = withAfter) {
 }
 checkAfter(grind, 'grind');
 checkAfter(steady, 'steady');
+checkAfter(grind, 'grind: product after', productAfter);
+checkAfter(steady, 'steady: product after', productAfter);
 
 // ---------- changing start (Review Focus 1) ----------
 {
@@ -290,6 +297,15 @@ const fxPlan = (modes: Any = {}, done: Any = {}) => layoutDays({ start: START, k
   const g2s = fxPlan(switchMode(GRIND_MODES, sw, 'steady', cursorsAt(fxGrind, sw, done), START), done);
   checkOnce(g2s, 'grind→steady at study day 25', fxAfter);
   assert.equal(g2s.at(-1)!.kind, 'sun');
+}
+
+// ---------- Grind → Steady in week 5 with ticks: every product `after` still on a strictly later day ----------
+{
+  const sw = grind.find((d) => d.studyNo === 25)!;
+  assert.equal(Math.floor((sw.studyNo - 1) / 6) + 1, 5, 'study day 25 is in Grind week 5');
+  const g2s = switched(grind, GRIND_MODES, sw.date, 'steady');
+  checkOnce(g2s.days, 'grind→steady in week 5');
+  checkAfter(g2s.days, 'grind→steady in week 5: product after', productAfter);
 }
 
 // ---------- nothing done at a switch: the past stays as history, marked superseded (Ruling R12) ----------
