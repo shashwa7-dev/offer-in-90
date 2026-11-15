@@ -120,12 +120,14 @@ function planResolves(layout: LayoutDay[]): { byDate: Map<string, Task[]>; left:
 // ---------- recall + news (the `aib` block, generated every study day) ----------
 const RECALL_AI = 30, RECALL_SD = 20, SD_WINDOW = [3, 7];
 /** AI recall of the latest AI-core (`fe`) slot on an earlier study day (a warm-up before the first one), Systems recall
- * of the latest `sd` slot placed 3–7 study days earlier (with none, the AI recall takes its 20 min), then the AI news. */
+ * of the latest `sd` slot placed 3–7 study days earlier (with none, the AI recall takes its 20 min), then the AI news.
+ * Either prefers a learning slot (one with an `:explain` item) over a rep or mock. */
 function recallTasks(L: LayoutDay, layout: LayoutDay[], i: number): Task[] {
   const k = (x: string) => `d:${L.date}:${x}`;
   const earlier = layout.slice(0, i).filter((x) => x.kind === 'study');
-  const ai = earlier.filter((x) => live(x, 'fe')).at(-1)?.slots.fe!.items[0];
-  const sd = earlier.filter((x) => live(x, 'sd') && x.studyNo! >= L.studyNo! - SD_WINDOW[1] && x.studyNo! <= L.studyNo! - SD_WINDOW[0]).at(-1)?.slots.sd!.items[0];
+  const latest = (xs: LayoutDay[], t: TrackId) => (xs.filter((x) => x.slots[t]!.items.some((y) => y.id.endsWith(':explain'))).at(-1) ?? xs.at(-1))?.slots[t]!.items[0];
+  const ai = latest(earlier.filter((x) => live(x, 'fe')), 'fe');
+  const sd = latest(earlier.filter((x) => live(x, 'sd') && x.studyNo! >= L.studyNo! - SD_WINDOW[1] && x.studyNo! <= L.studyNo! - SD_WINDOW[0]), 'sd');
   const aiMins = sd ? RECALL_AI : RECALL_AI + RECALL_SD;
   const out: Task[] = [ai
     ? T(k('recall-ai'), `AI recall (${aiMins} min): without notes, explain "${ai.text}" out loud or on paper. Then check against its link and note what you missed.`, 'ai', { mins: aiMins, ...(ai.url ? { url: ai.url } : {}) })
@@ -152,7 +154,9 @@ const PREP_BLOCKS: TemplateBlock[] = [
   { s: '21:30', e: '22:00', k: 'wind', title: 'Wind down · sleep at 22:00', kind: 'life' },
 ];
 const NEWS_TASK = "Skim today's News tab and open the 1–2 reads that matter. Save one takeaway in AI notes (10 min)";
-const SAT_TITLE: Record<string, string> = { mc: 'Deep work 3 · Low-level design', beh: 'Career · Mock day' };
+/** Block titles chosen by the slot, not the weekday (Steady moves LLD and mock-day slots off Saturdays): the product
+ * block of an LLD slot (cat mc) and the career block of a mock-day slot (a MOCK_DAY row, as timeline.ts's mock-day stage). */
+const SLOT_TITLE: Record<string, string> = { mc: 'Deep work 3 · Low-level design', beh: 'Career · Mock day' };
 const WORKOUTS = ['', 'Workout: push (chest, shoulders, triceps)', 'Workout: pull (back, biceps)', 'Workout: legs + core', 'Workout: 30 min run or cycling', 'Workout: full body', 'Workout: yoga + mobility'];
 
 function prepTasks(): Record<string, Task[]> {
@@ -205,6 +209,7 @@ export function buildPlanFrom(state: PlanState, updates: UpdateItem[], custom: R
   for (const r of (c.READINESS ?? []) as Row[]) pin(sundayFor(r.week), T(r.id, `Readiness check (week ${r.week}): ${r.text}`, 'review'));
   if (c.WEEK8_REVIEW) pin(sundayFor(c.WEEK8_REVIEW.week), T(c.WEEK8_REVIEW.id, c.WEEK8_REVIEW.text, 'review'));
 
+  const mockDayIds = new Set<string>(((c.MOCK_DAY ?? []) as Row[]).flatMap((d) => [d.row.id, ...d.carry.map((r: Row) => r.id)]));
   const covered = new Set<string>();
   const carry: Task[] = []; // sundayCarry items waiting for this week's Sunday (R9)
 
@@ -273,9 +278,9 @@ export function buildPlanFrom(state: PlanState, updates: UpdateItem[], custom: R
     // Mon–Sat study day. A track block with no slot today becomes a buffer at the same times (Steady rotation, or a
     // track already finished), except a Steady DSA rest day, which is a pattern revisit.
     const revisit = revisits(L);
-    const sat = dowOf(L.date) === 6;
+    const slotTitled = (k: string) => (k === 'mc' ? !!L.slots.mc?.items.some((x) => x.cat === 'mc') : k === 'beh' && !!L.slots.beh?.items.some((x) => mockDayIds.has(x.id)));
     const tpl: TemplateBlock[] = lib.WEEKDAY_BLOCKS.map((b) => (TRACK_IDS.includes(b.k as TrackId) && !L.slots[b.k as TrackId] && !(revisit && b.k === 'dsa')
-      ? { ...b, ...lib.BUFFER_BLOCK, k: `${lib.BUFFER_BLOCK.k}-${b.k}`, s: b.s, e: b.e } : { ...b, ...(sat && SAT_TITLE[b.k] ? { title: SAT_TITLE[b.k] } : {}) }));
+      ? { ...b, ...lib.BUFFER_BLOCK, k: `${lib.BUFFER_BLOCK.k}-${b.k}`, s: b.s, e: b.e } : { ...b, ...(slotTitled(b.k) ? { title: SLOT_TITLE[b.k] } : {}) }));
     const placed = lib.placeDay(tpl as RoutineBlock[], routine);
     const blocks = (placed.ok ? placed.blocks : tpl) as TemplateBlock[];
 

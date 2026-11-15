@@ -17,6 +17,7 @@ import { WEEKDAY_BLOCKS, BUFFER_BLOCK, SUNDAY_BLOCKS } from '../src/lib/schedule
 import { buildPlanFrom, cursorsNowFrom, drillPicks, isStudy } from '../src/lib/plan-build.ts';
 import { switchMode } from '../src/lib/modes.ts';
 import { counts } from '../src/lib/task-status.ts';
+import { STAGES } from '../src/lib/timeline.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
@@ -216,6 +217,24 @@ for (const t of sun.flatMap((d) => d.tasks).filter((t) => t.id.endsWith(':apply'
   assert.equal(block(d1, 'mc').title, 'Deep work 3 · Product: the flagship');
   assert.equal(block(d1, 'beh').title, 'Career and FDE');
 }
+// block titles follow the slot, not the weekday: Steady's rotation moves LLD and mock-day slots off Saturdays
+{
+  const LLD = 'Deep work 3 · Low-level design', MOCK = 'Career · Mock day';
+  const mockDay = STAGES.find((s) => s.label === 'Mock day')!.match;
+  for (const [plan, name] of [[G, 'grind'], [S, 'steady']] as const) {
+    let offSat = 0, lldDays = 0, mockDays = 0;
+    for (const d of plan.filter((x) => x.type === 'study')) {
+      const mc = block(d, 'mc'), beh = block(d, 'beh');
+      const lld = !!mc?.tasks.some((t: Any) => t.cat === 'mc'), mock = !!beh?.tasks.some((t: Any) => mockDay(t));
+      if (mc) assert.equal(mc.title === LLD, lld, `${name} ${isoOf(d.date)}: mc title "${mc.title}"`);
+      if (beh) assert.equal(beh.title === MOCK, mock, `${name} ${isoOf(d.date)}: beh title "${beh.title}"`);
+      lldDays += +lld; mockDays += +mock;
+      if ((lld || mock) && d.date.getDay() !== 6) offSat++;
+    }
+    assert.deepEqual([lldDays, mockDays], [13, 13], `${name}: 13 LLD and 13 mock days`);
+    if (name === 'steady') assert.ok(offSat > 0, 'Steady puts some LLD or mock-day slots on other weekdays');
+  }
+}
 
 // ---------- routine changes block times ----------
 {
@@ -323,8 +342,11 @@ for (const [plan, modes, name] of [[G, GRIND, 'grind'], [S, {}, 'steady']] as co
   plan.forEach((d, i) => {
     if (d.type !== 'study') return;
     const date = isoOf(d.date), aib = block(d, 'aib');
-    const aiSrc = L.slice(0, i).filter((x: Any) => x.kind === 'study' && liveSlot(x, 'fe')).at(-1);
-    const sdSrc = L.slice(0, i).filter((x: Any) => x.kind === 'study' && liveSlot(x, 'sd') && x.studyNo >= L[i].studyNo - 7 && x.studyNo <= L[i].studyNo - 3).at(-1);
+    // the latest learning slot (one with an :explain item), else the latest slot (a rep or mock)
+    const learning = (x: Any, t: string) => x.slots[t].items.some((it: Any) => it.id.endsWith(':explain'));
+    const latest = (xs: Any[], t: string) => xs.filter((x) => learning(x, t)).at(-1) ?? xs.at(-1);
+    const aiSrc = latest(L.slice(0, i).filter((x: Any) => x.kind === 'study' && liveSlot(x, 'fe')), 'fe');
+    const sdSrc = latest(L.slice(0, i).filter((x: Any) => x.kind === 'study' && liveSlot(x, 'sd') && x.studyNo >= L[i].studyNo - 7 && x.studyNo <= L[i].studyNo - 3), 'sd');
     assert.deepEqual(ids(d, 'aib'), [`d:${date}:recall-ai`, ...(sdSrc ? [`d:${date}:recall-sd`] : []), `d:${date}:news`], `${name} ${date} recall ids`);
     const [ra] = aib.tasks;
     assert.equal(ra.mins, sdSrc ? 30 : 50, `${name} ${date} recall-ai mins`);
