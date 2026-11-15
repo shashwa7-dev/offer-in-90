@@ -114,6 +114,15 @@ Grind slot *n* (1-based) is week ⌈n/6⌉, weekday ((n−1) mod 6)+1 (Mon = 1 �
 
 ### 1. DSA (`dsa`, 60 min)
 
+**Owner rule (2026-11-15): at least one DSA problem is solved every day of the plan, Sundays included.** The prep
+day has the baseline problems. Study days: pattern days carry the teach or unseen problem; the two foundation slots
+each add one easy warm-up problem (Big-O: an array/hash problem; recursion: a recursion problem), from the optional
+pool and not used elsewhere; Phase 3 sets, the advanced slots ("solve 1") and Steady revisit days already have
+problems. **Sundays (rest and revision alike)** get a generated "Sunday problem (30–40 min, timed)": one problem not
+yet solved, from a pattern already covered (hardest patterns first, the same pool as Steady revisits, never reused),
+logged as unseen. It counts as study time; the plan is not lengthened. A test checks that every day has at least
+one DSA problem task.
+
 **Rule: every study day covers one pattern or DSA fundamental, or a timed mixed set (patterns hidden by design).**
 No hand-built data structures.
 
