@@ -316,6 +316,14 @@ function behTrack(c: TrackContent): Slot[] {
   return toSlots('beh', slots);
 }
 
+/** The AI_EVENING item that finishes teaching each AI_REVIEW topic; the review only comes after it. */
+const REVIEW_TAUGHT_BY: Record<string, string> = {
+  'ai:review-transformers': 'ai:attention-annotated-code', 'ai:review-rlhf': 'ai:instructgpt-results',
+  'ai:review-rag': 'ai:contextual-retrieval', 'ai:review-agents': 'ai:building-effective-agents',
+  'ai:review-evals': 'ai:evals-hamel', 'ai:review-scaling-laws': 'ai:scaling-write-up',
+  'ai:review-finetune-vs-rag': 'ai:prompt-rag-finetune', 'ai:review-prompt-injection': 'ai:owasp-llm',
+};
+
 // ---------- ai (§7): the evening hour at its old days, depth reads after their targets, review in the gaps ----------
 function aiTrack(c: TrackContent): Slot[] {
   const slots: (SlotItem[] | undefined)[] = Array.from({ length: SLOTS }, () => undefined);
@@ -331,13 +339,26 @@ function aiTrack(c: TrackContent): Slot[] {
     if (from < 0 || free < 0) mustFit('ai', 1);
     slots[free] = [item(x, 'ai')];
   }
-  // The gaps (old build days that moved to AIB) and the tail: the explain-it-back rotation.
-  const R: Row[] = c.AI_REVIEW;
-  let k = 0;
-  const out = slots.map((s) => {
+  // The gaps (old build days that moved to AIB) and the tail: explain-it-back reviews, each only after the evening slot
+  // that teaches its topic. Least-used covered review first (never the same one twice running); with none, a notes revisit.
+  const at_ = (id: string) => slots.findIndex((s) => s?.some((y) => y.id === id));
+  const reviews = (c.AI_REVIEW as Row[]).map((r) => {
+    const taught = REVIEW_TAUGHT_BY[r.id];
+    if (!taught || at_(taught) < 0) throw new Error(`track ai: no teaching item for ${r.id}`);
+    return { r, after: at_(taught), uses: 0 };
+  });
+  let last: Row = null, revisits = 0;
+  const out = slots.map((s, i) => {
     if (s) return s;
-    const r = R[k % R.length], round = Math.floor(k++ / R.length);
-    return [round ? filler(`${r.id}:${round + 1}`, r.text, 'ai') : item(r, 'ai')];
+    const pick = reviews.filter((x) => x.after < i && x.r !== last).sort((a, b) => a.uses - b.uses)[0];
+    if (!pick) {
+      last = null;
+      const prevId = [...slots.slice(0, i)].reverse().find(Boolean)![0].id, prev = E.find((x) => x.id === prevId);
+      return [filler(`ai:revisit-notes-${++revisits}`, `Revisit: re-read your notes from ${prev.unit ?? prev.text}`, 'ai')];
+    }
+    last = pick.r;
+    const n = ++pick.uses;
+    return [n > 1 ? filler(`${pick.r.id}:${n}`, pick.r.text, 'ai') : item(pick.r, 'ai')];
   });
   return toSlots('ai', out);
 }

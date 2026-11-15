@@ -169,15 +169,26 @@ for (const x of evening.filter((x) => typeof x.day !== 'number')) {
   assert.ok(from >= 0 && i > from, `${x.id} after ${x.after}`);
   for (let j = from + 1; j < i; j++) assert.ok(!T.ai[j].items.some((y: Any) => y.id.startsWith('ai:review-')), `${x.id} takes the first free slot after ${x.after}`);
 }
-const reviews = (ai.AI_REVIEW as Any[]).map((x) => x.id);
+const TAUGHT: Record<string, string> = {
+  'ai:review-transformers': 'ai:attention-annotated-code', 'ai:review-rlhf': 'ai:instructgpt-results', 'ai:review-rag': 'ai:contextual-retrieval',
+  'ai:review-agents': 'ai:building-effective-agents', 'ai:review-evals': 'ai:evals-hamel', 'ai:review-scaling-laws': 'ai:scaling-write-up',
+  'ai:review-finetune-vs-rag': 'ai:prompt-rag-finetune', 'ai:review-prompt-injection': 'ai:owasp-llm',
+};
+assert.deepEqual(Object.keys(TAUGHT).sort(), (ai.AI_REVIEW as Any[]).map((x) => x.id).sort());
 const gaps = T.ai.map((s: Any, i: number) => i).filter((i: number) => !evening.some((x) => slotOf('ai', x.id) === i));
 assert.equal(gaps.length, 78 - evening.length);
-gaps.forEach((i: number, k: number) => {
-  const x = T.ai[i].items[0], base = reviews[k % reviews.length];
+let prevReview = '';
+for (const i of gaps) {
   assert.equal(T.ai[i].items.length, 1);
-  assert.ok(x.id === base || x.id === `${base}:${Math.floor(k / reviews.length) + 1}`, `ai[${i}] review ${x.id}`);
-  assert.equal(!!x.filler, k >= reviews.length, `ai[${i}] filler flag`);
-});
+  const x = T.ai[i].items[0];
+  if (x.id.startsWith('ai:revisit-notes-')) { assert.equal(x.filler, true); assert.match(x.text, /^Revisit: re-read your notes from /); prevReview = ''; continue; }
+  const m = /^(ai:review-[a-z-]+)(?::(\d+))?$/.exec(x.id);
+  assert.ok(m && TAUGHT[m[1]], `ai[${i}] review ${x.id}`);
+  assert.ok(i > slotOf('ai', TAUGHT[m![1]]), `${x.id} at ${i} after its topic ${TAUGHT[m![1]]}`);
+  assert.equal(!!x.filler, !!m![2], `${x.id} filler iff repeat`);
+  assert.notEqual(m![1], prevReview, `ai[${i}] same review twice running`);
+  prevReview = m![1];
+}
 
 // ---------- mc ----------
 const MCI: Any[] = mc.MC as Any[];
