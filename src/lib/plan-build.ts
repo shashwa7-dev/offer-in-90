@@ -5,8 +5,8 @@
  *
  * Task IDs are content-based (Constraints): track items keep their content IDs, problems `p-<slug>`. Daily habits that
  * repeat use the date: `d:<date>:drill|log|wo|news|recall-ai|recall-sd|revisit-flagged` on study days,
- * `d:<date>:check|reflect|preview|walk|catchup|flagged|explore|apply` on Sundays. Teaching-problem re-solves are `rs:<slug>:<k>` for k = 3, 7, 21 (the day offset); Steady
- * DSA pattern revisits are `rv:<slug>:<date>`. */
+ * `d:<date>:check|reflect|preview|walk|catchup|flagged|explore|apply|sunday-flagged` on Sundays. Teaching-problem re-solves are `rs:<slug>:<k>` for k = 3, 7, 21 (the day offset); Steady
+ * DSA pattern revisits are `rv:<slug>:<date>`, Sunday problems `sp:<slug>:<date>`. */
 import type { Block, CustomTask, Day, Task, UpdateItem, Cat } from './engine';
 import type { LayoutDay, LayoutInput, LayoutSlot } from './layout';
 import type { Slot, SlotItem, TrackContent } from './tracks';
@@ -140,7 +140,7 @@ function recallTasks(L: LayoutDay, layout: LayoutDay[], i: number): Task[] {
 // ---------- Steady DSA pattern revisit (the 05:15 block on a DSA rest day) ----------
 /** Hardest first: a revisit draws from these patterns while any of them is covered and has problems left. */
 const HARD_PATTERNS = ['dp', 'graph-traversal', 'topo-sort', 'union-find', 'shortest-path-mst', 'backtracking', 'tree-dfs', 'tree-bfs', 'top-k', 'two-heaps', 'k-way-merge', 'intervals', 'sliding-window', 'binary-search'];
-const REVISIT_PICKS = 2, REVISIT_MINS = 45;
+const REVISIT_PICKS = 2, REVISIT_MINS = 45, SUNDAY_MINS = 35, SUNDAY_MIN_MINS = 30;
 
 // ---------- fixed templates ----------
 const PREP_BLOCKS: TemplateBlock[] = [
@@ -221,22 +221,37 @@ export function buildPlanFrom(state: PlanState, updates: UpdateItem[], custom: R
   const lastDsaDate = layout.filter((L) => live(L, 'dsa')).at(-1)?.date ?? '';
   const revisitUsed = new Set<string>();
   const revisits = (L: LayoutDay) => L.mode === 'steady' && L.kind === 'study' && !L.slots.dsa && L.date < lastDsaDate;
-  /** 2 problems not solved yet from covered patterns: the hard patterns first (any covered pattern before one is
-   * covered), `var` before optional, `hot` first. With nothing covered yet: re-solve a flagged problem. */
-  function revisitTasks(L: LayoutDay, seen: Set<string>, used: Set<string>): Task[] {
+  /** `n` problems not solved yet from covered patterns, marked used: the hard patterns first (any covered pattern before
+   * one is covered), `var` before optional, `hot` first. Steady revisit days and Sunday problems share `used`. */
+  function revisitPicks(seen: Set<string>, used: Set<string>, n: number): Row[] {
     const rank = (p: Row) => [p.role === 'var' ? 0 : 1, p.flags?.includes('hot') ? 0 : 1, HARD_PATTERNS.includes(p.pattern) ? HARD_PATTERNS.indexOf(p.pattern) : HARD_PATTERNS.length + (patternRank.get(p.pattern) ?? 0)];
     const byRank = (a: Row, b: Row) => { const x = rank(a), y = rank(b); return x[0] - y[0] || x[1] - y[1] || x[2] - y[2]; };
     const open = revisitPool.filter((p) => seen.has(p.pattern) && !used.has(p.slug));
     const hard = open.filter((p) => HARD_PATTERNS.includes(p.pattern)).sort(byRank);
-    const picks = [...hard, ...open.filter((p) => !HARD_PATTERNS.includes(p.pattern)).sort(byRank)].slice(0, REVISIT_PICKS);
+    const picks = [...hard, ...open.filter((p) => !HARD_PATTERNS.includes(p.pattern)).sort(byRank)].slice(0, n);
+    for (const p of picks) used.add(p.slug);
+    return picks;
+  }
+  const problemExtra = (p: Row) => ({ slug: p.slug, ...(p.url ? { url: p.url } : {}), ...(p.d === 'E' || p.d === 'M' || p.d === 'H' ? { diff: p.d } : {}) });
+  /** 2 revisit problems. With nothing covered yet: re-solve a flagged problem. */
+  function revisitTasks(L: LayoutDay, seen: Set<string>, used: Set<string>): Task[] {
+    const picks = revisitPicks(seen, used, REVISIT_PICKS);
     if (!picks.length) {
       return [T(`d:${L.date}:revisit-flagged`, `Re-solve one flagged or hardest problem so far from a blank file, timed (${REVISIT_MINS} min), talking out loud. Log it with your minutes.`, 'dsa', { mins: REVISIT_MINS })];
     }
-    return picks.map((p) => {
-      used.add(p.slug);
-      return T(`rv:${p.slug}:${L.date}`, `Pattern revisit (unseen, timed: ${REVISIT_MINS} min for ${picks.length === 1 ? 'it' : 'both'}): solve ${p.name} from a blank file, talking out loud. Log it as unseen with your minutes.`, 'dsa', {
-        slug: p.slug, ...(p.url ? { url: p.url } : {}), mins: REVISIT_MINS / picks.length, ...(p.d === 'E' || p.d === 'M' || p.d === 'H' ? { diff: p.d } : {}),
-      });
+    return picks.map((p) => T(`rv:${p.slug}:${L.date}`, `Pattern revisit (unseen, timed: ${REVISIT_MINS} min for ${picks.length === 1 ? 'it' : 'both'}): solve ${p.name} from a blank file, talking out loud. Log it as unseen with your minutes.`, 'dsa', {
+      ...problemExtra(p), mins: REVISIT_MINS / picks.length,
+    }));
+  }
+  /** The Sunday problem (owner rule 2026-11-15): 1 problem from the revisit pool, 35 min, or 30 when carried items leave
+   * only that in the block (a mock-loop Sunday). With nothing covered yet: a flagged re-solve. */
+  const sb = lib.SUNDAY_BLOCKS.find((b) => b.k === 'sunday'), sundayLen = sb?.s && sb.e ? toMin(sb.e) - toMin(sb.s) : SUNDAY_MINS;
+  function sundayProblem(L: LayoutDay, carried: Task[]): Task {
+    const mins = Math.max(SUNDAY_MIN_MINS, Math.min(SUNDAY_MINS, sundayLen - carried.reduce((a, t) => a + (t.mins ?? 0), 0)));
+    const [p] = revisitPicks(covered, revisitUsed, 1);
+    if (!p) return T(`d:${L.date}:sunday-flagged`, `Re-solve one flagged or hardest problem so far from a blank file, timed (${mins} min), talking out loud. Log it with your minutes.`, 'dsa', { mins });
+    return T(`sp:${p.slug}:${L.date}`, `Sunday problem (30–40 min, timed): ${p.name}. A problem you haven't solved, from a pattern you've covered. Log it as unseen with your minutes.`, 'dsa', {
+      ...problemExtra(p), mins,
     });
   }
 
@@ -259,7 +274,8 @@ export function buildPlanFrom(state: PlanState, updates: UpdateItem[], custom: R
       ];
       const read: Row = (c.SUNDAY_READS ?? [])[L.sundayNo! - 1];
       if (read) by.read = [T(read.id, read.text, 'review', { url: read.url, mins: read.mins, optional: true })];
-      by.sunday = carry.splice(0);
+      const carried = carry.splice(0);
+      by.sunday = [...carried, sundayProblem(L, carried)];
       if ((state.sundayMode[L.date] ?? 'rest') === 'revision') {
         by.sunday.push(T(k('flagged'), 'Re-solve every flagged problem from a blank file; unflag the ones you nailed', 'dsa'),
           T(k('catchup'), "Catch up on this week's missed tasks (Today › Missed), then re-read this week's pattern cards and ADRs", 'review'));

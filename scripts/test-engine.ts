@@ -385,6 +385,8 @@ for (const [tr, plan, early] of [[tracks, S, false], [tracksEarly, SEarly, true]
   const covered = new Set<string>(), used = new Set<string>();
   let revisits = 0, flaggedDays = 0, nonHardDays = 0;
   S.forEach((d, i) => {
+    // Sunday problems draw from the same pool (owner rule 2026-11-15), so a revisit never repeats one.
+    if (d.type === 'sun') for (const t of d.tasks) if (t.id.startsWith('sp:')) used.add(t.slug!);
     if (d.type !== 'study') return;
     const date = isoOf(d.date);
     if (!L[i].slots.dsa && i < lastDsa) {
@@ -429,6 +431,63 @@ for (const [tr, plan, early] of [[tracks, S, false], [tracksEarly, SEarly, true]
   const rv = buildPlanFrom({ ...base, modes: {} }, [], {}, { ...lib, content: noUrl }).flatMap((d) => d.tasks).filter((t: Any) => t.id.startsWith('rv:'));
   assert.ok(rv.length > 0, 'revisits built');
   assert.ok(rv.every((t: Any) => !('url' in t)), 'no url key on a url-less revisit');
+}
+
+// ---------- Owner rule (2026-11-15): at least one DSA problem every day, Sundays included ----------
+// Plan length is unchanged by the Sunday problem (values at 70d9a96, before it).
+assert.equal(G.length, 92, 'Grind length unchanged');
+assert.equal(S.length, 120, 'Steady length unchanged');
+{
+  const HARD = ['dp', 'graph-traversal', 'topo-sort', 'union-find', 'shortest-path-mst', 'backtracking', 'tree-dfs', 'tree-bfs', 'top-k', 'two-heaps', 'k-way-merge', 'intervals', 'sliding-window', 'binary-search'];
+  const bySlug = new Map((dsa.PROBLEMS as Any[]).map((p) => [p.slug, p]));
+  const trackSlugs = new Set(Object.values(tracks).flatMap((ts: Any) => ts.flatMap((s: Any) => s.items.map((x: Any) => x.slug).filter(Boolean))));
+  /** A task that has the owner solve a problem: a named problem (a slug), a Phase 3 OA slot, an advanced slot's "solve 1",
+   * or the prep day's baseline problems (the spec's list). */
+  const isProblem = (t: Any) => t.cat === 'dsa' && (!!t.slug || /^dsa:oa-\d+$/.test(t.id) || /^adv:[a-z-]+:do$/.test(t.id) || t.id === 'baseline:dsa');
+  for (const [name, plan, modes] of [['grind', G, GRIND], ['steady', S, {}]] as Any[]) {
+    for (const sundayMode of ['rest', 'revision'] as const) {
+      const sm = Object.fromEntries(plan.filter((d: Any) => d.type === 'sun').map((d: Any) => [isoOf(d.date), sundayMode]));
+      const P = sundayMode === 'rest' ? plan : build({ modes, sundayMode: sm });
+      assert.equal(P.length, plan.length, `${name} ${sundayMode}: same length`);
+      const lastDsa = P.findLastIndex((d: Any) => d.type === 'study' && block(d, 'dsa'));
+      P.forEach((d: Any, i: number) => {
+        // A Steady study day after DSA's final slot has a DSA buffer (spec count: 23 revisit days): see the report.
+        if (d.type === 'study' && i > lastDsa) return;
+        assert.ok(d.tasks.some(isProblem), `${name} ${sundayMode} day ${d.no} (${d.type}): a DSA problem`);
+      });
+      const covered = new Set<string>(), seen = new Set<string>();
+      const revisitSlugs = new Set(P.flatMap((d: Any) => d.tasks.filter((t: Any) => t.id.startsWith('rv:')).map((t: Any) => t.slug)));
+      for (const d of P) {
+        if (d.type === 'study') {
+          for (const t of block(d, 'dsa')?.tasks ?? []) if (t.pattern && !t.id.startsWith('rv:')) covered.add(t.pattern);
+          continue;
+        }
+        if (d.type !== 'sun') continue;
+        const date = isoOf(d.date), ts = block(d, 'sunday').tasks, sp = ts.filter((t: Any) => t.id.startsWith('sp:'));
+        assert.equal(sp.length, 1, `${name} ${sundayMode} ${date}: one Sunday problem`);
+        const [t] = sp, p = bySlug.get(t.slug);
+        assert.equal(t.id, `sp:${t.slug}:${date}`);
+        // 35 min, or 30 on a mock-loop Sunday whose 2 carried rounds (90 min) leave only that in the 120-min block.
+        const carried = ts.filter((x: Any) => x.id.startsWith('beh:loop-')).reduce((a: number, x: Any) => a + x.mins, 0);
+        assert.deepEqual([t.cat, t.mins, t.url, t.diff], ['dsa', carried === 90 ? 30 : 35, p.url, p.d], `${t.id} minutes`);
+        assert.equal(t.text, `Sunday problem (30–40 min, timed): ${p.name}. A problem you haven't solved, from a pattern you've covered. Log it as unseen with your minutes.`);
+        assert.ok(!t.optional && isStudy(t), `${t.id} counts as study time`);
+        assert.ok(covered.has(p.pattern), `${t.id}: from a pattern covered on an earlier day`);
+        assert.ok(p.role === 'var' || p.tier === 'optional', `${t.id}: from the revisit pool`);
+        assert.ok(!trackSlugs.has(t.slug) && !revisitSlugs.has(t.slug), `${t.id}: not a track or revisit problem`);
+        assert.ok(!seen.has(t.slug), `${t.id}: never reused`); seen.add(t.slug);
+        if (!HARD.includes(p.pattern)) assert.ok(!(dsa.PROBLEMS as Any[]).some((q) => HARD.includes(q.pattern) && covered.has(q.pattern) && (q.role === 'var' || q.tier === 'optional') && !trackSlugs.has(q.slug) && !revisitSlugs.has(q.slug) && !seen.has(q.slug)), `${t.id}: hard patterns first`);
+        const ex = ts.findIndex((x: Any) => x.id === `d:${date}:explore`);
+        if (sundayMode === 'rest') assert.ok(ex > ts.indexOf(t), `${date}: the Sunday problem sits before the optional explore item`);
+        assert.ok(block(d, 'sunday').tasks.reduce((a: number, x: Any) => a + x.min, 0) <= 120, `${date}: fits the 11:30–13:30 block`);
+      }
+    }
+  }
+  // Nothing covered yet (the early-Phase-3 plan's first Sunday): re-solve a flagged or hardest problem instead.
+  const e1 = SEarly.find((d) => d.type === 'sun')!, e1d = isoOf(e1.date);
+  assert.ok(!ids(e1, 'sunday').some((id: string) => id.startsWith('sp:')));
+  const fb = block(e1, 'sunday').tasks.find((t: Any) => t.id === `d:${e1d}:sunday-flagged`);
+  assert.ok(fb && fb.cat === 'dsa' && /^Re-solve one flagged or hardest problem so far/.test(fb.text) && isStudy(fb), 'empty pool: flagged re-solve');
 }
 
 console.log('test-engine: ok');

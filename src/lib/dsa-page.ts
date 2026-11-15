@@ -10,17 +10,19 @@ export const DOT_LABEL: Record<Dot, string> = { none: 'Not started', check: 'Uns
 
 /** A Phase 3 set item (`dsa:google-1:<slug>`, also meta and revisit; v2 `dsa:timed-…`). */
 export const PHASE3_SET = /^dsa:(timed-|google-|meta-|revisit-)/;
-/** A timed solve of a plan problem: a Phase 3 set item or a Steady pattern revisit (`rv:<slug>:<date>`). */
-export const isTimedSolve = (taskId: string) => PHASE3_SET.test(taskId) || taskId.startsWith('rv:');
+/** A generated problem task: a Steady pattern revisit (`rv:<slug>:<date>`) or a Sunday problem (`sp:<slug>:<date>`). */
+const GENERATED_SOLVE = /^(rv|sp):/;
+/** A timed solve of a plan problem: a Phase 3 set item, a Steady pattern revisit or a Sunday problem. */
+export const isTimedSolve = (taskId: string) => PHASE3_SET.test(taskId) || GENERATED_SOLVE.test(taskId);
 
 export const namePrompt = 'Unseen problem · press Start';
 
-/** The solve log a task id writes: `p-<slug>`, a re-solve `rs:<slug>:<k>` → `rs:<slug>`, a Phase 3 timed-set item or a
- * pattern revisit `rv:<slug>:<date>` → `p-<slug>`. */
+/** The solve log a task id writes: `p-<slug>`, a re-solve `rs:<slug>:<k>` → `rs:<slug>`, a Phase 3 timed-set item, a
+ * pattern revisit `rv:<slug>:<date>` or a Sunday problem `sp:<slug>:<date>` → `p-<slug>`. */
 export function solveKeyOf(taskId: string): string | null {
   if (taskId.startsWith('p-')) return taskId;
   if (taskId.startsWith('rs:')) { const slug = taskId.split(':')[1]; return slug ? `rs:${slug}` : null; }
-  if (taskId.startsWith('rv:')) { const slug = taskId.split(':')[1]; return slug ? `p-${slug}` : null; }
+  if (GENERATED_SOLVE.test(taskId)) { const slug = taskId.split(':')[1]; return slug ? `p-${slug}` : null; }
   if (PHASE3_SET.test(taskId)) { const parts = taskId.split(':'); return parts.length >= 3 && parts[parts.length - 1] ? `p-${parts[parts.length - 1]}` : null; }
   return null;
 }

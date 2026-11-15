@@ -28,8 +28,10 @@ export interface Stage {
 
 /** A morning pattern task: a problem, its pattern card or explain-back (not a re-solve or drill). */
 const morning = (t: { id: string; pattern?: string }) => !!t.pattern && /^(p-|dsa:card-|dsa:explain-back-)/.test(t.id);
-/** Generated tasks (recall, news, drills, re-solves, revisits, own tasks, updates) are not content: no stage counts them. */
-const GENERATED = /^(d:|rs:|rv:|u-|upd-)/;
+/** A foundations warm-up problem: the only `p-` task with no pattern. */
+const warmUp = (t: { id: string; pattern?: string }) => !t.pattern && t.id.startsWith('p-');
+/** Generated tasks (recall, news, drills, re-solves, revisits, Sunday problems, own tasks, updates) are not content: no stage counts them. */
+const GENERATED = /^(d:|rs:|rv:|sp:|u-|upd-)/;
 type T = { id: string; cat: string; pattern?: string };
 /** Content of one category (the v3 tracks are keyed by category, like trackOfCat in task-filter.ts). */
 const of = (t: T, ...cats: string[]) => cats.includes(t.cat) && !GENERATED.test(t.id);
@@ -42,7 +44,7 @@ const FE_SD = /^sd:fe-/;
 /** One or two stages per v3 track, labels from the spec's group names. Each content task matches at most one stage:
  * the take-home parts are flagship (cat proj), never LLD (cat mc). */
 export const STAGES: Stage[] = [
-  { track: 'dsa', label: 'Foundations + 27 patterns', match: (t) => of(t, 'dsa') && (t.id.startsWith('dsa:foundations-') || morning(t)) },
+  { track: 'dsa', label: 'Foundations + 27 patterns', match: (t) => of(t, 'dsa') && (t.id.startsWith('dsa:foundations-') || morning(t) || warmUp(t)) },
   { track: 'dsa', label: 'Phase 3: timed sets, OA, advanced', match: (t) => of(t, 'dsa') && DSA_PHASE3.test(t.id) },
   { track: 'ai', label: 'LLMs, RAG, evals, agents, serving', match: (t) => of(t, 'ai') && !AI_DESIGN.test(t.id) },
   { track: 'ai', label: 'AI designs, teach-backs, mocks', match: (t) => of(t, 'ai') && AI_DESIGN.test(t.id) },

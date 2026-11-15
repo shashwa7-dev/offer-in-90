@@ -317,7 +317,7 @@ const ROWS = {
   'dp': [
     ['climbing-stairs', 'E', 'teach', { sub: 'fibonacci' }], ['coin-change', 'M', 'var', { sub: 'unbounded-knapsack' }], ['longest-common-subsequence', 'M', 'var', { sub: 'lcs-strings' }],
     ['longest-palindromic-substring', 'M', 'var', { sub: 'palindromes' }], ['partition-equal-subset-sum', 'M', 'unseen', { sub: '0-1-knapsack' }],
-    ['min-cost-climbing-stairs', 'E', '', { sub: 'fibonacci' }], ['house-robber', 'M', '', { sub: 'fibonacci' }], ['house-robber-ii', 'M', '', { sub: 'fibonacci' }],
+    ['min-cost-climbing-stairs', 'E', '', { sub: 'fibonacci' }], ['fibonacci-number', 'E', '', { sub: 'fibonacci' }], ['house-robber', 'M', '', { sub: 'fibonacci' }], ['house-robber-ii', 'M', '', { sub: 'fibonacci' }],
     ['decode-ways', 'M', '', { sub: 'fibonacci' }], ['maximum-product-subarray', 'M', '', { sub: 'fibonacci' }], ['best-time-to-buy-and-sell-stock-with-cooldown', 'M', '', { sub: 'fibonacci' }],
     ['palindromic-substrings', 'M', '', { sub: 'palindromes' }], ['word-break', 'M', '', { sub: 'unbounded-knapsack' }], ['coin-change-ii', 'M', '', { sub: 'unbounded-knapsack' }],
     ['target-sum', 'M', '', { sub: '0-1-knapsack' }], ['longest-increasing-subsequence', 'M', '', { sub: 'lcs-strings' }], ['interleaving-string', 'M', '', { sub: 'lcs-strings' }],
@@ -372,12 +372,13 @@ export const ADV_DSA = [
 ];
 
 // Week 1 foundations (v3): two learning rows (Understand / Do / Explain). URLs checked 2026-11-15 (curl, 200).
+// `warmUp`: one easy optional problem (a PROBLEMS slug) solved that day too, used nowhere else (owner rule 2026-11-15).
 export const FOUNDATIONS = [
-  { id: 'dsa:foundations-big-o', url: 'https://www.bigocheatsheet.com/',
+  { id: 'dsa:foundations-big-o', url: 'https://www.bigocheatsheet.com/', warmUp: 'valid-anagram',
     understand: 'Foundations · Big-O as reasoning: from the input size to the complexity you need ("n = 10⁵ means I need n log n").',
     do: 'In a TS scratch file (AI assistant allowed), time one function at n = 10³, 10⁴ and 10⁵ and match its growth to O(n), O(n log n) or O(n²).',
     explain: 'Out loud, 3 min: how you go from the input limit to the complexity you need. Deep enough when you can say what n = 10⁵ and n = 20 each allow.' },
-  { id: 'dsa:foundations-recursion', url: 'https://javascript.info/recursion',
+  { id: 'dsa:foundations-recursion', url: 'https://javascript.info/recursion', warmUp: 'fibonacci-number',
     url2: 'https://www.khanacademy.org/math/statistics-probability/counting-permutations-and-combinations',
     understand: 'Foundations · Recursion, induction and counting: base case, the call stack, depth limits. Then a discrete math overview: logic, sets, combinatorics and basic probability.',
     do: 'In a TS scratch file (AI assistant allowed), trace 3 recursive functions by hand, then count the subsets of 5 items with code and check the count against n choose k.',

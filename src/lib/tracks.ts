@@ -105,9 +105,15 @@ const problemItem = (p: Row): SlotItem => ({
 
 function dsaTrack(c: TrackContent): Slot[] {
   const slots: SlotItem[][] = [];
-  for (const f of c.FOUNDATIONS as Row[]) slots.push(...expandRow(f, 'dsa'));
-  // Patterns, 2 days each. Day A: the pattern card + the teach problem. Day B: the unseen problem + the explain-back.
   const P: Row[] = c.PROBLEMS;
+  // Foundations: the learning row + its easy warm-up problem (a 4th item; no `pattern`, as it covers none yet).
+  for (const f of c.FOUNDATIONS as Row[]) {
+    const w = P.find((p) => p.slug === f.warmUp);
+    if (f.warmUp && !w) throw new Error(`dsa: ${f.id} warm-up ${f.warmUp} is not a problem`);
+    const { pattern: _p, ...warm } = w ? problemItem(w) : ({} as SlotItem); void _p;
+    slots.push(...expandRow(f, 'dsa').map((s) => (w ? [...s, warm as SlotItem] : s)));
+  }
+  // Patterns, 2 days each. Day A: the pattern card + the teach problem. Day B: the unseen problem + the explain-back.
   for (const pt of c.PATTERNS as Row[]) {
     const teach = P.find((p) => p.pattern === pt.id && p.role === 'teach'), unseen = P.find((p) => p.pattern === pt.id && p.role === 'unseen');
     if (!teach || !unseen) throw new Error(`dsa: pattern ${pt.id} needs a teach and an unseen problem`);

@@ -98,7 +98,7 @@ for (const id of CR_COVERS) assert.equal(seen.filter((s) => s === id).length, 0,
 for (const id of FR_COVERS) assert.equal(seen.filter((s) => s === id).length, 0, `${id} (absorbed by Frontend) is not laid out`);
 assert.equal(all.filter((x) => /^adv:[a-z-]+$/.test(x.id)).length, 3, 'ADV_DSA x3');
 const pfParts = PF.filter((r) => r.parts === 2).flatMap((r) => [1, 2].flatMap((k) => [`${r.id}:part-${k}:do#${k}`, `${r.id}:part-${k}:explain#${k}`]));
-const known = new Set([...expected, ...pfParts, ...[...CORE, ...SYS, ...FLAG_ROWS, ...CR, ...FR, ...PF.filter((r) => r.parts !== 2)].filter((r) => !r.kind).flatMap((r) => [`${r.id}:do`, `${r.id}:explain`]), ...(dsa.FOUNDATIONS as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`]), ...(dsa.ADV_DSA as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`])]);
+const known = new Set([...expected, ...pfParts, ...[...CORE, ...SYS, ...FLAG_ROWS, ...CR, ...FR, ...PF.filter((r) => r.parts !== 2)].filter((r) => !r.kind).flatMap((r) => [`${r.id}:do`, `${r.id}:explain`]), ...(dsa.FOUNDATIONS as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`, `p-${f.warmUp}`]), ...(dsa.ADV_DSA as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`])]);
 const extras = all.filter((x) => !x.filler && !known.has(x.part ? `${x.id.replace(/:part-\d$/, '')}#${x.part[0]}` : x.id));
 // Non-content items the builder adds on purpose: pattern cards, explain-backs, foundations, ADV_DSA, Phase 3 sets, FE revision, SD mocks.
 for (const x of extras) assert.match(x.id, /^(dsa:(card|explain-back|oa|google|meta|revisit)-|fe:revise-|fe:bfe-|sdm:)/, `unexpected item ${x.id}`);
@@ -108,8 +108,18 @@ const HARD = ['dp', 'graph-traversal', 'topo-sort', 'union-find', 'shortest-path
 const PATS = (dsa.PATTERNS as Any[]).map((p) => p.id);
 const FOUND = dsa.FOUNDATIONS as Any[];
 assert.equal(FOUND.length, 2);
+// Owner rule (2026-11-15): each foundation slot also has one easy warm-up problem from the optional pool, used nowhere else.
+const WARM_UP = ['valid-anagram', 'fibonacci-number'];
 FOUND.forEach((f, i) => {
-  assert.deepEqual(ids('dsa', i), [f.id, `${f.id}:do`, `${f.id}:explain`], `slot ${i + 1} is the ${f.id} learning row`);
+  assert.deepEqual(ids('dsa', i), [f.id, `${f.id}:do`, `${f.id}:explain`, `p-${WARM_UP[i]}`], `slot ${i + 1} is the ${f.id} learning row + a warm-up problem`);
+  const probs = T.dsa[i].items.filter((x: Any) => x.id.startsWith('p-'));
+  assert.equal(probs.length, 1, `slot ${i + 1}: one problem`);
+  const [w] = probs, row = (dsa.PROBLEMS as Any[]).find((p) => p.slug === w.slug);
+  assert.ok(row && row.tier === 'optional' && row.d === 'E' && !row.role, `${w.id}: an easy optional problem`);
+  assert.deepEqual([w.tier, w.diff, w.slug, w.url], ['optional', 'E', WARM_UP[i], `https://leetcode.com/problems/${WARM_UP[i]}/`]);
+  assert.equal(w.pattern, undefined, `${w.id}: no pattern (it does not cover one)`);
+  const uses = Object.values(T).flatMap((ts: Any) => ts.flatMap((s: Any) => s.items)).filter((x: Any) => x.slug === w.slug || x.id.endsWith(`:${w.slug}`));
+  assert.equal(uses.length, 1, `${w.slug} used nowhere else`);
   assert.match(T.dsa[i].items[2].text, /Deep enough when you can/);
   assert.ok(T.dsa[i].items[0].url, `${f.id} keeps a url`);
 });

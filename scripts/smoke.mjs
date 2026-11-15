@@ -1772,6 +1772,25 @@ try {
       await expandAll(page);
       if (await page.locator('[data-task="d:2026-11-08:flagged"]').count()) fail(`${W}: revision task present in rest mode`); else ok(`${W}: rest mode has no revision tasks`);
       if (await page.locator('[data-task="d:2026-11-08:explore"]').count()) ok(`${W}: rest mode shows the explore task`); else fail(`${W}: no explore task in rest mode`);
+      // the Sunday problem (owner rule 2026-11-15): in the Active rest block, before explore; ticking it offers the solve fields
+      {
+        const inSunday = await page.evaluate(() => {
+          const head = document.querySelector('[data-block="sunday"]'), out = [];
+          for (let e = head?.nextElementSibling; e && !e.hasAttribute('data-block'); e = e.nextElementSibling) if (e.hasAttribute('data-task')) out.push(e.getAttribute('data-task'));
+          return { head: head?.innerText ?? '', ids: out };
+        });
+        const sp = inSunday.ids.filter(id => /^sp:[a-z0-9-]+:2026-11-08$/.test(id));
+        const row = page.locator(`[data-task="${sp[0]}"]`);
+        if (sp.length === 1 && /Active rest/.test(inSunday.head) && inSunday.ids.indexOf(sp[0]) < inSunday.ids.indexOf('d:2026-11-08:explore') && /Sunday problem \(30–40 min, timed\)/.test(await row.innerText())) ok(`${W}: Sunday problem in the Active rest block`); else fail(`${W}: Sunday problem missing (${JSON.stringify(inSunday)})`);
+        if (sp.length) {
+          await row.locator('[data-status-icon]').click(); await page.waitForTimeout(300);
+          await row.locator('[data-title]').click(); await page.waitForTimeout(400);
+          const fields = page.locator('[data-peek] [data-solve-fields]');
+          const slug = sp[0].split(':')[1], log = (await saved(page)).solves?.[`p-${slug}`];
+          if (await fields.count() && await fields.locator('[data-solve-minutes]').isEnabled() && await fields.locator('[data-solve-unseen]').isEnabled() && log?.via === sp[0]) ok(`${W}: ticking the Sunday problem logs p-${slug} and offers the solve fields`); else fail(`${W}: Sunday problem solve fields (${await fields.count()}, ${JSON.stringify(log)})`);
+          await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+        }
+      }
       await page.locator('[data-sunday-mode]:visible').getByRole('radio', { name: 'Revision' }).click();
       await page.waitForTimeout(400);
       await expandAll(page);

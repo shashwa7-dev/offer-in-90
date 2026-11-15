@@ -21,8 +21,11 @@ assert.equal(solveKeyOf('fe:closures'), null);
 // a Steady pattern revisit rv:<slug>:<date> logs the problem itself
 assert.equal(solveKeyOf('rv:two-sum:2026-12-05'), 'p-two-sum');
 assert.equal(solveKeyOf('rv::2026-12-05'), null);
+// a Sunday problem sp:<slug>:<date> logs the problem itself too
+assert.equal(solveKeyOf('sp:two-sum:2026-11-22'), 'p-two-sum');
+assert.equal(solveKeyOf('sp::2026-11-22'), null);
 // timed solves (Phase 3 set items and pattern revisits): the 45-min footer and the Progress solved count
-for (const id of ['dsa:google-1:3sum', 'dsa:meta-2:3sum', 'dsa:revisit-1:3sum', 'dsa:timed-meta-1:3sum', 'rv:3sum:2026-12-05']) assert.ok(isTimedSolve(id), id);
+for (const id of ['dsa:google-1:3sum', 'dsa:meta-2:3sum', 'dsa:revisit-1:3sum', 'dsa:timed-meta-1:3sum', 'rv:3sum:2026-12-05', 'sp:3sum:2026-11-22']) assert.ok(isTimedSolve(id), id);
 for (const id of ['p-3sum', 'rs:3sum:7', 'dsa:card-dp', 'fe:closures']) assert.ok(!isTimedSolve(id), id);
 
 const U = new Set(['longest-consecutive-sequence']);
@@ -57,6 +60,7 @@ assert.deepEqual(solveOnStatus(s, 'dsa:timed-meta-1:3sum', 'todo', T, U), {});
 s = solveOnStatus({}, 'rv:3sum:2026-12-05', 'done', T, U);
 assert.deepEqual(s, { 'p-3sum': { unseen: false, at: T, via: 'rv:3sum:2026-12-05' } });
 assert.deepEqual(solveOnStatus(s, 'rv:3sum:2026-12-05', 'todo', T, U), {});
+assert.deepEqual(solveOnStatus({}, 'sp:3sum:2026-11-22', 'done', T, U), { 'p-3sum': { unseen: false, at: T, via: 'sp:3sum:2026-11-22' } });
 // a log made by someone else (the problem's own tick, or another timed task) survives
 const have = { 'p-3sum': { unseen: true, minutes: 20, at: 7 } };
 assert.equal(solveOnStatus(have, 'dsa:timed-meta-1:3sum', 'done', T, U), have);

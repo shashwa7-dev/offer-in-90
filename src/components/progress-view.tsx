@@ -18,7 +18,7 @@ export function ProgressView() {
   const [range, setRange] = useState<ChartRange>('month');
   const done = state.done, o = overall(days, done, ti, state.status);
   // The must-solve problems in the daily plan (the optional pool stays out of it).
-  // A ticked Phase 3 timed-set item (dsa:google-n:<slug>, meta, revisit) or pattern revisit (rv:<slug>:<date>) counts as a solve of p-<slug>.
+  // A ticked Phase 3 timed-set item (dsa:google-n:<slug>, meta, revisit), pattern revisit (rv:<slug>:<date>) or Sunday problem (sp:<slug>:<date>) counts as a solve of p-<slug>.
   const timedSolved = new Set(days.flatMap(d => d.tasks.filter(t => t.slug && isTimedSolve(t.id) && done[t.id]).map(t => t.slug!)));
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const must = P.PROBLEMS.filter((p: any) => p.tier === 'must'), solved = must.filter((p: { slug: string }) => done['p-' + p.slug] || timedSolved.has(p.slug)).length;
