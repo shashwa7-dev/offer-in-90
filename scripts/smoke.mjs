@@ -19,7 +19,7 @@ const nextMondayOf = d => { const x = new Date(d); x.setDate(x.getDate() + ((8 -
 const now = Date.now();
 const fixture = {
   v: 6, start: isoDay(start), kickoff: true, targets: ['Google', 'Meta'],
-  done: { 'k-wo': now, 'k-pos': now, 'k-news': now, [`d:${isoDay(start)}:wo`]: now, 'fe:execution-context': now },
+  done: { 'k-wo': now, 'k-pos': now, 'k-news': now, [`d:${isoDay(start)}:wo`]: now, 'ai:math-intuition': now },
   status: {}, flags: {}, notes: { 0: 'Set up the plan.' }, tnotes: {}, seenUpdates: {}, bookmarks: {}, custom: {},
   modes: {}, labels: {}, itemLabels: {}, own: {}, solves: {}, sundayMode: {}, scores: {}, routine: {}, meta: {}, updatedAt: now,
 };
@@ -218,8 +218,8 @@ try {
       const id = await page.locator('[data-now] ~ [data-task]').first().getAttribute('data-task');
       await box.click(); await page.waitForTimeout(200);
       if ((await saved()).done?.[id]) ok(`${W}: ticking saves (${id})`); else fail(`${W}: tick not saved (${id})`);
-      // open the missed DSA block and flag a problem
-      await page.locator('[data-missed]').filter({ hasText: '05:15' }).click();
+      // open the DSA revision block (the 05:15 pattern block is a concept day with no problem) and flag a re-solve
+      await page.locator('[data-block="rev"]').click();
       await page.waitForTimeout(200);
       const flagBtn = page.getByRole('button', { name: /^Flag / }).first();
       await flagBtn.click(); await page.waitForTimeout(200);
@@ -396,12 +396,10 @@ try {
     const ownRow = page.locator('[data-band="evening"] [data-task][data-own]').filter({ hasText: 'Smoke dialog task' });
     if (await ownRow.count() && /Yours/.test(await ownRow.first().innerText())) ok(`${W}: row appears in Evening with Yours`); else fail(`${W}: own row missing in Evening`);
 
-    // a plan task (a problem in the missed 05:15 block): read-only, no Delete
-    await page.locator('[data-missed]').filter({ hasText: '05:15' }).click();
+    // a plan task (a re-solve problem in the 14:45 revision block): read-only, no Delete
+    await page.locator('[data-block="rev"]').click();
     await page.waitForTimeout(200);
-    await page.locator('[data-block="dsa"] ~ [data-task^="p-"]:not([data-own]) [data-title]').first().click().catch(async () => {
-      await page.locator('[data-task]:not([data-own]) [data-title]').first().click();
-    });
+    await page.locator('[data-task^="rs:"]:not([data-own]) [data-title]').first().click();
     await page.waitForTimeout(500);
     const peek = page.locator('[data-peek]');
     if (await peek.isVisible().catch(() => false)) ok(`${W}: plan task opens the peek`); else fail(`${W}: peek did not open for a plan task`);
@@ -512,7 +510,8 @@ try {
     // 4. key 4 on a focused missed row: skipped, missed count drops
     const before = await missedCount();
     await page.locator('[data-missed]').filter({ hasText: '05:15' }).click(); await page.waitForTimeout(250);
-    const dsa = page.locator('[data-block="dsa"] + [data-task]');
+    // the first row is the unseen problem (hidden until Start), so use the second: the pattern's explain-back
+    const dsa = page.locator('[data-block="dsa"] ~ [data-task]').nth(1);
     const idS = await dsa.getAttribute('data-task');
     await dsa.focus(); await page.keyboard.press('4'); await page.waitForTimeout(250);
     if ((await saved()).status?.[idS] === 'skipped') ok(`${W}: key 4 sets Skipped (${idS})`); else fail(`${W}: key 4 did not skip (${idS})`);
@@ -718,10 +717,10 @@ try {
     const noScroll = async label => { if (width !== 390) return; const sw = await page.evaluate(() => document.documentElement.scrollWidth); if (sw > 390) fail(`${W} ${label}: horizontal scroll (${sw})`); else ok(`${W} ${label}: scrollWidth ${sw}`); };
     const tl = page.locator('[data-timeline]');
     if (await tl.count()) ok(`${W}: Timeline is the default tab`); else fail(`${W}: no [data-timeline] on load`);
-    const tracks = ['DSA', 'Frontend & CS', 'System design', 'Machine coding', 'AI', 'Career'];
+    const tracks = ['DSA', 'AI engineering', 'Systems', 'Product', 'Platform', 'Career', 'Frontend'];
     const missing = [];
     for (const t of tracks) if (!(await tl.locator('[data-track-name]').filter({ hasText: new RegExp(`^${t.replace(/[&]/g, '\\$&')}$`) }).count())) missing.push(t);
-    if (!missing.length) ok(`${W}: 6 track names`); else fail(`${W}: missing tracks ${missing.join(', ')}`);
+    if (!missing.length) ok(`${W}: 7 track names`); else fail(`${W}: missing tracks ${missing.join(', ')}`);
     if (await tl.getByText(/W\d+ · now/).count()) ok(`${W}: "W n · now" marker`); else fail(`${W}: no "W n · now" marker`);
     await noScroll('timeline');
     await page.screenshot({ path: join(shots, `roadmap-${width}-timeline.png`), fullPage: true });
@@ -817,7 +816,7 @@ try {
   }
   // ---------- "Open News" on the daily reads task lands on Reading and leaves the interviews visit alone ----------
   {
-    const at = new Date(2026, 10, 12, 20, 10); // Thu 12 Nov 2026, 20:10: the AI block (news + papers) is current
+    const at = new Date(2026, 10, 12, 6, 30); // Thu 12 Nov 2026, 06:30: the Recall + AI news block is current
     const st = new Date(2026, 10, 2); // Mon 2 Nov: Thu 12 Nov is day 11, week 2
     const fx = { ...fixture, modes: GRIND, start: isoDay(st), done: {}, notes: {}, seenUpdates: { 'interviews-visit': 12345 }, updatedAt: +at };
     const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
@@ -1072,7 +1071,7 @@ try {
     await page.getByRole('button', { name: 'View timetable' }).click();
     await page.waitForTimeout(400);
     const sheet = page.getByRole('dialog', { name: 'Daily timetable' });
-    if (await sheet.isVisible().catch(() => false) && await sheet.getByText('Mon–Sat', { exact: true }).count() && await sheet.getByText('Sunday', { exact: true }).count() && await sheet.getByText('05:15–06:45').count()) ok(`${W}: timetable sheet shows both tables`); else fail(`${W}: timetable sheet missing`);
+    if (await sheet.isVisible().catch(() => false) && await sheet.getByText('Mon–Sat', { exact: true }).count() && await sheet.getByText('Sunday', { exact: true }).count() && /Deep work 1 · DSA pattern[\s\S]{0,40}05:15–06:15|05:15–06:15[\s\S]{0,40}Deep work 1 · DSA pattern/.test(await sheet.innerText())) ok(`${W}: timetable sheet shows both tables`); else fail(`${W}: timetable sheet missing`);
     if (await sheet.getByText('Mon–Sat: wake 05:00, sleep 22:00. Gym at 18:00. About 10.75 h of study blocks.', { exact: false }).count()) ok(`${W}: timetable line uses the routine`); else fail(`${W}: timetable line wrong`);
     await page.screenshot({ path: join(shots, 'setup-1100-timetable.png') });
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
@@ -1508,10 +1507,54 @@ try {
       await ctx.close();
     }
   }
+  // ---------- v3 plan: Recall + AI news block, news only there, Steady DSA revisit ----------
+  for (const [label, at, modes] of [['grind study day', new Date(2026, 10, 12, 6, 30), GRIND], ['steady DSA rest day', new Date(2026, 10, 11, 5, 30), {}]]) {
+    const st = new Date(2026, 10, 2); // Mon 2 Nov
+    const fx = { ...fixture, modes, start: isoDay(st), done: {}, status: {}, notes: {}, updatedAt: +at };
+    const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
+    await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
+    const page = await ctx.newPage();
+    await page.clock.install({ time: at });
+    const errors = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+    page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+    await page.goto(URL, { waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+    await page.waitForTimeout(500);
+    // open every closed block (a click toggles, and the current block is already open)
+    for (const b of await page.locator('[data-block]').all()) if (!(await b.evaluate(e => e.nextElementSibling?.hasAttribute('data-task')))) await b.click().catch(() => {});
+    await page.waitForTimeout(300);
+    const W = `v3 ${label}`;
+    // the task rows between a block row and the next block row
+    const rowsOf = k => page.evaluate(k => {
+      const head = document.querySelector(`[data-block="${k}"]`);
+      const out = [];
+      for (let e = head?.nextElementSibling; e && !e.hasAttribute('data-block'); e = e.nextElementSibling) if (e.hasAttribute('data-task')) out.push(e.innerText);
+      return { head: head ? head.innerText : null, rows: out };
+    }, k);
+    const dsaB = await rowsOf('dsa');
+    if (dsaB.head && /05:15/.test(dsaB.head) && /Deep work 1 · DSA pattern/.test(dsaB.head)) ok(`${W}: DSA block is 05:15 Deep work 1`); else fail(`${W}: DSA block head ${JSON.stringify(dsaB.head)}`);
+    if (label === 'grind study day') {
+      const aib = await rowsOf('aib');
+      if (aib.head && /06:15/.test(aib.head) && /Recall \+ AI news/.test(aib.head)) ok(`${W}: "Recall + AI news" block at 06:15`); else fail(`${W}: aib block head ${JSON.stringify(aib.head)}`);
+      if (aib.rows.length === 3) ok(`${W}: Recall + AI news has 3 tasks`); else fail(`${W}: Recall + AI news has ${aib.rows.length} tasks`);
+      if (/AI recall/.test(aib.rows[0] || '') && /Systems recall/.test(aib.rows[1] || '') && /Skim today's News/.test(aib.rows[2] || '')) ok(`${W}: tasks are AI recall, Systems recall, news`); else fail(`${W}: aib task text ${JSON.stringify(aib.rows.map(r => r.slice(0, 40)))}`);
+      const fe = await rowsOf('ai');
+      if (fe.head && /20:00/.test(fe.head) && /Frontend \(senior\)/.test(fe.head)) ok(`${W}: evening block is Frontend (senior)`); else fail(`${W}: evening block head ${JSON.stringify(fe.head)}`);
+      if (fe.rows.length >= 2 && !fe.rows.some(r => /news/i.test(r))) ok(`${W}: Frontend evening block has no news task`); else fail(`${W}: Frontend evening block rows ${fe.rows.length}, news present ${fe.rows.some(r => /news/i.test(r))}`);
+      const newsRows = await page.locator('[data-task]').filter({ hasText: "Skim today's News" }).count();
+      if (newsRows === 1) ok(`${W}: exactly one news task on the day`); else fail(`${W}: ${newsRows} news tasks on the day`);
+    } else {
+      if (dsaB.rows.length >= 1 && dsaB.rows.every(r => /Pattern revisit/.test(r))) ok(`${W}: DSA rest day shows the pattern revisit (${dsaB.rows.length} tasks)`); else fail(`${W}: rest day DSA rows ${JSON.stringify(dsaB.rows.map(r => r.slice(0, 50)))}`);
+      if (await page.locator('[data-block="buffer-dsa"]').count()) fail(`${W}: DSA buffer shown on a revisit day`); else ok(`${W}: no DSA buffer on the revisit day`);
+    }
+    checkErrors(errors, W);
+    await ctx.close();
+  }
   // ---------- No old design tokens left outside src/components/ui ----------
   {
     let hits = '';
-    try { hits = execSync(`grep -rnE "c-(dsa|fe|mc|sd|beh|ai|fde|proj|ux|review|update|health)|text-(good|warn|bad)|bg-(good|warn|bad)|font-display|font-mono|catColor" src --exclude-dir=ui`, { encoding: 'utf8' }); } catch { hits = ''; }
+    try { hits = execSync(`grep -rnE "\\bc-(dsa|fe|mc|sd|beh|ai|fde|proj|ux|review|update|health)|text-(good|warn|bad)|bg-(good|warn|bad)|font-display|font-mono|catColor" src --exclude-dir=ui`, { encoding: 'utf8' }); } catch { hits = ''; }
     if (!hits.trim()) ok('grep: no old design tokens'); else fail(`grep: old design tokens left:\n${hits}`);
   }
   // ---------- a mode switch: superseded copies on past days are history, never "missed" ----------
@@ -1739,7 +1782,7 @@ try {
       await page.locator('[data-task="d:2026-11-08:check"] [data-title]').click();
       await page.waitForTimeout(400);
       const f = page.locator('[data-peek] [data-score-input]');
-      if ((await f.count()) === 4) ok(`${W}: self-check has 4 score fields`); else fail(`${W}: self-check score fields ${await f.count()}`);
+      if ((await f.count()) === 6) ok(`${W}: self-check has 6 score fields`); else fail(`${W}: self-check score fields ${await f.count()}`);
       await page.locator('[data-peek] [data-score-input="w1/dsa"]').fill('75'); await page.locator('[data-peek] [data-score-input="w1/dsa"]').blur();
       await page.locator('[data-peek] [data-score-input="w1/ai"]').fill('101'); await page.locator('[data-peek] [data-score-input="w1/ai"]').blur();
       await page.waitForTimeout(300);
