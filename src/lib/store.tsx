@@ -7,7 +7,7 @@ import * as gist from './gist';
 import { DEFAULT_TARGETS, type ThreadsFeed } from '@/lib/interview-feed';
 import type { StatusMap } from './task-status';
 import { merge, sameData, stamp } from './sync-merge';
-import type { ModeEntry, OwnerLabel, OwnProblem, SolveLog } from './state-types';
+import type { ModeEntry, OwnerLabel, OwnProblem, SolveLog, RoutineKey, RoutineSlot } from './state-types';
 
 export interface TaskNote { title: string; body: string; upd: number; url?: string }
 /** A saved copy of a news item, interview thread or plan update, kept after it leaves the feed. */
@@ -18,6 +18,7 @@ export interface State {
   tnotes: Record<string, TaskNote>; pages: Record<string, Page>; seenUpdates: Record<string, number>; bookmarks: Record<string, Bookmark>; custom: Record<string, CustomTask>;
   modes: Record<string, ModeEntry>; labels: Record<string, OwnerLabel>; itemLabels: Record<string, string[]>; own: Record<string, OwnProblem>;
   solves: Record<string, SolveLog>; sundayMode: Record<string, 'rest' | 'revision'>; scores: Record<string, number>;
+  routine: Partial<Record<RoutineKey, RoutineSlot>>;
   meta: Record<string, number>; updatedAt: number;
 }
 type SyncStatus = { state: 'off' | 'syncing' | 'synced' | 'error'; msg?: string; at?: number };
@@ -25,11 +26,11 @@ type SyncStatus = { state: 'off' | 'syncing' | 'synced' | 'error'; msg?: string;
 const KEY = 'offer90.v1', SYNC_KEY = 'offer90.sync';
 export const BASE = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
-const fresh = (): State => ({ v: 6, start: iso(new Date()), kickoff: true, targets: [...DEFAULT_TARGETS], done: {}, status: {}, flags: {}, notes: {}, tnotes: {}, pages: seedPages(), seenUpdates: {}, bookmarks: {}, custom: {}, modes: {}, labels: {}, itemLabels: {}, own: {}, solves: {}, sundayMode: {}, scores: {}, meta: {}, updatedAt: 0 });
+const fresh = (): State => ({ v: 6, start: iso(new Date()), kickoff: true, targets: [...DEFAULT_TARGETS], done: {}, status: {}, flags: {}, notes: {}, tnotes: {}, pages: seedPages(), seenUpdates: {}, bookmarks: {}, custom: {}, modes: {}, labels: {}, itemLabels: {}, own: {}, solves: {}, sundayMode: {}, scores: {}, routine: {}, meta: {}, updatedAt: 0 });
 function normalize(s: Partial<State> | null): State {
   const f = fresh();
   if (!s || !s.start) return f;
-  return { ...f, ...s, targets: s.targets ?? [...DEFAULT_TARGETS], pages: s.pages ?? seedPages(), status: s.status || {}, seenUpdates: s.seenUpdates || {}, bookmarks: s.bookmarks || {}, custom: s.custom || {}, modes: s.modes || {}, labels: s.labels || {}, itemLabels: s.itemLabels || {}, own: s.own || {}, solves: s.solves || {}, sundayMode: s.sundayMode || {}, scores: s.scores || {}, meta: s.meta || {}, v: 6 };
+  return { ...f, ...s, targets: s.targets ?? [...DEFAULT_TARGETS], pages: s.pages ?? seedPages(), status: s.status || {}, seenUpdates: s.seenUpdates || {}, bookmarks: s.bookmarks || {}, custom: s.custom || {}, modes: s.modes || {}, labels: s.labels || {}, itemLabels: s.itemLabels || {}, own: s.own || {}, solves: s.solves || {}, sundayMode: s.sundayMode || {}, scores: s.scores || {}, routine: s.routine || {}, meta: s.meta || {}, v: 6 };
 }
 const readLS = <T,>(k: string): T | null => { try { const v = localStorage.getItem(k); return v ? (JSON.parse(v) as T) : null; } catch { return null; } };
 const writeLS = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage blocked */ } };

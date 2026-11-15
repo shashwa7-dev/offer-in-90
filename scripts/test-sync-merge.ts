@@ -111,3 +111,14 @@ assert.ok('p-x' in nm.solves && nm.sundayMode['2026-11-15'] === 'rest');
 assert.deepEqual(Object.keys(nm.scores).sort(), ['baseline/dsa', 'w3/fe']);
 
 console.log('sync-merge: all 15 scenarios pass');
+
+// 16. routine: v5/v6 state without it merges; slots from both sides survive
+{
+  const rBase = { ...base, routine: {} } as typeof base & { routine: Record<string, unknown> };
+  const rA = stamp(rBase, { ...rBase, routine: { lunch: { on: false, title: 'Lunch', s: '12:00', min: 60 } } }, 14000);
+  const rB = stamp(rBase, { ...rBase, routine: { extra: { on: true, title: 'Yoga', s: '17:00', min: 30 } } }, 14001);
+  const legacy = { ...base } as typeof rBase;
+  for (const mm of [merge(rA, rB), merge(rB, rA)] as unknown as (typeof rBase)[]) assert.deepEqual(Object.keys(mm.routine).sort(), ['extra', 'lunch']);
+  for (const mm of [merge(legacy, rA), merge(rA, legacy)] as unknown as (typeof rBase)[]) assert.ok('lunch' in mm.routine);
+}
+console.log('sync-merge: routine scenario passes');

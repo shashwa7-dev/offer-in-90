@@ -8,3 +8,7 @@ export type OwnerLabel = { id: string; name: string; color: string; group?: stri
 /** A problem the owner added that is not in the plan. `pattern` is a PatternId. */
 export type OwnProblem = { slug: string; url: string; name: string; diff: 'E' | 'M' | 'H'; pattern: string; at: number };
 export type SolveLog = { unseen: boolean; minutes?: number; at: number };
+
+export type RoutineKey = 'breakfast' | 'lunch' | 'dinner' | 'extra';
+/** One owner-editable weekday slot (meal or gym). `s` is 'HH:MM'. */
+export type RoutineSlot = { on: boolean; title: string; s: string; min: number };

@@ -1,3 +1,5 @@
+import { placeDay } from './routine.ts';
+
 // Daily timetable + calendar (.ics) builder.
 // Used by index.html in the browser and by `node schedule.js <start-date>` to write reminders.ics.
 
@@ -15,7 +17,7 @@ export const WEEKDAY_BLOCKS = [
   { s: '14:45', e: '15:15', k: 'rev',       title: 'DSA revision + recognition drill', kind: 'study', remind: true },
   { s: '15:15', e: '16:00', k: 'jt',        title: 'Judgment thread', kind: 'study', remind: true },
   { s: '16:00', e: '17:00', k: 'beh',       title: 'Career · behavioral, forward-deployed, applications', kind: 'study', remind: true },
-  { s: '17:00', e: '18:00', k: 'free',      title: 'Outdoor walk, sunlight, pre-gym snack', kind: 'life', remind: true },
+  { s: '17:00', e: '18:00', k: 'free',      title: 'Outdoor walk, sunlight, snack', kind: 'life', remind: true },
   { s: '18:00', e: '19:00', k: 'workout',   title: 'Gym', kind: 'health', remind: true },
   { s: '19:00', e: '19:15', k: 'shower',    title: 'Shower', kind: 'life' },
   { s: '19:15', e: '20:00', k: 'dinner',    title: 'Dinner + family time', kind: 'life', remind: true },
@@ -42,7 +44,10 @@ function pad(n) { return String(n).padStart(2, '0'); }
 function ymd(d) { return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`; }
 function parseISO(iso) { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); }
 
-export function buildICS(startISO, totalDays = 91) {
+export function buildICS(startISO, totalDays = 91, routine = undefined) {
+  // Owner routine (meals, gym) placed into the weekday template; falls back to the template if it cannot be placed.
+  const placed = routine ? placeDay(WEEKDAY_BLOCKS, routine) : null;
+  const weekday = placed && placed.ok ? placed.blocks : WEEKDAY_BLOCKS;
   const start = parseISO(startISO);
   const end = new Date(start); end.setDate(end.getDate() + totalDays - 1);
   const until = `${ymd(end)}T235959`;
@@ -65,7 +70,7 @@ export function buildICS(startISO, totalDays = 91) {
       'END:VEVENT'
     );
   };
-  WEEKDAY_BLOCKS.filter(b => b.remind).forEach(b => add(b, start.getDay() === 0 ? new Date(start.getTime() + 864e5) : start, 'MO,TU,WE,TH,FR,SA', 'wk'));
+  weekday.filter(b => b.remind).forEach(b => add(b, start.getDay() === 0 ? new Date(start.getTime() + 864e5) : start, 'MO,TU,WE,TH,FR,SA', 'wk'));
   SUNDAY_BLOCKS.filter(b => b.remind).forEach(b => add(b, firstSunday, 'SU', 'su'));
   lines.push('END:VCALENDAR');
   return lines.join('\r\n') + '\r\n';
