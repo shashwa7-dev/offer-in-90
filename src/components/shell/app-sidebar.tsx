@@ -3,7 +3,7 @@
 import { CalendarCheck2, ChartLine, Map as MapIcon, Newspaper, NotebookPen, Plus, Search, Settings, type LucideIcon } from 'lucide-react';
 import { cn, modKey } from '@/lib/utils';
 import { BASE, useStore, type State } from '@/lib/store';
-import { overall, TOTAL, type Day, type NewsFeed } from '@/lib/engine';
+import { overall, totalDays, type Day, type NewsFeed } from '@/lib/engine';
 import type { StatusMap } from '@/lib/task-status';
 import type { ThreadsFeed } from '@/lib/interview-feed';
 import { useUI, type View } from '@/components/ui-state';
@@ -41,14 +41,14 @@ export function newsUnread(state: Pick<State, 'seenUpdates'>, news: NewsFeed | n
   return n;
 }
 
-/** "Day N of 91 · on track", "prep day", "starts in Nd" or "complete". */
+/** "Day N of 119 · on track", "prep day", "starts in Nd" or "complete". */
 export function statusLine(days: Day[], todayIdx: number, done: Record<string, number>, status: StatusMap = {}): string {
   if (todayIdx < 0) return `starts in ${-todayIdx}d`;
   if (todayIdx >= days.length) return 'complete';
   const d = days[todayIdx];
   if (d.no === 0) return 'prep day';
   const [k, label] = overall(days, done, todayIdx, status).status;
-  return `Day ${d.no} of ${TOTAL} · ${k === 'ok' ? 'on track' : label}`;
+  return `Day ${d.no} of ${totalDays(days)} · ${k === 'ok' ? 'on track' : label}`;
 }
 
 const hhmm = (t: number) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });

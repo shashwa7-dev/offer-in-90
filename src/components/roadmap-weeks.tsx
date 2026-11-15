@@ -3,11 +3,10 @@
 import { Fragment, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
-import { P, aiUnitOf, type Day } from '@/lib/engine';
+import { patternNameOf, phaseSpans, shortText, type Day } from '@/lib/engine';
 import { cycleOf } from '@/lib/cycle';
 import { dateRange } from '@/lib/cycle-input';
 import { Band, Chip, Ring, Row } from './shell/page';
-import { PHASE_SPANS } from './roadmap-timeline';
 import { useCycleDays } from './today-rail';
 import { useUI } from './ui-state';
 
@@ -17,13 +16,14 @@ const PHASE_TEXT: Record<number, string> = {
   3: 'Interview mode: Meta speed sets, Google plain-doc sets, AI-enabled coding drills, Amazon OA simulations, flagship launch + case study, mock loops (frontend, HLD, LLD, AI, FDE). AI: scaling laws, LoRA, Constitutional AI, AI system design. Decomposition reps, take-home practice, daily applications.',
 };
 
-/** Main topics of a week: DSA topics, frontend lessons, AI units. */
+/** Main topics of a week: DSA patterns, frontend lessons, AI reads (from the week's track blocks). */
 export function weekSummary(days: Day[], w: number): string[] {
   const ds = days.filter(x => x.week === w && x.type === 'study'); if (!ds.length) return ['Kickoff'];
-  const topics = [...new Set(ds.flatMap(x => x.tasks.filter(t => t.topic).map(t => t.topic!)))];
-  const fe = ds.filter(x => x.s! <= 48).map(x => P.FE[x.s! - 1][0].split(/[:,(]/)[0].trim());
-  const ai = [...new Set(ds.map(x => aiUnitOf(x.s!)).filter(Boolean))];
-  return [topics.length ? `DSA: ${topics.join(', ')}` : 'DSA: timed sets + OA', fe.length ? `Frontend: ${fe.slice(0, 2).join(', ')}…` : 'Frontend: revision', ai.length ? `AI: ${ai.join('; ')}` : 'AI: explain-it-back revision'];
+  const inBlock = (k: string) => ds.flatMap(x => x.blocks.filter(b => b.k === k).flatMap(b => b.tasks.filter(t => !t.own && !t.superseded)));
+  const pats = [...new Set(inBlock('dsa').flatMap(t => (t.pattern ? [patternNameOf(t.pattern)] : [])))];
+  const fe = inBlock('fe').filter(t => t.id.startsWith('fe:') && !/^fe:(revise|bfe)-/.test(t.id)).map(t => shortText(t.text));
+  const ai = inBlock('ai').filter(t => t.id.startsWith('ai:') && !t.id.startsWith('ai:review-') && !t.id.startsWith('ai:revisit-')).map(t => shortText(t.text));
+  return [pats.length ? `DSA: ${pats.join(', ')}` : 'DSA: foundations, timed sets + OA', fe.length ? `Frontend: ${fe.slice(0, 2).join(', ')}…` : 'Frontend: revision', ai.length ? `AI: ${ai.slice(0, 2).join('; ')}…` : 'AI: explain-it-back revision'];
 }
 
 export function RoadmapWeeks() {
@@ -31,22 +31,23 @@ export function RoadmapWeeks() {
   const { openDay, focusWeek, setFocusWeek } = useUI();
   const today = todayIdx >= 0 && todayIdx < days.length ? days[todayIdx] : undefined;
   const input = useCycleDays(days);
+  const spans = phaseSpans(days);
   // Phase bands open by default on today's phase; a focus request (sidebar Cycles) opens its band and expands its week.
   const [openPh, setOpenPh] = useState<Record<number, boolean>>({});
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
   useEffect(() => {
     if (focusWeek == null) return;
-    const w = focusWeek, ph = PHASE_SPANS.find(p => w >= p.from && w <= p.to);
+    const w = focusWeek, ph = phaseSpans(days).find(p => w >= p.from && w <= p.to);
     if (ph) setOpenPh(s => ({ ...s, [ph.p]: true }));
     setExpanded(s => ({ ...s, [w]: true }));
     setFocusWeek(null);
     // scroll once the band has opened and the row is laid out
     requestAnimationFrame(() => requestAnimationFrame(() => document.querySelector(`[data-week="${w}"]`)?.scrollIntoView({ block: 'center' })));
-  }, [focusWeek, setFocusWeek]);
+  }, [focusWeek, setFocusWeek, days]);
 
   return (
     <>
-      {PHASE_SPANS.map(ph => {
+      {spans.map(ph => {
         const weeks = Array.from({ length: ph.to - ph.from + 1 }, (_, k) => ph.from + k);
         return (
           <Band key={ph.p} id={`phase-${ph.p}`} title={`Phase ${ph.p} · ${ph.name}`} count={`W${ph.from}–${ph.to}`} open={openPh[ph.p] ?? (!today || today.phase === ph.p)} onOpenChange={v => setOpenPh(s => ({ ...s, [ph.p]: v }))}>

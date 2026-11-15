@@ -12,7 +12,8 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useStore, type State } from '@/lib/store';
 import { buildICS, WEEKDAY_BLOCKS, SUNDAY_BLOCKS } from '@/lib/schedule';
-import { fmtDate, iso, parseISO } from '@/lib/engine';
+import { fmtDate, iso, parseISO, totalDays } from '@/lib/engine';
+import { resolveRoutine } from '@/lib/routine';
 import { companyCounts, flattenThreads } from '@/lib/interview-feed';
 import { useUI } from './ui-state';
 import { Band, Chip, PageFrame, PageHeader, Surface } from './shell/page';
@@ -174,7 +175,7 @@ export function SetupView() {
 
         <Band id="reminders" title="Reminders">
           <Setting label="Calendar reminders" help="Every block as a repeating event with an alert 2 minutes before, for 13 weeks. Import into Google Calendar for phone alerts.">
-            <Button size="sm" onClick={() => download('reminders.ics', buildICS(state.start, days.length), 'text/calendar')}>Download reminders.ics</Button>
+            <Button size="sm" onClick={() => download('reminders.ics', buildICS(state.start, totalDays(days), resolveRoutine(state.routine)), 'text/calendar')}>Download reminders.ics</Button>
           </Setting>
         </Band>
 

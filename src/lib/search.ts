@@ -84,7 +84,7 @@ export function search(ix: SearchIndex, q: string, limitPerGroup = 6): { group: 
   if (/^\d+$/.test(t)) {
     const no = Number(t);
     const i = ix.dayIdxOfNo[no];
-    if (no <= 91 && i !== undefined && i < ix.dayCount) out.push({ group: 'Go to', hits: [{ kind: 'day', dayIdx: i, title: `Go to Day ${no}`, meta: DATES.get(ix)?.[i] ?? '' }] });
+    if (i !== undefined && i < ix.dayCount) out.push({ group: 'Go to', hits: [{ kind: 'day', dayIdx: i, title: `Go to Day ${no}`, meta: DATES.get(ix)?.[i] ?? '' }] });
   }
   const groups: [SearchGroup, Hit[]][] = [['Tasks', ix.tasks], ['Notes', ix.notes], ['Interviews', ix.posts], ['Reads', ix.reads]];
   for (const [group, list] of groups) {

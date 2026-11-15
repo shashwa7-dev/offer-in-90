@@ -13,7 +13,7 @@ export type SlotItem = {
   slug?: string; diff?: string; mins?: number; practice?: string; summary?: string;
   /** The take-home brief, on part 1 of each take-home. */
   brief?: string;
-  /** Carried to that week's Sunday (a Saturday jt slot is capped at 75 min, Ruling R9); Task 8 places it. */
+  /** Carried to that week's Sunday (a Saturday jt slot is capped at 75 min, Ruling R9); plan-build.ts places it. */
   sundayCarry?: boolean;
   /** A generated filler (revision tail or "Revisit" slot), not a content item. */
   filler?: true;

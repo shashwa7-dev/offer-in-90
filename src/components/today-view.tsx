@@ -8,7 +8,7 @@ import { useStore } from '@/lib/store';
 import { TRACKS, bandOf } from '@/lib/timeline';
 import { STATUS_LABEL, isSkipped, statusOf } from '@/lib/task-status';
 import { EMPTY_FILTER, isActive, matches, statusCounts, trackOfCat, type GroupBy } from '@/lib/task-filter';
-import { TOTAL, type Block, type Day, type Task, dayStats, dayTitle, fmtDate, hrs, overall, parseISO, study, toMin } from '@/lib/engine';
+import { totalDays, type Block, type Day, type Task, dayStats, dayTitle, fmtDate, hrs, overall, parseISO, study, toMin } from '@/lib/engine';
 import { Band, Chip, PageFrame, PageHeader, Ring, Row, Surface, SummaryRow } from './shell/page';
 import { TaskRow } from './task-row';
 import { QuickAdd } from './own-task';
@@ -26,7 +26,7 @@ export function TodayView() {
   const { viewIdx, setViewIdx, go, newTask, setRoadmapTab, setOpenChanges, openSearch } = useUI();
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [missedOpen, setMissedOpen] = useState(false);
-  const phone = useIsMobile(); // phones: "Day 9" (the header has no room for "of 91")
+  const phone = useIsMobile(); // phones: "Day 9" (the header has no room for "of 119")
   const [fv, setFv] = useTodayFilter();
   const setGroupBy = useCallback((g: GroupBy) => setFv({ ...fv, groupBy: g }), [fv, setFv]);
   const [nm, setNm] = useState(() => { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); });
@@ -88,7 +88,7 @@ export function TodayView() {
 
   return (
     <PageFrame header={<PageHeader
-        crumbs={[{ label: `Week ${d.week}`, phoneHidden: true }, d.no === 0 ? 'Day 0 · prep' : phone ? `Day ${d.no}` : `Day ${d.no} of ${TOTAL}`, fmtDate(d.date)]}
+        crumbs={[{ label: `Week ${d.week}`, phoneHidden: true }, d.no === 0 ? 'Day 0 · prep' : phone ? `Day ${d.no}` : `Day ${d.no} of ${totalDays(days)}`, fmtDate(d.date)]}
         keepLast
         actions={<>
           <Button variant="outline" size="icon-sm" onClick={openSearch} aria-label="Search" title="Search" data-search-phone className="md:hidden"><Search /></Button>
@@ -190,7 +190,7 @@ function BlockView({ d, b, bs, nm, pickId, shown, isOpen, toggle, log, setLog }:
       </Row>
       {isOpen && <>
         {(shown ?? b.tasks).map(t => <TaskRow key={t.id} t={t} dayIdx={d.i} status={missed && !isSkipped(t.id, state.done, state.status) && !state.done[t.id] ? 'missed' : t.id === pickId ? 'pick' : undefined} />)}
-        {!shown && b.k === 'dsa' && d.type === 'study' && (d.s ?? 0) <= 60 && (
+        {!shown && b.k === 'dsa' && d.type === 'study' && b.tasks.some(t => t.id.startsWith('p-')) && (
           <p className="border-t border-border py-2 pr-4 pl-11 text-[12px] text-muted-foreground">45 min max per problem. Stuck? Read the solution, understand it, flag it, write what you missed in its note.</p>
         )}
         {(shown ?? b.tasks).some(t => t.log) && (

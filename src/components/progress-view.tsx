@@ -15,8 +15,9 @@ export function ProgressView() {
   const { openDay } = useUI();
   const [range, setRange] = useState<ChartRange>('month');
   const done = state.done, o = overall(days, done, ti, state.status);
+  // The must-solve problems in the daily plan (the optional pool stays out of it).
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const solved = P.DSA.filter((p: any) => done['p-' + p.slug]).length;
+  const must = P.PROBLEMS.filter((p: any) => p.tier === 'must'), solved = must.filter((p: { slug: string }) => done['p-' + p.slug]).length;
   const daysDone = Math.max(0, Math.min(days.length, ti));
   const stats = days.map(d => dayStats(d, done, state.status));
   const rates = stats.map(rate); // null = nothing counted that day (all skipped): neutral
@@ -61,7 +62,7 @@ export function ProgressView() {
   const items = [
     { k: 'Days', v: `${daysDone} done · ${o.daysLeft} left` },
     { k: 'Hours', v: <span title={o.daysLeft ? `${hrs(o.leftAll)} h left, about ${hrs(o.leftAll / o.daysLeft)} h per remaining day` : undefined}>{hrs(o.doneAll)} of {hrs(o.planAll)} h</span> },
-    { k: 'Problems', v: <span title={`${flagged} flagged to re-solve`}>{solved} of {P.DSA.length}{flagged ? ` · ${flagged} flagged` : ''}</span> },
+    { k: 'Problems', v: <span title={`${flagged} flagged to re-solve`}>{solved} of {must.length}{flagged ? ` · ${flagged} flagged` : ''}</span> },
     { k: 'Status', v: o.status[1] },
     { k: 'Streak', v: <span title={`${goodDays} day${goodDays === 1 ? '' : 's'} at 80% or more`}>{streak} day{streak === 1 ? '' : 's'}</span> },
   ];

@@ -1,20 +1,13 @@
 'use client';
-/* Roadmap › Timeline: one row per track, each stage an outlined bar across 13 week columns (Plane Gantt style). */
+/* Roadmap › Timeline: one row per track, each stage an outlined bar across the plan's week columns (Plane Gantt style). */
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
+import { phaseSpans, weekCount } from '@/lib/engine';
 import { STAGES, TRACKS, stageBars, type StageBar } from '@/lib/timeline';
 import { useUI } from './ui-state';
 
-export const WEEKS = 13;
-export const PHASE_SPANS = [
-  { p: 1, name: 'Foundations', from: 1, to: 4 },
-  { p: 2, name: 'Depth', from: 5, to: 9 },
-  { p: 3, name: 'Interview mode', from: 10, to: 13 },
-] as const;
-
 const LANE = 30; // px per bar lane inside a track row
-const pct = (n: number) => `${(n / WEEKS) * 100}%`;
 
 /** Stack bars of one track into lanes so overlapping stages never cover each other. */
 function lanes(bars: StageBar[]) {
@@ -33,6 +26,10 @@ export function RoadmapTimeline() {
   const { state, days, todayIdx } = useStore();
   const { openDay } = useUI();
   const bars = useMemo(() => stageBars(days, state.done, state.status), [days, state.done, state.status]);
+  // Weeks and phase bands come from the days (13 weeks in Grind, 17 in Steady).
+  const WEEKS = weekCount(days), spans = useMemo(() => phaseSpans(days), [days]);
+  const pct = (n: number) => `${(n / WEEKS) * 100}%`;
+  const cols = { gridTemplateColumns: `repeat(${WEEKS}, minmax(0, 1fr))` };
   const today = todayIdx >= 0 && todayIdx < days.length ? days[todayIdx] : undefined;
   const nowWeek = today && today.week >= 1 && today.week <= WEEKS ? today.week : null;
   // Today line: inside the current week by weekday position (prep Day 0 sits at the start of week 1).
@@ -41,7 +38,7 @@ export function RoadmapTimeline() {
   const openBar = (b: StageBar) => {
     const stage = STAGES.find(s => s.track === b.track && s.label === b.label);
     const inRange = days.filter(d => d.week >= b.fromWeek && d.week <= b.toWeek && d.s != null);
-    const hit = stage && inRange.find(d => d.tasks.some(t => !t.own && !t.id.endsWith('-news') && !state.done[t.id] && state.status[t.id] !== 'skipped' && stage.match(t, d.s as number)));
+    const hit = stage && inRange.find(d => d.tasks.some(t => !t.own && !state.done[t.id] && state.status[t.id] !== 'skipped' && !t.superseded && stage.match(t)));
     const first = hit ?? inRange.find(d => d.week === b.fromWeek) ?? days.find(d => d.week === b.fromWeek);
     if (first) openDay(first.i);
   };
@@ -53,7 +50,7 @@ export function RoadmapTimeline() {
         <div className="flex h-8 border-b border-border">
           <div className="w-32 shrink-0" />
           <div className="relative flex-1">
-            {PHASE_SPANS.map(ph => (
+            {spans.map(ph => (
               <div key={ph.p} className={cn('absolute inset-y-0 flex items-center truncate px-2 text-[12px] font-medium text-muted-foreground', ph.p > 1 && 'border-l border-border')}
                 style={{ left: pct(ph.from - 1), width: pct(ph.to - ph.from + 1) }}>
                 {ph.name} <span className="ml-1 font-normal text-faint tabular-nums">W{ph.from}–{ph.to}</span>
@@ -64,7 +61,7 @@ export function RoadmapTimeline() {
         {/* week numbers; the label after "now" sits right so the longer now label never covers it */}
         <div className="flex h-8 border-b border-border">
           <div className="flex w-32 shrink-0 items-center px-4 text-[12px] text-muted-foreground">Track</div>
-          <div className="grid flex-1 grid-cols-13">
+          <div className="grid flex-1" style={cols}>
             {Array.from({ length: WEEKS }, (_, k) => k + 1).map(w => (
               <div key={w} className={cn('relative flex items-center border-l border-border px-1.5 text-[12px] whitespace-nowrap tabular-nums',
                 w === nowWeek ? 'z-10 font-medium text-foreground' : 'text-muted-foreground',
@@ -84,7 +81,7 @@ export function RoadmapTimeline() {
                 <span className="truncate" data-track-name>{tr.name}</span>
               </div>
               <div className="relative flex-1" style={{ height: n * LANE + 12 }}>
-                <div className="pointer-events-none absolute inset-0 grid grid-cols-13" aria-hidden="true">
+                <div className="pointer-events-none absolute inset-0 grid" style={cols} aria-hidden="true">
                   {Array.from({ length: WEEKS }, (_, k) => <div key={k} className={cn('border-l border-border', k + 1 === nowWeek && 'bg-band')} />)}
                 </div>
                 {placed.map(({ b, lane }) => {

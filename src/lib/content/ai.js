@@ -16,7 +16,7 @@ export const AIB_MOVED = [
 // Evening AI hour: the paper, course and reading days of the old AI_UNITS at their old days, plus the §13 depth reads.
 // The hands-on build steps (the `Build ·` units and the build steps inside "Paper · … + build" units) moved to AIB (§7).
 // Depth items (§13 area 3: retrieval, evals, tool and agent loops, cost and latency, failure handling) end with an explain-back;
-// an old-day item whose text gained one keeps its exact old text in `oldText` (only the v1 adapter in plan-data.js reads it).
+// an old-day item whose text gained one keeps its exact old text in `oldText` (provenance only; checked by test-content).
 export const AI_EVENING = [
   { id: 'ai:3b1b-neural-network', text: 'Ch 1: What is a neural network?', url: 'https://www.youtube.com/watch?v=aircAruvnKk', unit: 'Neural network basics · 3Blue1Brown', day: 0 },
   { id: 'ai:3b1b-gradient-descent', text: 'Ch 2: Gradient descent, how networks learn', url: 'https://www.youtube.com/watch?v=IHZwWFHWa-w', unit: 'Neural network basics · 3Blue1Brown', day: 1 },

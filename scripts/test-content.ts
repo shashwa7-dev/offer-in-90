@@ -7,7 +7,6 @@ import { BEH, FDE, COMPANY_MAP, TEARDOWNS } from '../src/lib/content/career.js';
 import { AIB_MOVED, AIB, AI_EVENING, AI_REVIEW, AI_NEWS } from '../src/lib/content/ai.js';
 import { MC, MC_TIMED, MC_SCREENSHOT, TAKE_HOMES, PROJECT, PROJECT_DEPTH_READS, LLD } from '../src/lib/content/mc.js';
 import { SD, SD_MOCKS } from '../src/lib/content/sd.js';
-import { createHash } from 'node:crypto';
 import { PLAN } from '../src/lib/plan-data.js';
 import { HOW_IT_WORKS, MEMOS, PRACTICAL, DECOMP, OSS_REPOS, OSS_FIXES, CODE_REVIEWS, JT_DEPTH_READS, INTERVIEW_ENV } from '../src/lib/content/judgment.js';
 import { SUNDAY_READS, SUNDAY_CORE, SUNDAY_OPTIONAL, READINESS, WEEK8_REVIEW } from '../src/lib/content/sundays.js';
@@ -87,17 +86,8 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
   assert.ok(apple && /accessibility/i.test(apple[1]) && /privacy/i.test(apple[1]) && /deep dive/i.test(apple[1]));
   assert.ok(stripe && /bug squash/i.test(stripe[1]) && /integration/i.test(stripe[1]) && /API design/i.test(stripe[1]) && /code review/i.test(stripe[1]));
 
-  // plan-data still feeds the old engine in the old shapes
-  assert.equal(PLAN.FE.length, 49);
-  assert.deepEqual(PLAN.FE[0].length, 3);
-  assert.equal(PLAN.UX[0].length, 2);
-  assert.equal(PLAN.BEH[0].length, 2);
-  assert.equal(PLAN.FDE.length, 42, 'old engine still sees the moved items');
-  // old FDE order is preserved (moved items back at their original positions)
-  const OLD_ORDER = `fde:stage1-intro fde:stage1-glossary fde:decomposition-framework aib:python-for-js aib:pandas fde:git-beyond-basics fde:linux-shell fde:practical-coding-log fde:data-audit-modeling fde:sql-analysis fde:data-pipelines fde:data-warehouses fde:decomposition-2 fde:context-engineering fde:model-providers fde:agents-memory fde:integration-engineering fde:reengineering-round aib:aws aib:terraform aib:containers aib:devops fde:client-simulation-1 fde:eval-pipelines fde:debugging-agents fde:inference-optimization fde:security fde:governance-privacy fde:mlops fde:learning-round fde:discovery fde:scoping fde:business-acumen fde:stakeholders fde:communication fde:decomposition-3 fde:client-simulation-2 fde:take-home-1 fde:take-home-2 fde:take-home-3 fde:decomposition-4 fde:mock-fde-loop`.split(' ');
-  assert.equal(OLD_ORDER.length, 42);
-  assert.deepEqual(PLAN.FDE.map((r: any) => r[0]), OLD_ORDER.map((id) => [...FDE, ...AIB_MOVED].find((x) => x.id === id)!.text));
-  assert.equal(PLAN.COMPANY_MAP.length, 9);
+  assert.equal(PLAN.COMPANY_MAP, COMPANY_MAP);
+  assert.equal(COMPANY_MAP.length, 9);
   // product teardowns: one per company row that has a product (not the round/topic rows)
   const NO_PRODUCT = ['Meta AI-enabled round', 'Forward-deployed', 'System design in 2026'];
   const companies = COMPANY_MAP.filter((r) => !NO_PRODUCT.some((n) => r[0].startsWith(n)));
@@ -114,32 +104,9 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
 
 // ---- 4b: AI evening + AI-build track ----
 {
-  // the old engine's AI_UNITS (21 units, 61 days) as of c6d617f, pinned by hash so engine.ts sees identical data
-  const OLD_UNITS = PLAN.AI_UNITS as [string, [string, string][]][];
-  const sha = (v: unknown) => createHash('sha256').update(JSON.stringify(v)).digest('hex');
-  assert.equal(sha(PLAN.AI_UNITS), '3c643583137660a467fa1dc942dde814502b294a41bcbf63efb57d3275b6859d', 'old-shape AI_UNITS unchanged');
-  assert.equal(sha(PLAN.AI_REVIEW), 'b0c7f594bc75e514b07d1ada603529506cb4d7b2d9df2de96cb036213c5cfcc2', 'old-shape AI_REVIEW unchanged');
-  const oldDays = OLD_UNITS.flatMap(([unit, days]) => days.map(([text, url]) => ({ unit, text, url })));
-  assert.equal(oldDays.length, 61);
-  // hands-on build days (§7): the 11 days of the `Build ·` units plus the build steps inside "Paper · … + build" units
-  const BUILD_TEXT = /^(Build |Write 20 test cases|LLM-as-judge: add a grader|Attack your own app|AI-assisted coding round practice)/;
-  const buildDays = oldDays.map((d, day) => ({ ...d, day })).filter((d) => d.unit.startsWith('Build · ') || BUILD_TEXT.test(d.text));
-  assert.equal(buildDays.length, 11 + 7);
-  const old = (x: any) => x.oldText ?? x.text; // an old day whose text gained an explain-back keeps its exact old text
-  for (const x of [...AI_EVENING, ...AIB]) if (x.oldText !== undefined) {
-    assert.ok(x.day !== undefined, `${x.id} oldText only on old days`);
-    assert.ok(x.text.startsWith(x.oldText.replace(/\.$/, '')), `${x.id} text extends oldText`);
-  }
-
-  // AI_EVENING: every reading/course day at its old day index, plus the 7 depth reads
+  // the reading/course days keep their old 0-based day index (`day`), in order; tracks.ts places them by it
   const kept = AI_EVENING.filter((x) => x.day !== undefined);
-  assert.equal(kept.length, 61 - buildDays.length);
-  for (const x of kept) {
-    const d = oldDays[x.day];
-    assert.ok(!buildDays.some((b) => b.day === x.day), `${x.id} is not a build day`);
-    assert.equal(old(x), d.text); assert.equal(x.unit, d.unit); assert.equal(x.url || '', d.url);
-    assert.match(x.id, /^ai:/);
-  }
+  assert.ok(kept.every((x) => /^ai:/.test(x.id) && Number.isInteger(x.day) && x.unit));
   assert.deepEqual(kept.map((x) => x.day), [...kept.map((x) => x.day)].sort((a, b) => a - b), 'evening keeps old order');
   const reads = AI_EVENING.filter((x) => x.day === undefined);
   assert.equal(reads.length, 7);
@@ -165,13 +132,8 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
     for (const x of its) { assert.ok(x.text.startsWith(title), x.id); assert.ok(x.url, x.id); assert.equal(x.slots, 1); }
   }
   const moved = AIB.filter((x) => x.day !== undefined);
-  assert.equal(moved.length, buildDays.length);
-  for (const b of buildDays) {
-    const x = moved.find((y) => y.day === b.day)!;
-    assert.ok(x, `build day ${b.day}`);
-    assert.equal(old(x), b.text); assert.equal(x.unit, b.unit); assert.equal(x.url || '', b.url); assert.equal(x.slots, 2);
-    assert.match(x.id, /^aib:/);
-  }
+  assert.equal(moved.length, 11 + 7, 'the 18 old build days');
+  assert.ok(moved.every((x) => /^aib:/.test(x.id) && x.slots === 2 && x.unit));
   assert.equal(AIB.length, AIB_MOVED.length + fresh.length + moved.length, 'AIB holds nothing else');
   const slots = AIB.reduce((a, x) => a + (x.slots ?? 1), 0);
   assert.ok(slots <= 78, `AIB slots ${slots}`);
@@ -205,20 +167,11 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
 
 // ---- 4c: machine coding, flagship, LLD, system design ----
 {
-  const sha = (v: unknown) => createHash('sha256').update(JSON.stringify(v)).digest('hex');
-  // the old engine's shapes as of d8a1345, pinned by hash so engine.ts sees identical data until Task 8
-  assert.equal(sha(PLAN.MC), '0436c0a28cb8e2d0d3edaa01e25b4ff547eb7e21a2221e337501c74672cc5ee7', 'old-shape MC unchanged');
-  assert.equal(sha(PLAN.MC_TIMED), '36cd413547db61cbc21deee5ee54806bbfbe664c5ff829d6a2db88d280e1b39a', 'old-shape MC_TIMED unchanged');
-  assert.equal(sha(PLAN.PROJECT), '7b628c78ac91faf5e1f7b7e5bc2a6436113e54fea6624495c5e0b048cb13fa94', 'old-shape PROJECT unchanged');
-  assert.equal(sha(PLAN.LLD), '6d5e92b979ff73fa741bf1e01e95891f130286cda4c7408e3afb1b545160f4e1', 'old-shape LLD unchanged');
-  assert.equal(sha(PLAN.SD), 'db73fea6af8312081dab5f60df48f5e9775b63da4f668aa2ba4edd30eba1c1d3', 'old-shape SD unchanged');
-  assert.equal(sha(PLAN.SD_MOCKS), '3df90e66fd5b22942ecb74c5377ba559fe762a590d5506745971347b64f4197f', 'old-shape SD_MOCKS unchanged');
   const old = (x: any) => x.oldText ?? x.text;
   for (const x of [...MC, ...PROJECT, ...SD]) if (x.oldText !== undefined) assert.ok(x.text.startsWith(x.oldText.replace(/\.$/, '')), `${x.id} text extends oldText`);
 
   // MC: 34 builds (old order and text), the 8 §5 pairs share one 90-min block (45 min each)
   assert.equal(MC.length, 34);
-  assert.deepEqual(MC.map((x) => x.text), PLAN.MC);
   assert.ok(MC.every((x) => /^mc:/.test(x.id)));
   const PAIRS = [['mc:accordion', 'mc:tabs'], ['mc:star-rating', 'mc:otp-input'], ['mc:pagination', 'mc:toast'], ['mc:modal', 'mc:tooltip'],
     ['mc:event-emitter', 'mc:promise-pool'], ['mc:debounced-search', 'mc:like-button'], ['mc:image-carousel', 'mc:tic-tac-toe'], ['mc:use-fetch', 'mc:redux-store']];
@@ -232,9 +185,9 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
   for (const [a, b] of PAIRS) assert.ok(MC.findIndex((x) => x.id === a) < MC.findIndex((x) => x.id === b), `${a} before ${b} in MC`);
   assert.equal(MC.length - PAIRS.length, 26, '34 builds in 26 blocks');
 
-  // MC_TIMED: the same 12 builds as the old 1-based index list, as ids
+  // MC_TIMED: 12 builds, as ids
   assert.equal(MC_TIMED.length, 12);
-  assert.deepEqual(MC_TIMED, PLAN.MC_TIMED.map((n: number) => MC[n - 1].id));
+  assert.ok(MC_TIMED.every((id: string) => MC.some((x) => x.id === id)));
 
   // screenshot builds (§5): 3 × 45 min, pixel-accurate, responsive, accessible
   assert.equal(MC_SCREENSHOT.length, 3);
@@ -268,7 +221,6 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
   }
   const steps = PROJECT.flatMap((x) => x.oldSteps ?? [{ v1: x.v1, text: old(x), url: x.url || '' }]);
   assert.deepEqual(steps.map((x) => x.v1).sort((a, b) => a - b), Array.from({ length: 20 }, (_, i) => i + 1));
-  assert.deepEqual(steps.sort((a, b) => a.v1 - b.v1).map((x) => [x.text, x.url]), PLAN.PROJECT, 'every old step kept');
   // §13 row 2: Ink & Switch read in the step before the real-time step
   const rt = PROJECT.findIndex((x) => x.id === 'proj:realtime');
   assert.ok(rt > 0);
@@ -281,7 +233,6 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
 
   // LLD: 13, unchanged
   assert.equal(LLD.length, 13);
-  assert.deepEqual(LLD.map((x) => [x.text, x.url]), PLAN.LLD);
   assert.ok(LLD.every((x) => /^lld:/.test(x.id)));
 
   // SD (§6): internet, FE SD, HLD concepts (+ numbers card, delivery framework, concepts to master), 23 HLD problems core first, 4 AI designs
@@ -302,15 +253,13 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
   assert.ok(SD.filter((x) => x.part === 'ai').every((x) => x.id.startsWith('sd:ai-')));
   // every old SD topic kept, with its old text and url; the numbers card is the only new item
   const fresh = SD.filter((x) => x.id === 'sd:numbers-card');
-  assert.equal(SD.length, PLAN.SD.length + fresh.length);
+  assert.equal(SD.filter((x) => x.v1 !== undefined).length + fresh.length, SD.length);
   const oldSd = SD.filter((x) => x.v1 !== undefined).sort((a, b) => a.v1 - b.v1);
   assert.deepEqual(oldSd.map((x) => x.v1), Array.from({ length: 60 }, (_, i) => i + 1), '`v1` is the old 1-based SD position');
-  assert.deepEqual(oldSd.map((x) => [old(x), x.url || '']), PLAN.SD);
   assert.equal(nc.v1, undefined);
 
   // SD_MOCKS: unchanged rotation of 24
   assert.equal(SD_MOCKS.length, 24);
-  assert.deepEqual(SD_MOCKS.map((x) => x.text), PLAN.SD_MOCKS);
   assert.ok(SD_MOCKS.every((x) => /^sdm:/.test(x.id)));
 
   // §13 depth: area 1 SD concepts, area 2 flagship real-time/offline + chat/doc/whiteboard designs, area 3 AI designs + flagship AI steps
@@ -375,7 +324,6 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
   for (const x of fromFde) assert.ok(FDE.some((f) => f.id === x.from), `${x.id} from ${x.from}`);
   const fromPrompts = DECOMP.filter((x) => x.v1Prompt !== undefined);
   assert.deepEqual(fromPrompts.map((x) => x.v1Prompt), [0, 2, 4, 5], 'FDE_PROMPTS 1, 3, 5, 6 (2 duplicates fde:client-simulation-2, 4 is practical coding)');
-  for (const x of fromPrompts) assert.ok(x.text.startsWith(PLAN.FDE_PROMPTS[x.v1Prompt]), x.id);
   const guides = DECOMP.filter((x) => x.source);
   assert.equal(guides.length, 2);
   assert.ok(guides.every((x) => x.url === x.source && /^https:\/\/www\.(aced\.io|techinterview\.org)\//.test(x.url)), 'guide prompts carry their source');
@@ -481,23 +429,13 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
   assert.match(FOCUS_RULES[0], /Explore later/);
   for (const w of [/only that day's list/, /One link per task/, /Parking lot/]) assert.ok(FOCUS_RULES.slice(4).some((r) => w.test(r)), String(w));
 
-  // plan-data.js is a thin re-export: EXTENSION is gone, Explore later and the reference names are there,
-  // and every shape the old engine reads is byte-identical (pinned at 46d77a4)
+  // plan-data.js is a thin merge of the content files: EXTENSION and the v1 old shapes are gone
   assert.ok(!('EXTENSION' in PLAN), 'Month 4 removed');
+  for (const k of ['DSA', 'AI_UNITS', 'APPLY', 'FDE_PROMPTS']) assert.ok(!(k in PLAN), `v1 ${k} removed`);
   assert.equal(PLAN.EXPLORE_LATER, EXPLORE_LATER);
   assert.equal(PLAN.FOCUS_RULES, FOCUS_RULES);
-  const sha = (v: unknown) => createHash('sha256').update(JSON.stringify(v)).digest('hex');
-  const PINNED: Record<string, string> = {
-    ADV_DSA: '09a44292c1df4c7a61561432a6878478cfc695138e4185a925fd4bacd358e3ff', APPLY: 'b21fcd22518f51696a4a67219d153c49d2f05884f18c5f408a3ce09b35169d48',
-    BEH: 'a13c9afd2d333277721559bcbce703dbaf9779c2cf7ef23aa287e0d7e966c9af', BOARD_MAP: 'a2dd5b5d85e46696222e0ef5613f99c93454b3e4a7d112aed46874601343632f',
-    COMPANY_MAP: 'cda3811dba9a23c77a532ff8ce894494f373d25058497ea1cbb7d8afdac5968a', DSA: '2bf6d8f0b57dd20b2842a2962cc2d9ad56bc221d18ad0b9fa2246c6cfb45ff13',
-    FDE: 'ca7d94385ce2fd7f58e679c00f0e25e16b50991629249428c23a80b4d8f77bb2', FDE_PROMPTS: 'f39cab3b1450d5c58dde9829a49dfe9d8f07621abe32c307cc193d1924f6e204',
-    FDE_STAGES: '1ce5963713b47c9706b6008259c3cf7a08fda6eda3327d4e0db4feb523171971', FE: '2dd5a668da33309d6135d0eec315fe51e4072eb162f480119b849c86b3023ad2',
-    HLD_FRAMEWORK: 'f94d1ed11c897f963954909cadace5098653b0bcd1a5f56da843ffb4880a87a9', OA_LINKS: 'c5df9ff2da676fc074f6bff0ca3c9718599690e23fb91947c9ca3df31defad63',
-    RULES: '0a28d9f123e0ddf3293e3bd3d43526a9b388f808f87ce41c62dafac675492fe9', UX: '9a4d37ecf3da23ab3e3013f1f2f1cdc67dbe59953cf532803b04121ab5a90d1d',
-  };
-  for (const [k, h] of Object.entries(PINNED)) assert.equal(sha(PLAN[k]), h, `old-shape ${k} unchanged`);
-  assert.equal(PLAN.FDE_PROMPTS.length, 6);
+  assert.equal(PLAN.FE, FE);
+  assert.equal(PLAN.SUNDAY_READS, SUNDAY_READS);
 }
 
 console.log('test-content: ok');

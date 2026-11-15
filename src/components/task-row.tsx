@@ -4,7 +4,7 @@ import { AlertTriangle, FileText, Flag, Newspaper, Pencil, Trash2 } from 'lucide
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import { domainOf } from '@/lib/interview-feed';
-import type { Task } from '@/lib/engine';
+import { fmtDate, parseISO, type Task } from '@/lib/engine';
 import { Chip } from './shell/page';
 import { StatusControl, statusKey, useTaskStatus } from './status-control';
 import { newsTabFor, useUI } from './ui-state';
@@ -44,6 +44,7 @@ export function TaskRow({ t, dayIdx, extra, status, chip, noStatusChip }: { t: T
       onContextMenu={e => { if (editing || (e.target as HTMLElement).closest('a, input, textarea')) return; e.preventDefault(); setMenu(true); }}
       className={cn('group flex gap-3 border-t border-border py-2 pr-4 pl-11 text-[13px] text-foreground outline-none focus-visible:bg-hover focus-visible:shadow-[inset_2px_0_0_var(--ring)]',
         missed && 'bg-stone text-stone-foreground',
+        t.superseded && 'text-muted-foreground',
         pick && 'bg-hover')}>
       {editing ? (
         <TaskInput className="flex-1" initial={t.url ? `${t.text} ${t.url}` : t.text} placeholder="Task name, paste a link to attach it" onSave={save} onCancel={() => setEditing(false)} />
@@ -58,6 +59,7 @@ export function TaskRow({ t, dayIdx, extra, status, chip, noStatusChip }: { t: T
             {st === 'progress' && !noStatusChip && <Chip className="ml-2 align-[1px] border-input text-foreground">In progress</Chip>}
             {skipped && !noStatusChip && <Chip className="ml-2 align-[1px]">Skipped</Chip>}
             {t.own && <Chip className="ml-2 align-[1px]">Yours</Chip>}
+            {t.superseded && <Chip className="ml-2 align-[1px]" data-moved>{t.movedTo ? `moved to ${fmtDate(parseISO(t.movedTo))}` : 'moved'}</Chip>}
             {chip && <Chip className="ml-2 max-w-[calc(100%-0.5rem)] align-[1px]" data-block-chip title={chip}><span className="truncate">{chip}</span></Chip>}
             {t.cat === 'update' && <Chip className="ml-2 align-[1px] border-input text-foreground">New</Chip>}
             {extra && <span className={cn('text-faint', missed && 'text-stone-foreground')}> · {extra}</span>}

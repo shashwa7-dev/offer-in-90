@@ -149,8 +149,11 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const disconnectSync = useCallback(() => { try { localStorage.removeItem(SYNC_KEY); } catch { /* ignore */ } cfgRef.current = null; setCfg(null); setSync({ state: 'off' }); }, []);
   const syncNow = useCallback(async () => { await syncOnce(); }, [syncOnce]);
 
-  const days = useMemo(() => buildPlan(state.start, state.kickoff, updates, state.custom), [state.start, state.kickoff, updates, state.custom]);
-  const todayIdx = dayIndexOf(state.start, now);
+  const days = useMemo(
+    () => buildPlan({ start: state.start, kickoff: state.kickoff, modes: state.modes, done: state.done, sundayMode: state.sundayMode, routine: state.routine }, updates, state.custom),
+    [state.start, state.kickoff, state.modes, state.done, state.sundayMode, state.routine, updates, state.custom]);
+  // The prep day (when on) is days[0], the Sunday before the start.
+  const todayIdx = dayIndexOf(state.start, now) + (state.kickoff ? 1 : 0);
 
   const value: Ctx = { ready, state, days, todayIdx, updates, feedAt, news, pulse, threads, update, replace, sync, syncConfigured: !!cfg?.gistId, connectSync, disconnectSync, syncNow };
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;

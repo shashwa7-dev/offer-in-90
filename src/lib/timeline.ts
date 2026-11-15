@@ -14,34 +14,40 @@ export interface TimelineDay {
   week: number;
   s?: number;
   type: string;
-  tasks: { id: string; cat: string; own?: string }[];
+  tasks: { id: string; cat: string; own?: string; pattern?: string; superseded?: true }[];
 }
 
 export interface Stage {
   track: TrackKey;
   label: string;
-  match: (t: { id: string; cat: string }, s: number) => boolean;
+  /** Matches by content ID, category and pattern (never by study-day position, which moves with the mode). */
+  match: (t: { id: string; cat: string; pattern?: string }) => boolean;
 }
 
-const SD = /^sd-\d+/;
+/** The first 12 DSA patterns (arrays to tries); the other 12 are heaps to bits. */
+const EARLY_PATTERNS = new Set(['hash-map', 'prefix-sum', 'two-pointers', 'sliding-window', 'stack-monotonic', 'binary-search', 'cyclic-sort', 'fast-slow', 'll-reversal', 'tree-bfs', 'tree-dfs', 'trie']);
+/** A morning pattern task: a problem, its pattern card or explain-back (not a re-solve or drill). */
+const morning = (t: { id: string; pattern?: string }) => !!t.pattern && /^(p-|dsa:card-|dsa:explain-back-)/.test(t.id);
+const FE_REVISION = /^fe:(revise|bfe)-/;
+const FE_SD = /^sd:(internet|fe-)/;
 
 export const STAGES: Stage[] = [
-  { track: 'dsa', label: 'Arrays → Trees', match: (t, s) => t.cat === 'dsa' && s <= 24 },
-  { track: 'dsa', label: 'Graphs, DP, greedy', match: (t, s) => t.cat === 'dsa' && s >= 25 && s <= 60 },
-  { track: 'dsa', label: 'Timed sets + OA', match: (t, s) => t.cat === 'dsa' && s > 60 },
-  { track: 'fe', label: 'JS, browser, React, web', match: (t) => t.id.startsWith('fe-') },
-  { track: 'fe', label: 'Revision + quizzes', match: (t, s) => t.cat === 'fe' && s > 48 },
-  { track: 'sd', label: 'HLD fundamentals', match: (t, s) => SD.test(t.id) && s <= 14 },
-  { track: 'sd', label: 'Design problems', match: (t, s) => SD.test(t.id) && s > 14 },
-  { track: 'sd', label: 'Mocks', match: (t) => t.cat === 'sd' && t.id.includes('-sdm') },
-  { track: 'mc', label: 'Builds + LLD Saturdays', match: (t) => t.id.startsWith('mc-') || t.id.startsWith('lld-') },
+  { track: 'dsa', label: 'Foundations, arrays → tries', match: (t) => t.id.startsWith('dsa:foundations-') || (morning(t) && EARLY_PATTERNS.has(t.pattern!)) },
+  { track: 'dsa', label: 'Heaps, graphs, DP, greedy', match: (t) => morning(t) && !EARLY_PATTERNS.has(t.pattern!) },
+  { track: 'dsa', label: 'Advanced + timed sets + OA', match: (t) => /^(adv:|dsa:timed-|dsa:oa-|dsa:ai-drill-)/.test(t.id) },
+  { track: 'fe', label: 'JS, browser, React, web', match: (t) => t.id.startsWith('fe:') && !FE_REVISION.test(t.id) },
+  { track: 'fe', label: 'Revision + quizzes', match: (t) => FE_REVISION.test(t.id) },
+  { track: 'sd', label: 'Frontend system design', match: (t) => FE_SD.test(t.id) },
+  { track: 'sd', label: 'HLD concepts + design problems', match: (t) => t.id.startsWith('sd:') && !FE_SD.test(t.id) },
+  { track: 'sd', label: 'Mocks', match: (t) => t.id.startsWith('sdm:') },
+  { track: 'mc', label: 'Builds + LLD Saturdays', match: (t) => /^(mc:|lld:)/.test(t.id) && !t.id.endsWith(':timed') },
   { track: 'mc', label: 'Flagship product', match: (t) => t.cat === 'proj' },
-  { track: 'mc', label: 'Timed rebuilds', match: (t) => t.id.includes('-mct') },
-  { track: 'ai', label: 'Nets → GPT from scratch', match: (t, s) => t.id.startsWith('ai-') && s <= 17 },
-  { track: 'ai', label: 'Papers, RAG, agents, evals', match: (t, s) => t.id.startsWith('ai-') && s >= 18 && s <= 61 },
-  { track: 'ai', label: 'Review + AI design', match: (t, s) => t.id.startsWith('ai-') && s > 61 },
-  { track: 'career', label: 'Resume, LP stories, UX', match: (t, s) => (t.cat === 'beh' || t.cat === 'ux') && s <= 35 },
-  { track: 'career', label: 'Forward-deployed + applications', match: (t, s) => (t.cat === 'fde' || t.cat === 'beh') && s > 35 },
+  { track: 'mc', label: 'Timed rebuilds', match: (t) => t.id.endsWith(':timed') },
+  { track: 'ai', label: 'AI build', match: (t) => t.id.startsWith('aib:') },
+  { track: 'ai', label: 'Papers, courses, AI design', match: (t) => t.id.startsWith('ai:') && !t.id.startsWith('ai:review-') && !t.id.startsWith('ai:revisit-') },
+  { track: 'ai', label: 'Explain-it-back reviews', match: (t) => t.id.startsWith('ai:review-') || t.id.startsWith('ai:revisit-') },
+  { track: 'career', label: 'Resume, LP stories, UX', match: (t) => t.id.startsWith('beh:') || t.id.startsWith('ux:') },
+  { track: 'career', label: 'Forward-deployed', match: (t) => t.id.startsWith('fde:') },
 ];
 
 export interface StageBar {
@@ -61,8 +67,8 @@ export function stageBars(days: TimelineDay[], done: Record<string, number>, sta
   for (const d of days) {
     if (d.s == null) continue;
     for (const t of d.tasks) {
-      if (t.own || t.id.endsWith('-news')) continue;
-      const i = STAGES.findIndex((st) => st.match(t, d.s as number));
+      if (t.own || t.superseded) continue;
+      const i = STAGES.findIndex((st) => st.match(t));
       if (i < 0 || isSkippedTask(t.id, done, status)) continue;
       const b = bars[i] ?? (bars[i] = { track: STAGES[i].track, label: STAGES[i].label, fromWeek: d.week, toWeek: d.week, done: 0, total: 0 });
       b.fromWeek = Math.min(b.fromWeek, d.week);

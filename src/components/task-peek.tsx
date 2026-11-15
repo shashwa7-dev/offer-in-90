@@ -70,6 +70,9 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
     return () => window.removeEventListener('keydown', onKey);
   }, [setStatus]);
   const flagged = !!(t.slug && state.flags[t.slug]);
+  // Recognition drill: patterns stay hidden until the owner has named them.
+  const [reveal, setReveal] = useState(false);
+  useEffect(() => { setReveal(false); }, [t.id]);
   const title = t.text.replace(/^Re-solve without looking: /, '');
   const [name, setName] = useState(t.text);
   const [link, setLink] = useState(t.url || '');
@@ -168,6 +171,27 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
             ))}
             {own && prop(<User />, 'Added', readonly(`Added by You · ${new Date(own.at).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`))}
           </div>
+
+          {t.drill && t.drill.length > 0 && (
+            <div className="border-t border-border pt-4" data-drill>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <h3 className="text-[13px] font-medium text-foreground">Name the pattern</h3>
+                <button type="button" onClick={() => setReveal(v => !v)} aria-pressed={reveal} data-reveal
+                  className="inline-flex h-7 items-center rounded-[5px] px-2 text-[13px] text-muted-foreground outline-none hover:bg-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40">
+                  {reveal ? 'Hide patterns' : 'Reveal patterns'}
+                </button>
+              </div>
+              <ol className="flex flex-col gap-1 text-[13px]">
+                {t.drill.map((p, j) => (
+                  <li key={p.slug} className="flex min-w-0 items-baseline gap-2">
+                    <span className="w-4 shrink-0 text-faint tabular-nums">{j + 1}</span>
+                    <a href={p.url} target="_blank" rel="noopener noreferrer" className="min-w-0 truncate text-foreground hover:underline">{p.name}<span className="sr-only"> (opens in a new tab)</span></a>
+                    {reveal && <Chip className="ml-auto shrink-0">{p.pattern}</Chip>}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
 
           <div className="border-t border-border pt-4">
             <h3 className="mb-2 text-[13px] font-medium text-foreground">Note</h3>

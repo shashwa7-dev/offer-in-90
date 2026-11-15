@@ -3,7 +3,7 @@
 // simulations, the flagship project (PROJECT) and LLD. System design lives in sd.js.
 // Item shape: { id, text, url?, mins?, depth?, slots? } plus extra keys. IDs are content-based (<prefix>:<slug>) and must never change.
 
-// The 34 builds, in the old order (the v1 adapter in plan-data.js reads their text and order). 90 min each, except the
+// The 34 builds, in the old order (provenance: the v1 order and text). 90 min each, except the
 // 8 pairs of small builds (§5), which share one 90-min block: both halves carry the same `pair: [first, second]` (ordered by
 // MC position) and 45 min. A pair runs as one block at its first member's MC position; 34 builds therefore fill 26 Mon/Wed/Fri
 // blocks, plus the 3 screenshot builds.
@@ -83,7 +83,7 @@ export const TAKE_HOMES = [
 // "UX wireframes" and "search + ⌘K" with "performance pass"; nothing else changes. You write the brief, the design doc and
 // every review; AI coding tools write a lot of the code.
 // `v1` is the step's old 1-based position (merged entries keep both old steps in `oldSteps`), and `oldText` is the old text
-// of a step that gained an explain-back: only the v1 adapter in plan-data.js reads them.
+// of a step that gained an explain-back: provenance only, checked by test-content.
 // Depth (§13): the real-time and offline steps (area 2) and the AI steps and evals (area 3) end with an explain-back. The
 // Ink & Switch depth read before the real-time step is in PROJECT_DEPTH_READS below.
 export const PROJECT = [

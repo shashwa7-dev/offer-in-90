@@ -2,7 +2,7 @@
 // System design block content (roadmap v2 §6): the SD sequence and the mock rotation (SD_MOCKS). Mocks follow the sequence.
 // Item shape: { id, text, url?, mins?, depth?, slots? } plus extra keys. IDs are content-based (<prefix>:<slug>) and must never change.
 // `part` is the §6 stage. `v1` is the item's old 1-based SD position and `oldText` the old text of an item that gained an
-// explain-back: only the v1 adapter in plan-data.js reads them (the numbers card is new, so it has no `v1`).
+// explain-back: provenance only, checked by test-content (the numbers card is new, so it has no `v1`).
 // Depth (§13), each ending with an explain-back: area 1 the data-and-state SD concepts (consistency, storage and indexes,
 // replication, transactions, API design, caching, queues, idempotency) and the FE network/data layer; area 2 the chat, doc
 // and whiteboard designs; area 3 the AI designs. Raft (reliability) is breadth only (§13).

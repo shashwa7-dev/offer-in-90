@@ -44,6 +44,7 @@ function pad(n) { return String(n).padStart(2, '0'); }
 function ymd(d) { return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`; }
 function parseISO(iso) { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); }
 
+/** @param {string} startISO @param {number} [totalDays] @param {Record<string, { on: boolean; title: string; s: string; min: number }>} [routine] */
 export function buildICS(startISO, totalDays = 91, routine = undefined) {
   // Owner routine (meals, gym) placed into the weekday template; falls back to the template if it cannot be placed.
   const placed = routine ? placeDay(WEEKDAY_BLOCKS, routine) : null;
