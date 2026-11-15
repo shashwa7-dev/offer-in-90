@@ -65,29 +65,7 @@ export const PRACTICAL = [
   pc('webhook-idempotency', 'py', 'a webhook receiver with idempotency: verify the signature, dedupe by event id, process at most once.', 'what happens when the same event arrives twice at the same moment, and how your dedupe survives a restart'),
 ];
 
-// Thu · Decomposition or client simulation, from week 2 (12 Thursdays, weeks 2–13), 45 min out loud.
-// §4 counts 11 existing prompts: the 6 FDE `Rep ·` decomposition and client-simulation items (`from`: the FDE item it moves here
-// from, so the career block's FDE track should skip it once Task 5 lays this out) and the 5 non-coding FDE_PROMPTS (`v1Prompt`: its
-// 0-based index in the old FDE_PROMPTS). FDE_PROMPTS[1] repeats fde:client-simulation-2 word for word, so it is not used twice;
-// the plan takes 2 prompts from published FDE guides instead of 1 (`source`, checked with WebFetch 2026-11-15). FDE_PROMPTS[3]
-// (merge two messy CSVs) is a practical-coding rep, so it lives in PRACTICAL.
-const LOUD = '(45 min, out loud)';
-const AC = 'https://www.aced.io/blog/decomposition-interview'; // Aced (formerly Exponent), "How to Answer Decomposition Interview Questions: The Definitive Guide (2026)"
-const TI = 'https://www.techinterview.org/post/3233477236/forward-deployed-engineer-interview/'; // techinterview, "What the forward deployed engineer interview really tests", 2026-08-05
-export const DECOMP = [
-  { id: 'jt:decomp-traffic', from: 'fde:decomposition-framework', text: `Decomposition 1 ${LOUD}: learn the decomposition framework (use your template page), then "Reduce traffic congestion in a city"`, url: 'https://a10x.dev/blog/forward-deployed-engineer-interview-questions', mins: 45 },
-  { id: 'jt:decomp-fraud', v1Prompt: 0, text: `Decomposition: "A bank wants to flag fraudulent transactions in real time" ${LOUD}`, mins: 45 },
-  { id: 'jt:decomp-shared-data', from: 'fde:decomposition-2', text: `Decomposition: "Let several teams query shared data without exposing raw records" ${LOUD}`, mins: 45 },
-  { id: 'jt:client-sim-delayed-launch', from: 'fde:client-simulation-1', text: 'Client simulation: explain a delayed launch and a trade-off to a non-technical executive (record 5 min)', mins: 45 },
-  { id: 'jt:decomp-delivery-delays', v1Prompt: 2, text: `Decomposition: "A logistics company wants to predict delivery delays" ${LOUD}`, mins: 45 },
-  { id: 'jt:decomp-clinic', from: 'fde:decomposition-3', text: `Decomposition: "Help a clinic reduce missed appointments using AI" ${LOUD}`, mins: 45 },
-  { id: 'jt:client-sim-wrong-answer', from: 'fde:client-simulation-2', text: `Client simulation: the customer says your AI tool gave a wrong answer to their CEO ${LOUD}`, mins: 45 },
-  { id: 'jt:decomp-night-nurses', v1Prompt: 4, text: `Decomposition: "A hospital wants an AI assistant for nurses on night shifts" ${LOUD}`, mins: 45 },
-  { id: 'jt:decomp-911-response', source: AC, url: AC, text: `Decomposition: "A major city wants to reduce 911 emergency response times. They have call data, traffic data, and ambulance GPS data." ${LOUD}`, mins: 45 },
-  { id: 'jt:client-sim-scope-cut', v1Prompt: 5, text: `Client simulation: scope cut. The customer wants 10 features in 4 weeks ${LOUD}`, mins: 45 },
-  { id: 'jt:decomp-claims', from: 'fde:decomposition-4', text: `Decomposition: "An insurer wants to cut claims processing from 10 days to 2" ${LOUD}`, mins: 45 },
-  { id: 'jt:client-sim-wrong-dashboard', source: TI, url: TI, text: `Client simulation: "A customer says their dashboard is wrong. They can't tell you which number. What do you do?" ${LOUD}`, mins: 45 },
-];
+// Thu · Decomposition or client simulation: DECOMP moved to career.js (v3 §6, Career).
 
 // Fri · Code you didn't write, from week 3 (Ruling R4): the 11 Fridays of weeks 3–13 are 7 open-source fixes and 4 code reviews,
 // reviews in Grind weeks 5, 8, 11 and 13. Repos per §4 (owner may swap). Cal.com's repo is now github.com/calcom/cal.diy

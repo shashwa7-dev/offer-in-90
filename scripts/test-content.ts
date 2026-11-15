@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { FE, FE_DEPTH_READS } from '../src/lib/content/fe.js';
 import { PATTERNS as DSA_PATTERNS } from '../src/lib/content/dsa.js';
 import { UX } from '../src/lib/content/ux.js';
-import { BEH, FDE, COMPANY_MAP, TEARDOWNS } from '../src/lib/content/career.js';
+import { BEH, FDE, COMPANY_MAP, TEARDOWNS, DECOMP } from '../src/lib/content/career.js';
 import { AIB_MOVED, AIB, AI_EVENING, AI_REVIEW, AI_NEWS } from '../src/lib/content/ai.js';
 import { AI_CORE } from '../src/lib/content/ai-core.js';
 import { SYSTEMS } from '../src/lib/content/systems.js';
@@ -12,7 +12,7 @@ import { MC, MC_TIMED, MC_SCREENSHOT, PROJECT, PROJECT_DEPTH_READS } from '../sr
 import { TAKE_HOMES, LLD } from '../src/lib/content/product.js';
 import { SD, SD_MOCKS } from '../src/lib/content/sd.js';
 import { PLAN } from '../src/lib/plan-data.js';
-import { HOW_IT_WORKS, MEMOS, PRACTICAL, DECOMP, OSS_REPOS, OSS_FIXES, CODE_REVIEWS, JT_DEPTH_READS, INTERVIEW_ENV } from '../src/lib/content/judgment.js';
+import { HOW_IT_WORKS, MEMOS, PRACTICAL, OSS_REPOS, OSS_FIXES, CODE_REVIEWS, JT_DEPTH_READS, INTERVIEW_ENV } from '../src/lib/content/judgment.js';
 import { SUNDAY_READS, SUNDAY_CORE, SUNDAY_OPTIONAL, READINESS, WEEK8_REVIEW } from '../src/lib/content/sundays.js';
 import { EXPLORE_LATER, FOCUS_RULES } from '../src/lib/content/reference.js';
 

@@ -126,8 +126,8 @@ sun.forEach((d, n) => assert.equal(d.tasks.some((t) => t.id.endsWith(':apply')),
 for (const t of sun.flatMap((d) => d.tasks).filter((t) => t.id.endsWith(':apply'))) assert.ok(t.cat === 'health' && !isStudy(t));
 
 // ---------- sundayCarry items land on their week's Sunday (R9) ----------
-// No v3 track carries items yet (Career's Saturday rounds come back in Task 7), so a synthetic carry item rides on the
-// jt slots of Grind weeks 1, 4 and 9's Saturdays; the mechanism is tested on its own.
+// A synthetic carry item rides on the jt slots of Grind weeks 1, 4 and 9's Saturdays, so the mechanism is tested on its
+// own; the real Career carries are checked after it.
 {
   const CARRY_AT = [5, 23, 53];
   const carryTracks: Any = { ...tracks, jt: tracks.jt.map((s: Any, i: number) => (CARRY_AT.includes(i)
@@ -151,8 +151,22 @@ for (const t of sun.flatMap((d) => d.tasks).filter((t) => t.id.endsWith(':apply'
     });
     assert.equal(carried.size, CARRY_AT.length, `${name}: every carry item placed`);
   }
-  // The real tracks carry nothing until Task 7.
-  assert.ok(!Object.values(tracks).some((t: Any) => t.some((s: Any) => s.items.some((x: Any) => x.sundayCarry))), 'no v3 track carries items yet');
+  // The real tracks: only Career carries, its Saturday rounds (v3 §6) — peer mocks from week 4, solo mocks from week 5,
+  // loop rounds 2–3 in weeks 10–13.
+  const CARRIED = ['beh:peer-w4-behavioral', 'beh:mock-w5-sd', 'beh:peer-w6-decomposition', 'beh:mock-w7-ai', 'beh:peer-w8-sd', 'beh:mock-w9-ai',
+    ...[1, 2, 3, 4].flatMap((n) => [`beh:loop-${n}-round-2`, `beh:loop-${n}-round-3`])];
+  const real = Object.entries(tracks).flatMap(([t, slots]: Any) => slots.flatMap((s: Any) => s.items.filter((x: Any) => x.sundayCarry).map((x: Any) => `${t}/${x.id}`)));
+  assert.deepEqual(real, CARRIED.map((id) => `beh/${id}`), 'only Career carries to Sunday');
+  // On the real Grind calendar: the Sunday after week 4 has the behavioral peer mock in its `sunday` block, and every
+  // carried round lands on the Sunday of its own week.
+  const sun4 = G.find((d) => d.type === 'sun' && d.week === 4)!;
+  assert.ok(ids(sun4, 'sunday').includes('beh:peer-w4-behavioral'), 'week 4 Sunday has the behavioral peer mock');
+  for (const d of G.filter((d) => d.type === 'study')) for (const t of d.blocks.flatMap((b: Any) => b.tasks)) assert.ok(!CARRIED.includes(t.id), `${t.id} not on a study day`);
+  const weekOfCarry = (id: string) => (/^beh:loop-(\d)-/.test(id) ? 9 + Number(id.match(/^beh:loop-(\d)-/)![1]) : Number(id.match(/-w(\d+)-/)![1]));
+  for (const id of CARRIED) {
+    const d = G.find((x) => x.type === 'sun' && ids(x, 'sunday').includes(id));
+    assert.equal(d?.week, weekOfCarry(id), `${id} on the week ${weekOfCarry(id)} Sunday`);
+  }
 }
 
 // ---------- revision block: ≤ 3 re-solves + 1 drill; the drill never picks an unseen check ----------

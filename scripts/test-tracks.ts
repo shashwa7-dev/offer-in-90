@@ -66,12 +66,17 @@ assert.equal(GRIND_DOW[6], 1);
 GRIND_DOW.forEach((d: number, i: number) => assert.equal(d, (i % 6) + 1));
 
 // ---------- every content item exactly once (fillers excepted) ----------
-const SKIP_FDE = new Set([...(judgment.DECOMP as Any[]).filter((x) => x.from).map((x) => x.from), 'fde:practical-coding-log', 'fde:reengineering-round', ...CORE_PLACED, ...CORE_COVERS, ...PF_PLACED, ...PF_COVERS]);
+// Career (v3 §6): 65 weekday rows and the 13 Saturday mock days (each a Saturday row plus the rows carried to Sunday).
+const CR: Any[] = ((career as Any).CAREER ?? []) as Any[];
+const MD: Any[] = ((career as Any).MOCK_DAY ?? []) as Any[];
+const MD_ROWS: Any[] = MD.flatMap((d) => [d.row, ...(d.carry ?? [])]);
+const CR_COVERS = new Set<string>([...CR, ...MD_ROWS].flatMap((r) => r.covers ?? []));
 const expected: string[] = [
   ...(dsa.PROBLEMS as Any[]).filter((p) => p.tier === 'must').map((p) => `p-${p.slug}`),
   // v2 FE (fe.js) is not laid out until Task 8 moves it into Frontend.
-  ...(ux.UX as Any[]), ...(career.BEH as Any[]),
-  ...(career.FDE as Any[]).filter((x) => !SKIP_FDE.has(x.id)), ...(career.TEARDOWNS as Any[]),
+  // v2 UX is not laid out (dropped by owner choice; Task 9 deletes the module). BEH, FDE, DECOMP and TEARDOWNS are laid
+  // out through CAREER (primary ids; `covers` ids are not laid out anywhere).
+  ...CR.map((r) => r.id), ...MD_ROWS.map((r) => r.id),
   ...(ai.AI_EVENING as Any[]).filter((x) => !CORE_PLACED.has(x.id) && !CORE_COVERS.has(x.id) && !SYS_COVERS.has(x.id)),
   ...CORE.map((r) => r.id),
   // Product (v3 §5): the flagship rows, the take-home parts and LLD. The v2 builds, timed passes and screenshot builds
@@ -79,8 +84,7 @@ const expected: string[] = [
   ...FLAG_ROWS.map((r) => r.id), ...(product.TAKE_HOMES as Any[]).flatMap((x) => x.parts), ...(product.LLD as Any[]),
   // v2 SD / SD_MOCKS / HOW_IT_WORKS are laid out through SYSTEMS (the sd:fe-* items wait for Task 8).
   ...SYS.map((r) => r.id),
-  // v2 PRACTICAL, CODE_REVIEWS and the SRE read are laid out through PLATFORM. MEMOS and OSS_FIXES are dropped (spec);
-  // DECOMP waits for Career (Task 7).
+  // v2 PRACTICAL, CODE_REVIEWS and the SRE read are laid out through PLATFORM. MEMOS and OSS_FIXES are dropped (spec).
   ...PF.flatMap((r) => (r.parts === 2 ? [`${r.id}#1`, `${r.id}#2`] : [r.id])), ...(judgment.INTERVIEW_ENV as Any[]),
 ].map((x: Any) => (typeof x === 'string' ? x : x.id));
 // Items that take 2 slots appear once per part, keyed by id + part.
@@ -89,9 +93,10 @@ for (const id of expected) assert.equal(seen.filter((s) => s === id).length, 1, 
 for (const id of CORE_COVERS) assert.equal(seen.filter((s) => s === id).length, 0, `${id} (absorbed by AI core) is not laid out`);
 for (const id of SYS_COVERS) assert.equal(seen.filter((s) => s === id).length, 0, `${id} (absorbed by Systems) is not laid out`);
 for (const id of PF_COVERS) assert.equal(seen.filter((s) => s === id).length, 0, `${id} (absorbed by Platform) is not laid out`);
+for (const id of CR_COVERS) assert.equal(seen.filter((s) => s === id).length, 0, `${id} (absorbed by Career) is not laid out`);
 assert.equal(all.filter((x) => /^adv:[a-z-]+$/.test(x.id)).length, 3, 'ADV_DSA x3');
 const pfParts = PF.filter((r) => r.parts === 2).flatMap((r) => [1, 2].flatMap((k) => [`${r.id}:part-${k}:do#${k}`, `${r.id}:part-${k}:explain#${k}`]));
-const known = new Set([...expected, ...pfParts, ...[...CORE, ...SYS, ...FLAG_ROWS, ...PF.filter((r) => r.parts !== 2)].filter((r) => !r.kind).flatMap((r) => [`${r.id}:do`, `${r.id}:explain`]), ...(dsa.FOUNDATIONS as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`]), ...(dsa.ADV_DSA as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`])]);
+const known = new Set([...expected, ...pfParts, ...[...CORE, ...SYS, ...FLAG_ROWS, ...CR, ...PF.filter((r) => r.parts !== 2)].filter((r) => !r.kind).flatMap((r) => [`${r.id}:do`, `${r.id}:explain`]), ...(dsa.FOUNDATIONS as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`]), ...(dsa.ADV_DSA as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`])]);
 const extras = all.filter((x) => !x.filler && !known.has(x.part ? `${x.id.replace(/:part-\d$/, '')}#${x.part[0]}` : x.id));
 // Non-content items the builder adds on purpose: pattern cards, explain-backs, foundations, ADV_DSA, Phase 3 sets, FE revision, SD mocks.
 for (const x of extras) assert.match(x.id, /^(dsa:(card|explain-back|oa|google|meta|revisit)-|fe:revise-|fe:bfe-|sdm:)/, `unexpected item ${x.id}`);
@@ -577,26 +582,133 @@ for (const t of TRACKS.filter((t) => t !== 'dsa')) assert.ok(!T[t].some((s: Any)
   for (const id of named.filter((x) => x.startsWith('fde:'))) assert.equal(slotOf('beh', id), -1, `${id} not in beh`);
 }
 
-// ---------- beh ----------
-assert.deepEqual([1, 2, 3].map((n) => slotOf('beh', `beh:deep-dive-${n}`)), [idx(2, 6), idx(3, 6), idx(4, 6)], 'deep dives Sat wk2–4');
-for (const n of [1, 2, 3]) assert.equal(T.beh[slotOf('beh', `beh:deep-dive-${n}`)].items.length, 1, 'deep dive alone in its slot');
-for (const n of [1, 2]) assert.equal(Math.floor(slotOf('beh', `beh:negotiation-${n}`) / 6) + 1, 12, `negotiation-${n} in week 12`);
-const behOrder = T.beh.flatMap((s: Any) => s.items).filter((x: Any) => !x.filler && x.id.startsWith('beh:') && !x.id.startsWith('beh:teardown-') && !x.id.startsWith('beh:negotiation')).map((x: Any) => x.id);
-assert.deepEqual(behOrder, (career.BEH as Any[]).map((x) => x.id).filter((id) => !id.startsWith('beh:negotiation')), 'BEH in order');
-const uxOrder = T.beh.flatMap((s: Any) => s.items).filter((x: Any) => x.id.startsWith('ux:')).map((x: Any) => x.id);
-assert.deepEqual(uxOrder, (ux.UX as Any[]).map((x) => x.id), 'UX in order');
-T.beh.forEach((s: Any, i: number) => {
-  const u = s.items.filter((x: Any) => x.id.startsWith('ux:'));
-  assert.ok(u.length <= 1, `beh[${i}] at most one UX`);
-  if (u.length) assert.ok(!s.items[0].id.startsWith('ux:') && s.items.indexOf(u[0]) === 1, `beh[${i}] UX is the second task`);
-});
-assert.equal(ids('beh', 0)[1], 'ux:laws-of-ux', 'UX from week 1');
-for (const id of SKIP_FDE) assert.equal(slotOf('beh', id), -1, `${id} not in beh (lives in Platform, the AI core or DECOMP)`);
-const fdeOrder = T.beh.flatMap((s: Any) => s.items).filter((x: Any) => !x.filler && x.id.startsWith('fde:')).map((x: Any) => x.id);
-assert.deepEqual(fdeOrder, (career.FDE as Any[]).map((x) => x.id).filter((id) => !SKIP_FDE.has(id)), 'FDE in order');
-const lastBeh = Math.max(...(career.BEH as Any[]).filter((x) => !x.id.startsWith('beh:negotiation')).map((x) => slotOf('beh', x.id)));
-for (const x of [...(career.FDE as Any[]).filter((x) => !SKIP_FDE.has(x.id)), ...(career.TEARDOWNS as Any[])]) assert.ok(slotOf('beh', x.id) > lastBeh, `${x.id} after BEH runs out`);
-for (const x of T.beh.flatMap((s: Any) => s.items)) assert.equal(x.cat, x.id.startsWith('ux:') ? 'ux' : x.id.startsWith('fde:') ? 'fde' : 'beh', `${x.id} cat`);
+// ---------- beh: Career and FDE (v3 §6) ----------
+{
+  const RUBRIC = 'https://www.techinterviewhandbook.org/coding-interview-rubrics/';
+  const OA: string[] = reference.OA_LINKS as string[];
+  const isSat = (i: number) => GRIND_DOW[i] === 6;
+  const weekOf = (i: number) => Math.floor(i / 6) + 1;
+  // 65 weekday rows, laid out in order on the weekdays; one task per rep, Understand/Do/Explain per learning row.
+  assert.equal(CR.length, 65, '65 weekday rows');
+  assert.equal(MD.length, 13, '13 mock days');
+  const weekdays = T.beh.map((s: Any, i: number) => ({ s, i })).filter(({ i }: Any) => !isSat(i));
+  assert.deepEqual(weekdays.map(({ s }: Any) => s.items[0].id), CR.map((r) => r.id), 'weekdays follow CAREER');
+  const slotOfRow = (id: string) => T.beh.findIndex((s: Any) => s.items[0].id === id);
+  const rowOf = (id: string) => CR.find((r) => r.id === id || (r.covers ?? []).includes(id));
+  const at = (id: string) => slotOfRow(rowOf(id).id);
+  // Saturdays: the Saturday row (60 min) plus the rows carried to Sunday (45 min), exactly as the spec's table.
+  const SAT: Record<number, [string, string[]]> = {
+    1: ['beh:ai-drill-1', []], 2: ['beh:oa-round-1', []], 3: ['beh:ai-drill-2', []], 4: ['beh:oa-round-2', ['beh:peer-w4-behavioral']],
+    5: ['beh:ai-drill-3', ['beh:mock-w5-sd']], 6: ['beh:oa-round-3', ['beh:peer-w6-decomposition']], 7: ['beh:ai-drill-4', ['beh:mock-w7-ai']],
+    8: ['beh:oa-round-4', ['beh:peer-w8-sd']], 9: ['beh:ai-drill-5', ['beh:mock-w9-ai']],
+    10: ['beh:loop-1-round-1', ['beh:loop-1-round-2', 'beh:loop-1-round-3']], 11: ['beh:loop-2-round-1', ['beh:loop-2-round-2', 'beh:loop-2-round-3']],
+    12: ['beh:loop-3-round-1', ['beh:loop-3-round-2', 'beh:loop-3-round-3']], 13: ['beh:loop-4-round-1', ['beh:loop-4-round-2', 'beh:loop-4-round-3']],
+  };
+  for (let w = 1; w <= 13; w++) {
+    const items = T.beh[idx(w, 6)].items, [main, carry] = SAT[w];
+    assert.deepEqual(items.filter((x: Any) => !x.sundayCarry).map((x: Any) => x.id), [main], `week ${w} Saturday`);
+    assert.deepEqual(items.filter((x: Any) => x.sundayCarry).map((x: Any) => x.id), carry, `week ${w} carried to Sunday`);
+    for (const x of items) assert.equal(x.mins, x.sundayCarry ? 45 : 60, `${x.id} minutes`);
+    assert.equal(MD[w - 1].week, w, `MOCK_DAY[${w - 1}] is week ${w}`);
+    for (const r of [MD[w - 1].row, ...(MD[w - 1].carry ?? [])]) assert.ok(r.kind === 'rep' || r.kind === 'mock', `${r.id} is one task`);
+  }
+  // The real tracks carry only these rows.
+  const carried = TRACKS.flatMap((t) => T[t].flatMap((s: Any) => s.items.filter((x: Any) => x.sundayCarry).map((x: Any) => x.id)));
+  assert.deepEqual(carried, Object.values(SAT).flatMap(([, c]) => c), 'only Career carries to Sunday');
+  // Coding rounds: 8 distinct OA posts, OA_LINKS[8..15], disjoint from DSA's OA_LINKS[0..7]; the rubric as url2.
+  const coding = [1, 2, 3, 4].map((n) => `beh:oa-round-${n}`).concat([1, 2, 3, 4].map((n) => `beh:loop-${n}-round-1`));
+  const codingUrls = coding.map((id) => T.beh[slotOf('beh', id)].items.find((x: Any) => x.id === id).url);
+  assert.deepEqual(codingUrls, OA.slice(8, 16), 'coding rounds use OA_LINKS[8..15]');
+  assert.equal(new Set(codingUrls).size, 8, '8 distinct OA posts');
+  const dsaOa = T.dsa.flatMap((s: Any) => s.items).filter((x: Any) => /^dsa:oa-\d+$/.test(x.id)).map((x: Any) => x.url);
+  assert.deepEqual([...dsaOa].sort(), OA.slice(0, 8).sort(), 'DSA uses OA_LINKS[0..7]');
+  assert.ok(codingUrls.every((u) => !dsaOa.includes(u)), 'disjoint from DSA');
+  const loopIds = [1, 2, 3, 4].flatMap((n) => [1, 2, 3].map((k) => `beh:loop-${n}-round-${k}`));
+  for (const id of [...coding, ...loopIds, ...[1, 2, 3, 4, 5].map((n) => `beh:ai-drill-${n}`)]) {
+    assert.equal(T.beh[slotOf('beh', id)].items.find((x: Any) => x.id === id).url2, RUBRIC, `${id} cites the coding rubric`);
+  }
+  // covers on the Saturday rows
+  const mdRow = (id: string) => MD_ROWS.find((r) => r.id === id);
+  assert.deepEqual(mdRow('beh:ai-drill-1').covers, ['aib:ai-assisted-coding-round'], 'drill 1 covers the v2 AI-assisted round');
+  ['sdm:lld-json-parser', 'sdm:lld-2048', 'sdm:lld-minesweeper', 'sdm:lld-chess'].forEach((lld, n) => assert.deepEqual(mdRow(`beh:loop-${n + 1}-round-2`).covers, [lld], `loop ${n + 1} LLD`));
+  assert.match(T.beh[idx(10, 6)].items[0].text, /paid mock/i, 'week 10: the paid-mock note');
+  // Carry on the calendar is in test-engine.ts.
+  // Every BEH, DECOMP, TEARDOWNS id and the 11 FDE ids the spec keeps: once, as a primary id or in `covers`.
+  const FDE_KEPT = ['fde:stage1-intro', 'fde:stage1-glossary', 'fde:discovery', 'fde:scoping', 'fde:business-acumen', 'fde:stakeholders',
+    'fde:communication', 'fde:take-home-1', 'fde:take-home-2', 'fde:take-home-3', 'fde:mock-fde-loop'];
+  const named = [...CR, ...MD_ROWS].flatMap((r) => [r.id, ...(r.covers ?? [])]);
+  assert.equal(new Set(named).size, named.length, 'no id named twice in Career');
+  const DECOMP: Any[] = (career as Any).DECOMP;
+  assert.equal(DECOMP?.length, 12, 'DECOMP lives in career.js');
+  assert.equal((judgment as Any).DECOMP, undefined, 'DECOMP moved out of judgment.js');
+  for (const id of [...(career.BEH as Any[]), ...DECOMP, ...(career.TEARDOWNS as Any[])].map((x) => x.id).concat(FDE_KEPT)) {
+    assert.equal(named.filter((x) => x === id).length, 1, `${id} once in Career`);
+  }
+  // The 5 shared slots (items of 30 min or less), one row each with the second id in `covers`.
+  const SHARED: [string, string][] = [['beh:linkedin-github', 'beh:positioning'], ['beh:referrals', 'beh:referral-template'],
+    ['beh:questions-to-ask', 'beh:practice-why-company'], ['beh:resume-update', 'beh:referrals-2'], ['fde:stage1-intro', 'fde:stage1-glossary']];
+  for (const [a, b] of SHARED) assert.deepEqual(CR.find((r) => r.id === a)?.covers, [b], `${a} shares its slot with ${b}`);
+  assert.ok(CR.some((r) => r.id === 'beh:company-loops'), 'company-loop research row');
+  assert.equal(CR.filter((r) => r.covers?.length).length, 5 + DECOMP.filter((x) => x.from).length, 'only the shared slots and the DECOMP reps cover ids');
+  // No FDE id that the AI core or Platform places.
+  for (const id of named.filter((x) => x.startsWith('fde:'))) {
+    assert.ok(!CORE_PLACED.has(id) && !CORE_COVERS.has(id) && !PF_PLACED.has(id) && !PF_COVERS.has(id), `${id} not also in AI core or Platform`);
+  }
+  // Pins: Amazon OA prep in week 1; deep dives on the Fridays of weeks 2–4; negotiation on Mon–Tue of week 12 (indices 66, 67).
+  for (const id of ['beh:amazon-oa', 'beh:amazon-work-sim', 'beh:amazon-work-style']) assert.equal(weekOf(at(id)), 1, `${id} in week 1`);
+  assert.deepEqual([1, 2, 3].map((n) => at(`beh:deep-dive-${n}`)), [idx(2, 5), idx(3, 5), idx(4, 5)], 'deep dives on Fridays, weeks 2–4');
+  assert.deepEqual([at('beh:negotiation-1'), at('beh:negotiation-2')], [66, 67], 'negotiation week 12 Mon–Tue');
+  // Applications not before week 8.
+  for (const id of ['beh:target-list', 'beh:company-loops', 'beh:referrals', 'beh:referral-template', 'beh:resume-update', 'beh:referrals-2']) {
+    assert.ok(at(id) >= idx(8, 1), `${id} from week 8`);
+  }
+  // The rest of BEH keeps its v2 order.
+  const PINNED = new Set(['beh:amazon-oa', 'beh:amazon-work-sim', 'beh:amazon-work-style', 'beh:deep-dive-1', 'beh:deep-dive-2', 'beh:deep-dive-3',
+    'beh:negotiation-1', 'beh:negotiation-2', 'beh:target-list', 'beh:referrals', 'beh:referral-template', 'beh:resume-update', 'beh:referrals-2']);
+  const flow = (career.BEH as Any[]).map((x) => x.id).filter((id) => !PINNED.has(id) && !CR_COVERS.has(id));
+  assert.deepEqual([...flow].sort((a, b) => at(a) - at(b) || 0), flow, 'BEH in v2 order');
+  // After BEH: teardowns one every 5 weekday slots; DECOMP and FDE in their v2 order; the FDE take-home on 3 weekdays in a row.
+  const ord = (id: string) => weekdays.findIndex(({ s }: Any) => s.items[0].id === rowOf(id).id);
+  const lastBeh = Math.max(...flow.map(ord));
+  const tds = (career.TEARDOWNS as Any[]).map((x) => ord(x.id));
+  tds.forEach((o, k) => { assert.ok(o > lastBeh, 'teardowns after BEH'); if (k) assert.equal(o - tds[k - 1], 5, 'one teardown every 5 slots'); });
+  const inOrder = (ids: string[], what: string) => assert.deepEqual([...ids].sort((a, b) => ord(a) - ord(b)), ids, what);
+  inOrder(DECOMP.map((x) => x.id), 'DECOMP in order');
+  inOrder(FDE_KEPT.filter((id) => id !== 'fde:stage1-glossary'), 'FDE in order');
+  for (const id of [...DECOMP.map((x) => x.id), ...FDE_KEPT]) assert.ok(ord(id) > lastBeh, `${id} after BEH`);
+  assert.deepEqual([2, 3].map((n) => ord(`fde:take-home-${n}`) - ord(`fde:take-home-${n - 1}`)), [1, 1], 'take-home on consecutive weekdays');
+  // Row shape and copy rules; categories.
+  for (const r of [...CR, ...MD_ROWS]) {
+    if (r.url) assert.match(r.url, /^https:\/\//, `${r.id} url`);
+    if (r.url2) { assert.match(r.url2, /^https:\/\//, `${r.id} url2`); assert.notEqual(r.url2, r.url, `${r.id} url2 differs`); }
+    if (r.kind) {
+      assert.ok(['rep', 'mock'].includes(r.kind) && typeof r.mins === 'number' && r.text, `${r.id} rep`);
+    } else {
+      assert.ok(r.understand && r.explain, `${r.id} Understand, Explain`);
+      assert.match(r.url, /^https:\/\//, `${r.id} Understand has a link`);
+      assert.match(r.explain, /Deep enough when you can/, `${r.id} explain`);
+    }
+    const text = [r.understand, r.do, r.explain, r.text].filter(Boolean).join(' ');
+    assert.ok(!/python|pandas|notebook/i.test(text), `${r.id} no Python/pandas/notebook`);
+    assert.ok(!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(text), `${r.id} no emoji`);
+  }
+  // Every weekday row (BEH, FDE, DECOMP, teardowns) is a learning row: Understand, Do, Explain.
+  for (const r of CR) assert.ok(!r.kind && r.do, `${r.id} is a learning row with Understand, Do and Explain`);
+  for (const id of DECOMP.map((x) => x.id)) assert.equal(T.beh[slotOfRow(id)].items.length, 3, `${id} has 3 tasks`);
+  for (const x of T.beh.flatMap((s: Any) => s.items)) {
+    const fde = x.id.startsWith('fde:') || /^jt:(decomp|client-sim)-/.test(x.id) || /^beh:(peer-w6-decomposition)$/.test(x.id);
+    assert.equal(x.cat, fde ? 'fde' : 'beh', `${x.id} cat`);
+    assert.ok(!x.filler, `${x.id} is content`);
+  }
+  // The question bank and "questions to ask" as url2 on the matching items.
+  assert.equal(CR.find((r) => r.id === 'beh:questions-to-ask').url, 'https://www.techinterviewhandbook.org/final-questions/');
+  for (const id of ['beh:failures', 'beh:conflicts', 'beh:peer-w4-behavioral']) {
+    const r = rowOf(id) ?? mdRow(id);
+    assert.ok([r.url, r.url2].includes('https://www.techinterviewhandbook.org/behavioral-interview-questions/'), `${id} cites the question bank`);
+  }
+}
+// No v2 UX lesson in any track (dropped by owner choice).
+assert.ok(!all.some((x) => x.id.startsWith('ux:')), 'no ux:* items');
 
 // ---------- expandRow (the v3 content row format) ----------
 {

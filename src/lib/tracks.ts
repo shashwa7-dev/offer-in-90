@@ -162,8 +162,8 @@ function aiCoreTrack(c: TrackContent): Slot[] {
 }
 /** A v3 track's ids: each row's primary id plus the v2 ids it absorbs (`covers`). */
 const rowIds = (rows: Row[] | undefined): Set<string> => new Set<string>((rows ?? []).flatMap((r: Row) => [r.id, ...(r.covers ?? [])]));
-/** Interim (until Tasks 7 and 8 replace the v2 beh and ai tracks): ids the AI core lays out or absorbs are skipped by
- * those v2 tracks, so nothing is laid out twice. */
+/** Interim (until Task 8 replaces the v2 ai track): ids the AI core lays out or absorbs are skipped by that v2 track,
+ * so nothing is laid out twice. */
 const aiCoreIds = (c: TrackContent) => rowIds(c.AI_CORE);
 /** Interim (until Tasks 5 and 8 replace the v2 jt and ai tracks): the same for the ids Systems lays out or absorbs
  * (the how-it-works case studies and the 4 DDIA reads). */
@@ -230,42 +230,30 @@ function platformTrack(c: TrackContent): Slot[] {
   while (practicals.left) putPractical();
   return toSlots('jt', slots);
 }
-/** Interim (until Task 7 replaces the v2 beh track): the ids Platform lays out or absorbs. */
-const platformIds = (c: TrackContent) => rowIds(c.PLATFORM);
-
-// ---------- beh (§8): career block ----------
+// ---------- beh (v3 §6): Career and FDE ----------
+/** Weekdays take the 65 CAREER rows in order. Each Saturday is that week's MOCK_DAY: the Saturday row, then the rows
+ * carried to Sunday (`sundayCarry`). A coding round's `oa` is its OA_LINKS index. */
 function behTrack(c: TrackContent): Slot[] {
-  // Pinned: deep dives on the Saturdays of weeks 2–4, negotiation in week 12 (Mon, Tue). Everything else flows in order.
-  const pins: Record<string, number> = {
-    'beh:deep-dive-1': at(2, 6), 'beh:deep-dive-2': at(3, 6), 'beh:deep-dive-3': at(4, 6),
-    'beh:negotiation-1': at(12, 1), 'beh:negotiation-2': at(12, 2),
+  const rows = queue(c.CAREER as Row[]);
+  const oa: string[] = c.OA_LINKS;
+  const one = (r: Row, extra: Partial<SlotItem> = {}): SlotItem => {
+    const [[it]] = expandRow(typeof r.oa === 'number' ? { ...r, url: oa[r.oa] } : r, 'beh');
+    if (typeof r.oa === 'number' && !it.url) throw new Error(`track beh: ${r.id} has no OA post`);
+    return Object.assign(it, extra);
   };
-  // FDE items that moved to the v2 judgment thread (DECOMP `from`, Career from Task 7), the AI core or Platform are skipped here.
-  const skip = new Set<string>([...(c.DECOMP as Row[]).filter((x) => x.from).map((x) => x.from), ...aiCoreIds(c), ...platformIds(c)]);
-  const fde: Row[] = (c.FDE as Row[]).filter((x) => !skip.has(x.id));
-  const teardowns = queue(c.TEARDOWNS as Row[]);
-  const TEARDOWN_EVERY = Math.floor(fde.length / (teardowns.left || 1)) || 1;
-  // After BEH runs out: FDE items with a product teardown after every few of them.
-  const after: SlotItem[] = [];
-  fde.forEach((x, k) => {
-    after.push(item(x, 'fde'));
-    if ((k + 1) % TEARDOWN_EVERY === 0 && teardowns.left) after.push(item(teardowns.next(), 'beh'));
-  });
-  while (teardowns.left) after.push(item(teardowns.next(), 'beh'));
-  const flow = queue([...(c.BEH as Row[]).filter((x) => !(x.id in pins)).map((x) => item(x, 'beh')), ...after]);
-  const slots: SlotItem[][] = Array.from({ length: SLOTS }, () => []);
-  for (const x of c.BEH as Row[]) if (x.id in pins) slots[pins[x.id]] = [item(x, 'beh')];
-  let n = 0;
-  for (const s of slots) {
-    if (s.length) continue;
-    s.push(flow.left ? flow.next()! : filler(`fde:prompt-revisit-${++n}`, 'FDE prompt rep (45 min, out loud): redo one decomposition or client-simulation prompt from the judgment thread with a new constraint, then compare with your first attempt.', 'fde'));
+  const slots: SlotItem[][] = [];
+  for (let i = 0; i < SLOTS; i++) {
+    if (GRIND_DOW[i] === 6) {
+      const day: Row = (c.MOCK_DAY as Row[]).find((d) => d.week === weekOf(i));
+      if (!day) throw new Error(`track beh: no mock day for week ${weekOf(i)}`);
+      slots.push([one(day.row), ...(day.carry as Row[]).map((r) => one(r, { sundayCarry: true }))]);
+    } else {
+      const r = rows.next();
+      if (!r) throw new Error('track beh: CAREER ran out before the last weekday');
+      slots.push(...expandRow(r, 'beh'));
+    }
   }
-  mustFit('beh', flow.left);
-  // Product & UX rides as the second task in each career slot from week 1, skipping the deep-dive Saturdays.
-  const ux = queue(c.UX as Row[]);
-  const deepDives = new Set(Object.entries(pins).filter(([id]) => id.startsWith('beh:deep-dive')).map(([, i]) => i));
-  slots.forEach((s, i) => { if (!deepDives.has(i) && ux.left) s.push(item(ux.next(), 'ux')); });
-  mustFit('beh (UX)', ux.left);
+  mustFit('beh', rows.left);
   return toSlots('beh', slots);
 }
 
