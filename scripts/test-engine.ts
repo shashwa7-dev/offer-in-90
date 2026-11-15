@@ -99,6 +99,14 @@ assert.equal(sun.flatMap((d) => d.tasks).filter((t) => t.id.startsWith('sun:read
   assert.ok(ids(ss[9], 'core').includes(sundays.WEEK8_REVIEW.id), 'week-8 review on Steady Sunday 10');
   assert.equal(ss.flatMap((d) => d.tasks).filter((t) => t.id.startsWith('sun:readiness-')).length, sundays.READINESS.length);
   assert.ok(!ss[8].tasks.some((t) => t.id.endsWith(':apply')) && ss[9].tasks.some((t) => t.id.endsWith(':apply')), 'apply from Steady week 10');
+  // weekly self-check score keys: one per Sunday, keyed by calendar week (Steady's 17 Sundays never share a key)
+  for (const [plan, name] of [[G, 'grind'], [S, 'steady']] as const) {
+    const keys = plan.filter((d) => d.type === 'sun').map((d) => block(d, 'core').tasks.find((t: Any) => t.scoreKey)?.scoreKey);
+    assert.ok(keys.every(Boolean), `${name}: every Sunday has a self-check`);
+    assert.equal(new Set(keys).size, keys.length, `${name}: score keys are unique (${keys.join(' ')})`);
+    plan.filter((d) => d.type === 'sun').forEach((d, n) => assert.equal(keys[n], `w${d.week}`, `${name}: Sunday ${n + 1} keyed by its week`));
+  }
+  assert.equal(ss.length, 17);
 }
 // optional "apply to 3–5 roles" from Grind week 8
 sun.forEach((d, n) => assert.equal(d.tasks.some((t) => t.id.endsWith(':apply')), n + 1 >= 8, `apply on Sunday ${n + 1}`));

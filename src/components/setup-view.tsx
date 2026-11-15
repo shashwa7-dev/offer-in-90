@@ -16,7 +16,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cursorsNow, fmtDate, iso, parseISO, totalDays } from '@/lib/engine';
 import { DEFAULT_ROUTINE, ROUTINE_KEYS, placeDay, resolveRoutine, validateRoutine } from '@/lib/routine';
 import { modeOn, switchMode, type Mode } from '@/lib/modes';
-import { nextMonday, overflowMessage, parseRoutineForm, toDraft, type RoutineDraft } from '@/lib/setup-helpers';
+import { nextMonday, overflowMessage, startOver, parseRoutineForm, toDraft, type RoutineDraft } from '@/lib/setup-helpers';
 import type { RoutineKey } from '@/lib/state-types';
 import { companyCounts, flattenThreads } from '@/lib/interview-feed';
 import { useUI } from './ui-state';
@@ -261,19 +261,19 @@ export function SetupView() {
         </Band>
 
         <Band id="again" title="Start again">
-          <Setting label="Start over from today" help="The next Monday (today, if it is Monday) becomes the start date and every tick, flag and daily log is cleared, here and in the Gist. Notes pages, bookmarks and your own tasks stay.">
+          <Setting label="Start over from today" help="The next Monday (today, if it is Monday) becomes the start date, in the mode you are in now. Every tick, status, flag, daily log, solve log, score and Sunday choice is cleared, here and in the Gist. Notes pages, bookmarks, task notes, labels, your routine and your own tasks and problems stay.">
             <AlertDialog>
               <AlertDialogTrigger asChild><Button variant="outline" size="sm" className={stoneBtn}>Start over…</Button></AlertDialogTrigger>
               <AlertDialogContent className={popup}>
                 <AlertDialogHeader>
                   <AlertDialogTitle className="text-[16px]">Start over from today?</AlertDialogTitle>
-                  <AlertDialogDescription>Makes the next Monday (today, if it is Monday) the start date, with the prep day the Sunday before if it is on, and clears every tick, flag and daily log, here and in the Gist. Your notes pages, bookmarks and your own tasks stay.</AlertDialogDescription>
+                  <AlertDialogDescription>Makes the next Monday (today, if it is Monday) the start date, with the prep day the Sunday before if it is on, in the mode you are in now, and clears every tick, status, flag, daily log, solve log, score and Sunday choice, here and in the Gist. Your notes pages, bookmarks, task notes, labels, routine and your own tasks and problems stay.</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction onClick={() => {
                     const today = nextMonday(iso(new Date()));
-                    update(s => ({ ...s, start: today, done: {}, flags: {}, notes: {} }));
+                    update(s => startOver(s, today));
                     toast('Start date moved to the next Monday. Download the calendar again.');
                   }}>Start over</AlertDialogAction>
                 </AlertDialogFooter>

@@ -7,6 +7,7 @@ import * as gist from './gist';
 import { DEFAULT_TARGETS, type ThreadsFeed } from '@/lib/interview-feed';
 import type { StatusMap } from './task-status';
 import { merge, sameData, stamp } from './sync-merge';
+import { isPreV2, nextMonday, normalizeState } from './setup-helpers';
 import type { ModeEntry, OwnerLabel, OwnProblem, SolveLog, RoutineKey, RoutineSlot } from './state-types';
 
 export interface TaskNote { title: string; body: string; upd: number; url?: string }
@@ -23,21 +24,26 @@ export interface State {
 }
 type SyncStatus = { state: 'off' | 'syncing' | 'synced' | 'error'; msg?: string; at?: number };
 
-const KEY = 'offer90.v1', SYNC_KEY = 'offer90.sync';
+// NOTICE_KEY (this browser only): 'show' once a pre-v6 state was seen, 'seen' after the owner dismisses the line.
+const KEY = 'offer90.v1', SYNC_KEY = 'offer90.sync', NOTICE_KEY = 'offer90.v2notice';
 export const BASE = process.env.NEXT_PUBLIC_BASE_PATH || '';
 
-const fresh = (): State => ({ v: 6, start: iso(new Date()), kickoff: true, targets: [...DEFAULT_TARGETS], done: {}, status: {}, flags: {}, notes: {}, tnotes: {}, pages: seedPages(), seenUpdates: {}, bookmarks: {}, custom: {}, modes: {}, labels: {}, itemLabels: {}, own: {}, solves: {}, sundayMode: {}, scores: {}, routine: {}, meta: {}, updatedAt: 0 });
-function normalize(s: Partial<State> | null): State {
-  const f = fresh();
-  if (!s || !s.start) return f;
-  return { ...f, ...s, targets: s.targets ?? [...DEFAULT_TARGETS], pages: s.pages ?? seedPages(), status: s.status || {}, seenUpdates: s.seenUpdates || {}, bookmarks: s.bookmarks || {}, custom: s.custom || {}, modes: s.modes || {}, labels: s.labels || {}, itemLabels: s.itemLabels || {}, own: s.own || {}, solves: s.solves || {}, sundayMode: s.sundayMode || {}, scores: s.scores || {}, routine: s.routine || {}, meta: s.meta || {}, v: 6 };
-}
+const fresh = (): State => ({ v: 6, start: nextMonday(iso(new Date())), kickoff: true, targets: [...DEFAULT_TARGETS], done: {}, status: {}, flags: {}, notes: {}, tnotes: {}, pages: seedPages(), seenUpdates: {}, bookmarks: {}, custom: {}, modes: {}, labels: {}, itemLabels: {}, own: {}, solves: {}, sundayMode: {}, scores: {}, routine: {}, meta: {}, updatedAt: 0 });
+const normalize = (s: Partial<State> | null): State => normalizeState(s, fresh());
 const readLS = <T,>(k: string): T | null => { try { const v = localStorage.getItem(k); return v ? (JSON.parse(v) as T) : null; } catch { return null; } };
 const writeLS = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage blocked */ } };
+/** Flag the one-time Roadmap v2 line for a state saved before v6 (unless already dismissed). True when it should show. */
+const flagNotice = (raw: Partial<State> | null): boolean => {
+  const cur = readLS<string>(NOTICE_KEY);
+  if (cur === 'seen') return false;
+  if (cur !== 'show' && isPreV2(raw)) { writeLS(NOTICE_KEY, 'show'); return true; }
+  return cur === 'show';
+};
 
 interface Ctx {
   ready: boolean; state: State; days: Day[]; todayIdx: number; updates: UpdateItem[]; feedAt?: string; news: NewsFeed | null; pulse: PulseWeek[]; threads: ThreadsFeed | null;
   update: (fn: (s: State) => State) => void; replace: (s: Partial<State>) => void;
+  v2Notice: boolean; dismissV2Notice: () => void;
   sync: SyncStatus; syncConfigured: boolean; connectSync: (token: string) => Promise<void>; disconnectSync: () => void; syncNow: () => Promise<void>;
 }
 const StoreCtx = createContext<Ctx | null>(null);
@@ -52,6 +58,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [pulse, setPulse] = useState<PulseWeek[]>([]);
   const [threads, setThreads] = useState<ThreadsFeed | null>(null);
   const [sync, setSync] = useState<SyncStatus>({ state: 'off' });
+  const [v2Notice, setV2Notice] = useState(false);
   const [cfg, setCfg] = useState<gist.SyncConfig | null>(null);
   const [now, setNow] = useState(() => new Date());
   const dirty = useRef(false);
@@ -59,7 +66,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   // load local state + sync config + update feed
   useEffect(() => {
-    setState(normalize(readLS<State>(KEY)));
+    const saved = readLS<State>(KEY);
+    setV2Notice(flagNotice(saved));
+    setState(normalize(saved));
     setCfg(readLS<gist.SyncConfig>(SYNC_KEY));
     setReady(true);
     fetch(`${BASE}/updates.json`, { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).then((f: UpdatesFeed | null) => { if (f) { setUpdates(f.items || []); setFeedAt(f.generatedAt); } }).catch(() => {});
@@ -88,6 +97,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       try {
         const remote = await gist.pull<State>(c as Required<gist.SyncConfig>);
         const local = stateRef.current;
+        if (remote && flagNotice(remote)) setV2Notice(true);
         const merged = remote ? normalize(merge(local, normalize(remote))) : local;
         // apply remote changes locally (only if something actually changed)
         if (!sameData(merged, local)) {
@@ -147,6 +157,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     } catch (e) { setSync({ state: 'error', msg: (e as Error).message }); }
   }, [syncOnce]);
   const disconnectSync = useCallback(() => { try { localStorage.removeItem(SYNC_KEY); } catch { /* ignore */ } cfgRef.current = null; setCfg(null); setSync({ state: 'off' }); }, []);
+  const dismissV2Notice = useCallback(() => { writeLS(NOTICE_KEY, 'seen'); setV2Notice(false); }, []);
   const syncNow = useCallback(async () => { await syncOnce(); }, [syncOnce]);
 
   const days = useMemo(
@@ -155,6 +166,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   // The prep day (when on) is days[0], the Sunday before the start.
   const todayIdx = dayIndexOf(state.start, now) + (state.kickoff ? 1 : 0);
 
-  const value: Ctx = { ready, state, days, todayIdx, updates, feedAt, news, pulse, threads, update, replace, sync, syncConfigured: !!cfg?.gistId, connectSync, disconnectSync, syncNow };
+  const value: Ctx = { ready, state, days, todayIdx, updates, feedAt, news, pulse, threads, update, replace, v2Notice, dismissV2Notice, sync, syncConfigured: !!cfg?.gistId, connectSync, disconnectSync, syncNow };
   return <StoreCtx.Provider value={value}>{children}</StoreCtx.Provider>;
 }

@@ -1,5 +1,5 @@
 /* Pure helpers for the Setup page: Monday snapping, the routine form, the overflow line. No runtime imports. */
-import type { RoutineKey, RoutineSlot } from './state-types';
+import type { ModeEntry, RoutineKey, RoutineSlot } from './state-types';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const isoOf = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -29,3 +29,34 @@ export const parseRoutineForm = (form: Record<RoutineKey, RoutineDraft>): Record
 /** The line shown when a block no longer fits before wind-down. */
 export const overflowMessage = (title: string, overMin: number, windStart = '21:30') =>
   `Doesn't fit: '${title}' would run ${overMin} min past ${windStart}. Move a slot or shorten it.`;
+
+const STATE_MAPS = ['status', 'seenUpdates', 'bookmarks', 'custom', 'modes', 'labels', 'itemLabels', 'own', 'solves', 'sundayMode', 'scores', 'routine', 'meta'] as const;
+
+/** A saved state (or nothing) → a complete v6 state over `f` (a fresh one). The start always lands on a Monday: a
+ * non-Monday start snaps to the next Monday, so day 1 is a Monday and weeks run Mon–Sun. Remote copies are normalized
+ * the same way, so both sides of a sync agree. */
+export function normalizeState<S extends { v: number; start: string; targets: unknown; pages: unknown }>(s: Partial<S> | null, f: S): S {
+  if (!s || !s.start) return { ...f, start: nextMonday(f.start) };
+  const out: Record<string, unknown> = { ...f, ...s, targets: s.targets ?? f.targets, pages: s.pages ?? f.pages };
+  for (const k of STATE_MAPS) out[k] = (s as Record<string, unknown>)[k] || {};
+  return { ...(out as S), v: 6, start: nextMonday(s.start) };
+}
+
+/** True when a saved state predates roadmap v2 (v < 6): Today shows the one-time "Roadmap v2 is here" line. */
+export const isPreV2 = (s: { v?: number; start?: string } | null): boolean => !!s && !!s.start && (s.v ?? 0) < 6;
+
+/** Setup › Start over (pure; `start` is the next Monday, worked out by the caller). Clears the plan's progress: ticks,
+ * statuses, flags, daily logs, solve logs (R14: a log lives only while its task is done), scores and Sunday modes. Keeps
+ * the owner's own things (labels, item labels, own problems and tasks, routine, pages, bookmarks, task notes). The
+ * mode in force at the new start carries over as the one mode entry, from the start with zero cursors (Steady: `{}`,
+ * the fresh default). */
+export function startOver<S extends { start: string; modes: Record<string, ModeEntry> }>(s: S, start: string): S & {
+  done: Record<string, never>; status: Record<string, never>; flags: Record<string, never>; notes: Record<string, never>;
+  solves: Record<string, never>; scores: Record<string, never>; sundayMode: Record<string, never>;
+} {
+  const since = Object.keys(s.modes).filter((d) => d <= start).sort().at(-1);
+  const mode = since ? s.modes[since].mode : 'steady';
+  const cursors = { dsa: 0, aib: 0, fe: 0, mc: 0, sd: 0, jt: 0, beh: 0, ai: 0 };
+  const modes: Record<string, ModeEntry> = mode === 'steady' ? {} : { [start]: { mode, cursors, basis: start } };
+  return { ...s, start, modes, done: {}, status: {}, flags: {}, notes: {}, solves: {}, scores: {}, sundayMode: {} };
+}

@@ -194,7 +194,7 @@ export function buildPlanFrom(state: PlanState, updates: UpdateItem[], custom: R
       const coreId = ['check', 'reflect', 'preview'];
       by.core = [
         ...core.map((x, j) => T(k(coreId[j] ?? x.id), x.text, 'review', {
-          ...(x.mins ? { mins: x.mins } : {}), ...(x.scores ? { scoreKey: `w${L.grindWeek}` } : {}), ...(j === 1 ? { log: true } : {}),
+          ...(x.mins ? { mins: x.mins } : {}), ...(x.scores ? { scoreKey: `w${L.week}` } : {}), ...(j === 1 ? { log: true } : {}),
         })),
         ...(pinned.get(L.date) ?? []),
       ];

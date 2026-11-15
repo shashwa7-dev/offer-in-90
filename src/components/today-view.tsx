@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { CalendarCheck, ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react';
+import { CalendarCheck, ChevronLeft, ChevronRight, Plus, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -23,7 +23,7 @@ type Status = 'now' | 'done' | 'missed' | 'past' | 'upcoming';
 const BANDS = [['morning', 'Morning'], ['afternoon', 'Afternoon'], ['evening', 'Evening']] as const;
 
 export function TodayView() {
-  const { state, days, todayIdx, update, updates } = useStore();
+  const { state, days, todayIdx, update, updates, v2Notice, dismissV2Notice } = useStore();
   const { viewIdx, setViewIdx, go, newTask, setRoadmapTab, setOpenChanges, openSearch } = useUI();
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [missedOpen, setMissedOpen] = useState(false);
@@ -127,6 +127,12 @@ export function TodayView() {
             {unseen > 0 && overdue.length > 0 && <span aria-hidden="true">·</span>}
             {overdue.length > 0 && <button type="button" onClick={showMissed} className="rounded-[5px] font-medium text-foreground underline-offset-4 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/50">{overdue.length} missed earlier{active && shownOverdue.length !== overdue.length ? ` (${shownOverdue.length} shown)` : ''}</button>}
             {overdue.length > 0 && <span>· {hrs(overdue.reduce((a, x) => a + x.t.min, 0))} h. Clear them in Sunday&apos;s catch-up block.</span>}
+          </div>
+        )}
+        {v2Notice && (
+          <div className="flex items-start gap-3 border-t border-border px-4 py-2.5 text-[13px] text-muted-foreground" data-v2-notice>
+            <span className="min-w-0 flex-1">Roadmap v2 is here. Ticks from the old plan don&apos;t carry over — use Setup → Start over to begin fresh.</span>
+            <button type="button" onClick={dismissV2Notice} aria-label="Dismiss" title="Dismiss" data-v2-dismiss className="-my-0.5 grid size-6 shrink-0 place-items-center rounded-[5px] text-muted-foreground outline-none hover:bg-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"><X className="size-3.5" /></button>
           </div>
         )}
         {isSun && <div data-sunday-mode className="flex items-center gap-2 border-t border-border px-4 py-2.5 text-[13px] text-muted-foreground sm:hidden">Sunday mode {modeSeg}</div>}

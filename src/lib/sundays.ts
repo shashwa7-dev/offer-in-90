@@ -26,7 +26,7 @@ export function withScore(scores: Record<string, number>, key: string, value: nu
   return next;
 }
 
-/** The Scores table: one column for the baseline (when any is entered) and one per week with a score, one row per section. */
+/** The Scores table: one column for the baseline (when any is entered) and one per plan week (calendar week, `w<week>`) with a score, one row per section. */
 export function scoreTable(scores: Record<string, number>): { columns: { id: string; label: string }[]; rows: { section: ScoreSection; label: string; cells: (number | null)[] }[] } {
   const weeks = new Set<number>();
   let baseline = false;
