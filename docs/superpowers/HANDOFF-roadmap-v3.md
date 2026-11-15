@@ -32,8 +32,14 @@ Written 2026-11-15 at the end of the Release 1 build session. Supersedes `HANDOF
      Apply every must-fix and the should-fixes and recount each track to ≤ 78. The owner already
      answered the three "Risks to raise" (2026-11-15): **(a)** DSA revisit days (Steady rest days and
      Phase 3 revisits) use the extra var problems of the hardest patterns (DP, graphs, backtracking,
-     trees, heaps, intervals, sliding window, binary search); **(b)** not targeting frontend-specialist
-     loops — say so in the spec and drop the frontend padding rather than filling it; **(c)** 3 advanced
+     trees, heaps, intervals, sliding window, binary search); **(b)** frontend is the owner's core
+     experience and must stay strong (owner correction, same day): not a "frontend-specialist only" plan,
+     but the frontend track keeps its full 60-min evening and 78 slots of **senior-level** frontend — no
+     basics, no padding. Fill the slots the review called padding with senior work: frontend
+     architecture, performance and rendering deep dives, React internals and concurrent features,
+     real-world debugging, frontend system design (2 slots each), and timed JS/React interview reps
+     (output questions, tricky async, closures in practice). Mindset: strong frontend engineer **plus**
+     a strong overall/product/AI engineer on top; **(c)** 3 advanced
      DSA awareness slots is fine. Show the
      owner the spec changes in plain words. A short re-review of the revised spec, then:
    - write the implementation plan (superpowers:writing-plans), then build it subagent-driven
@@ -45,7 +51,7 @@ Written 2026-11-15 at the end of the Release 1 build session. Supersedes `HANDOF
 
 ## Owner rules (don't re-ask)
 
-- Priorities: **AI engineer > software engineer > product engineer**; frontend = real-world topics only.
+- Priorities: **AI engineer > software engineer > product engineer, on top of a strong frontend base** (frontend is the owner's core experience: keep it senior-level and strong, never basics, never dropped).
 - **AI writes UI and boilerplate.** Time goes to understanding, designing, judging and debugging systems.
   No new languages (no Python/pandas), no widget builds, no hand-built data structures.
 - **The roadmap is never cut or shortened.** Daily times may bend; only wake-up is editable.
