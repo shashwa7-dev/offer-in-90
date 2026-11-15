@@ -580,13 +580,13 @@ Added 2026-11-15 with the owner's agreement ("just do it"). Where this task diff
 Added 2026-11-15 with the owner's agreement. The rule: "changing bed timing is fine; the roadmap must never be compromised." This text is the authority over Task 7b where they differ.
 
 **Routine (`src/lib/routine.ts`, Setup "My routine"):**
-- Add two editable times: **Wake up** (default 05:00) and **Bedtime** (default 22:00), stored in `state.routine` under keys `wake` and `bed` (`{ s: 'HH:MM' }`; missing = default). Validation: valid HH:MM; wake earlier than bedtime; bedtime ≤ 23:59.
+- Add one editable time: **Wake up** (default 05:00), stored in `state.routine.wake` (`{ s: 'HH:MM' }`; missing = default). There is no editable bedtime (owner, 2026-11-15: "for simplicity"); bedtime is derived: the wind block normally ends 17 h after wake and moves later when needed.
 - **Wake shifts the day:** every template time on Mon–Sat study days is offset by (wake − 05:00) before routine slots are placed (the `wake` block starts at the user's wake). Routine slots keep their own absolute times.
-- **Bedtime moves instead of refusing:** the `wind` block (30 min) ends at bedtime. When flowing blocks would run into `wind`, `placeDay` moves `wind` (and so the effective bedtime) later instead of returning `ok: false`. It returns `{ ok: true, blocks, bedtime: 'HH:MM', bedShiftMin: number }`. Study blocks are still never split, shortened or dropped. `ok: false` remains only for invalid input (overlapping slots, a slot before wake, or a day that would run past 23:59).
+- **Bedtime moves instead of refusing:** the `wind` block (30 min) ends at the derived bedtime. When flowing blocks would run into `wind`, `placeDay` moves `wind` (and so the effective bedtime) later instead of returning `ok: false`. It returns `{ ok: true, blocks, bedtime: 'HH:MM', bedShiftMin: number }`. Study blocks are still never split, shortened or dropped. `ok: false` remains only for invalid input (overlapping slots, a slot before wake, or a day that would run past 23:59).
 - **Setup:** Save no longer refuses an overflowing routine. It shows one line when bedtime moves, e.g. "Bedtime moves to 22:40 on study days to fit everything." Validation errors still block saving.
 - **Today:** on a study day whose bedtime moved, the wind-down block title shows the moved time (e.g. "Wind down · sleep at 22:40").
 - `buildICS` uses the placed blocks (moved bedtime included).
-- Tests: wake 06:00 shifts every block by 60 min; lunch 12:30/60 now returns ok with bedShiftMin = the computed overrun and every study block at full length; bedtime 23:00 with defaults leaves 60 min free before wind; a day past 23:59 returns ok:false; defaults still reproduce WEEKDAY_BLOCKS exactly.
+- Tests: wake 06:00 shifts every block by 60 min; lunch 12:30/60 now returns ok with bedShiftMin = the computed overrun and every study block at full length; a day past 23:59 returns ok:false; defaults still reproduce WEEKDAY_BLOCKS exactly.
 
 **Logo:** replace `public/logo-64.png`, `src/app/icon.png`, `src/app/apple-icon.png` and `design/logo.png` with the owner's new mark (prepared files supplied). App name unchanged.
 
