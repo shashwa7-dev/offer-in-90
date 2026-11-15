@@ -51,6 +51,9 @@ Written 2026-11-15 at the end of the Release 1 build session. Supersedes `HANDOF
 
 ## Owner rules (don't re-ask)
 
+- **Scope (2026-11-15): finish Release 1 + the v3 roadmap, review, merge. Releases 2 (quizzes) and 3 (AI) start only after that merge.**
+- Plan being executed: `docs/superpowers/plans/2026-11-16-roadmap-v3-content.md`; ledger `.superpowers/sdd/2026-11-16-roadmap-v3-content/progress.md`.
+
 - Priorities: **AI engineer > software engineer > product engineer, on top of a strong frontend base** (frontend is the owner's core experience: keep it senior-level and strong, never basics, never dropped).
 - **AI writes UI and boilerplate.** Time goes to understanding, designing, judging and debugging systems.
   No new languages (no Python/pandas), no widget builds, no hand-built data structures.
