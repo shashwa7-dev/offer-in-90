@@ -29,10 +29,17 @@ const toMin = (hm: string) => Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3));
 const toHM = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
 const validHM = (s: unknown) => typeof s === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
 
+/** Fill in what is not stored. A slot the owner never set is relative to wake-up: it moves by (wake − 05:00) with
+ * the template (R15). A slot the owner saved keeps its absolute time. With an invalid wake nothing shifts (validation
+ * rejects it anyway). */
 export function resolveRoutine(stored?: RoutineMap | null): ResolvedRoutine {
   const out = { ...DEFAULT_ROUTINE };
-  for (const k of ROUTINE_KEYS) if (stored?.[k]) out[k] = { ...DEFAULT_ROUTINE[k], ...stored[k] };
   if (stored?.wake) out.wake = { ...DEFAULT_ROUTINE.wake, ...stored.wake };
+  const off = validHM(out.wake.s) ? toMin(out.wake.s) - toMin(DEFAULT_ROUTINE.wake.s) : 0;
+  for (const k of ROUTINE_KEYS) {
+    if (stored?.[k]) out[k] = { ...DEFAULT_ROUTINE[k], ...stored[k] };
+    else if (off) out[k] = { ...DEFAULT_ROUTINE[k], s: toHM(toMin(DEFAULT_ROUTINE[k].s) + off) };
+  }
   return out;
 }
 

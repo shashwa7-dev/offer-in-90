@@ -68,18 +68,36 @@ assert.ok(!('bed' in DEFAULT_ROUTINE), 'no editable bedtime');
   // bedtime shifts with wake-up (17 h later): 23:00 is the usual bedtime here, so it has not moved
   assert.equal(r.bedtime, '23:00'); assert.equal(r.bedShiftMin, 0);
   assert.equal(find(r.blocks, 'wind').title, 'Wind down, no screens · sleep at 23:00');
-  // wake 04:30 with the default (absolute) slots: study blocks keep full length and start no earlier than shifted
-  const r3 = must(placeDay(WEEKDAY_BLOCKS, { wake: { s: '04:30' } }));
-  fullDay(r3.blocks);
-  for (const t of WEEKDAY_BLOCKS) if (!SLOT_KEYS.includes(t.k) && t.k !== 'wind') assert.ok(mins(find(r3.blocks, t.k).s) >= mins(t.s) - 30, t.k);
-  assert.equal(find(r3.blocks, 'wake').s, '04:30');
-  assert.equal(find(r3.blocks, 'dsa').s, '04:45');
-  assert.equal(find(r3.blocks, 'breakfast').s, '07:15', 'slots keep their absolute times');
-  assert.equal(r3.bedtime, '22:00'); assert.equal(r3.bedShiftMin, 30, 'usual bedtime 21:30; the day still ends at 21:30, so wind-down moves 30 min');
-  // wake 06:00 with the default slots: blocks jump past breakfast, lunch, gym and dinner and the day runs past 23:59
-  const r4 = placeDay(WEEKDAY_BLOCKS, { wake: { s: '06:00' } });
-  assert.equal(r4.ok, false);
-  assert.match((r4 as any).error, /23:59/);
+}
+
+// 3b. R15: a slot the owner never set moves with wake-up; a saved slot keeps its absolute time
+const shifted = (off: number) => WEEKDAY_BLOCKS.map((b) => ({ ...b, s: hm(mins(b.s) + off), e: hm(mins(b.e) + off),
+  ...(b.k === 'wind' ? { title: b.title.replace('22:00', hm(mins('22:00') + off)) } : {}) }));
+{
+  // wake 06:00, untouched routine: the default day exactly one hour later
+  const r = must(placeDay(WEEKDAY_BLOCKS, { wake: { s: '06:00' } }));
+  assert.deepEqual(r.blocks, shifted(60));
+  assert.equal(r.bedtime, '23:00'); assert.equal(r.bedShiftMin, 0);
+  // wake 04:30, untouched: 30 min earlier
+  const e = must(placeDay(WEEKDAY_BLOCKS, { wake: { s: '04:30' } }));
+  assert.deepEqual(e.blocks, shifted(-30));
+  assert.equal(e.bedtime, '21:30'); assert.equal(e.bedShiftMin, 0);
+  // wake 06:00 with lunch explicitly saved at 11:45/75: lunch stays at 11:45, the other slots move. Computed: mc jumps
+  // past lunch to 13:00 and the push carries past gym and dinner, so the day would end 16 min after 23:59: refused.
+  const LUNCH = { on: true, title: 'Lunch + 20 min power nap', s: '11:45', min: 75 };
+  const x = placeDay(WEEKDAY_BLOCKS, { wake: { s: '06:00' }, lunch: LUNCH });
+  assert.equal(x.ok, false);
+  assert.match((x as any).error, /16 min past 23:59/);
+  // wake 05:30 with the same saved lunch fits: lunch absolute, breakfast/gym/dinner +30, bedtime moves 75 min
+  const y = must(placeDay(WEEKDAY_BLOCKS, { wake: { s: '05:30' }, lunch: LUNCH }));
+  fullDay(y.blocks);
+  assert.deepEqual([find(y.blocks, 'lunch').s, find(y.blocks, 'lunch').e], ['11:45', '13:00']);
+  assert.equal(find(y.blocks, 'breakfast').s, '07:45');
+  assert.equal(find(y.blocks, 'workout').s, '18:30');
+  assert.equal(find(y.blocks, 'dinner').s, '19:45');
+  assert.equal(find(y.blocks, 'mc').s, '13:00');
+  assert.equal(y.bedtime, '23:45'); assert.equal(y.bedShiftMin, 75);
+  assert.equal(find(y.blocks, 'wind').title, 'Wind down, no screens · sleep at 23:45');
 }
 
 // 4. wake 04:30 brings the usual bedtime to 21:30; an overrun is measured from there
@@ -142,8 +160,10 @@ assert.deepEqual(validateRoutine({ ...DEFAULT_ROUTINE, lunch: { on: false, title
 {
   const rr = resolveRoutine({ lunch: { on: false, title: 'Lunch', s: '12:00', min: 60 }, wake: { s: '04:45' } });
   assert.equal(rr.lunch.on, false);
-  assert.deepEqual(rr.dinner, DEFAULT_ROUTINE.dinner);
+  assert.deepEqual(rr.dinner, { ...DEFAULT_ROUTINE.dinner, s: '19:00' }, 'an unset slot moves with wake-up');
+  assert.deepEqual(rr.lunch.s, '12:00', 'a saved slot keeps its time');
   assert.deepEqual(rr.wake, { s: '04:45' });
+  assert.deepEqual(resolveRoutine({ wake: { s: '5:00' } }).dinner, DEFAULT_ROUTINE.dinner, 'invalid wake: nothing shifts');
   assert.deepEqual(resolveRoutine({ lunch: rr.lunch }).wake, { s: '05:00' });
   assert.deepEqual(resolveRoutine({}), DEFAULT_ROUTINE);
   assert.deepEqual(resolveRoutine(null), DEFAULT_ROUTINE);

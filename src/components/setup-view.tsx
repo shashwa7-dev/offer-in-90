@@ -65,31 +65,41 @@ const bedNote = (stored: Parameters<typeof placeDay>[1]) => {
   return p.ok && p.bedShiftMin > 0 ? bedtimeMessage(p.bedtime) : '';
 };
 
-/** The "My routine" form. Remounted (by key) whenever the saved routine changes, so the fields always match it. */
+/** The "My routine" form. Remounted (by key) whenever the saved routine changes, so the fields always match it.
+ * A slot row the owner has neither saved nor edited here is relative to wake-up (R15): it shows the default shifted by
+ * the wake field as typed, and saving does not store it. Editing the row fixes it at the times typed. */
 function RoutineForm() {
   const { state, update } = useStore();
   const { toast } = useUI();
   const draftsOf = (stored: typeof state.routine): RoutineFormState => toRoutineForm(resolveRoutine(stored));
   const [form, setForm] = useState(() => draftsOf(state.routine));
+  const [touched, setTouched] = useState(() => new Set<RoutineKey>(ROUTINE_KEYS.filter(k => state.routine[k])));
   const [error, setError] = useState('');
-  const edit = (k: RoutineKey, patch: Partial<RoutineDraft>) => { setError(''); setForm(f => ({ ...f, [k]: { ...f[k], ...patch } })); };
+  // What the form shows: untouched rows follow the wake field (unshifted while it is not a valid time).
+  const relative = toRoutineForm(resolveRoutine({ wake: { s: form.wake } }));
+  const shown: RoutineFormState = { ...form };
+  for (const k of ROUTINE_KEYS) if (!touched.has(k)) shown[k] = relative[k];
+  const edit = (k: RoutineKey, patch: Partial<RoutineDraft>) => {
+    setError(''); setTouched(t => new Set(t).add(k)); setForm(f => ({ ...f, [k]: { ...shown[k], ...patch } }));
+  };
   const editWake = (v: string) => { setError(''); setForm(f => ({ ...f, wake: v })); };
   const note = bedNote(state.routine);
 
   const save = () => {
-    const full = parseRoutineForm(form);
+    const full = parseRoutineForm(shown);
     const v = validateRoutine(full);
     if (!v.ok) { setError(v.error); return; }
+    // Stored: wake-up if not 05:00, and each slot that differs from its wake-relative default. Untouched rows equal
+    // that default, so they are not written; dropped entries are removed so sync records the deletion.
+    const next = routineDiff(full, { ...resolveRoutine({ wake: full.wake }), wake: DEFAULT_ROUTINE.wake });
     // Bedtime may move to fit the day (shown below once saved); only invalid input or a day past 23:59 is refused.
-    const p = placeDay(WEEKDAY_BLOCKS, full);
+    const p = placeDay(WEEKDAY_BLOCKS, next);
     if (!p.ok) { setError(p.error); return; }
-    // Only entries that differ from the defaults are stored; the rest are removed so sync records the deletion.
-    const next = routineDiff(full, DEFAULT_ROUTINE);
     if (JSON.stringify(next) === JSON.stringify(state.routine)) { setError(''); toast('No changes'); return; }
     update(s => ({ ...s, routine: next }));
     toast('Routine saved. Download the calendar again.');
   };
-  const reset = () => { update(s => ({ ...s, routine: {} })); setForm(draftsOf({})); setError(''); toast('Routine reset to defaults. Download the calendar again.'); };
+  const reset = () => { update(s => ({ ...s, routine: {} })); setForm(draftsOf({})); setTouched(new Set()); setError(''); toast('Routine reset to defaults. Download the calendar again.'); };
 
   return (
     <div data-routine>
@@ -98,7 +108,7 @@ function RoutineForm() {
         <Input type="time" aria-label="Wake up time" value={form.wake} onChange={e => editWake(e.target.value)} className="h-8 w-28 text-[13px] tabular-nums" />
       </div>
       {ROUTINE_KEYS.map(k => {
-        const x = form[k];
+        const x = shown[k];
         return (
           <div key={k} className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-2.5">
             <span className="w-20 shrink-0 text-[13px] text-muted-foreground">{ROUTINE_ROW[k]}</span>
@@ -116,7 +126,7 @@ function RoutineForm() {
         {error && <p data-routine-error role="alert" className="min-w-0 basis-full text-[13px] text-foreground">{error}</p>}
         {!error && note && <p data-routine-bedtime className="min-w-0 basis-full text-[13px] text-foreground">{note}</p>}
       </div>
-      <p className="border-t border-border px-4 py-2.5 text-[13px] leading-snug text-muted-foreground">The routine applies Mon–Sat; Sundays keep their own times. Wake-up shifts the whole study day, bedtime included (17 h later); meals and gym keep the times you set. Study blocks always keep their full length: if they need it, bedtime moves later. A calendar file you have already downloaded must be downloaded again after any change.</p>
+      <p className="border-t border-border px-4 py-2.5 text-[13px] leading-snug text-muted-foreground">The routine applies Mon–Sat; Sundays keep their own times. Wake-up shifts the whole study day, bedtime included (17 h later), and the meals and gym you have not changed with it; a slot you change keeps the time you set. Study blocks always keep their full length: if they need it, bedtime moves later. A calendar file you have already downloaded must be downloaded again after any change.</p>
     </div>
   );
 }

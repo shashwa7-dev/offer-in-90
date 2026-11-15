@@ -1023,14 +1023,25 @@ try {
     if (!(await page.getByLabel('Bedtime', { exact: true }).count())) ok(`${W}: no bedtime field`); else fail(`${W}: bedtime field present`);
     await page.getByLabel('Wake up time').fill('04:30'); await saveRoutine();
     { const r = (await saved()).routine || {}; if (r.wake?.s === '04:30' && !('bed' in r) && !r.lunch) ok(`${W}: wake-up saves`); else fail(`${W}: wake not saved (${JSON.stringify(r)})`); }
-    await page.getByLabel('Wake up time').fill('06:00'); await saveRoutine();
-    if (/past 23:59/.test(await page.locator('[data-routine-error]').innerText().catch(() => '')) && (await saved()).routine?.wake?.s === '04:30') ok(`${W}: a wake-up that pushes the day past 23:59 is refused`); else fail(`${W}: late wake-up not refused`);
+    // R15: untouched slots move with wake-up (shown shifted, not stored); a slot the owner sets keeps its time
+    await page.getByLabel('Wake up time').fill('06:00');
+    if (await page.getByLabel('Breakfast start').inputValue() === '08:15' && await page.getByLabel('Dinner start').inputValue() === '20:15') ok(`${W}: untouched slots follow the wake-up field`); else fail(`${W}: untouched slots did not shift`);
+    await saveRoutine();
+    { const r = (await saved()).routine || {}; if (JSON.stringify(r) === JSON.stringify({ wake: { s: '06:00' } }) && !(await page.locator('[data-routine-bedtime]').count())) ok(`${W}: wake 06:00 stores only wake-up, day fits`); else fail(`${W}: wake 06:00 stored ${JSON.stringify(r)}`); }
+    await page.getByLabel('Lunch start').fill('11:45'); await saveRoutine();
+    if (/16 min past 23:59/.test(await page.locator('[data-routine-error]').innerText().catch(() => '')) && !(await saved()).routine?.lunch) ok(`${W}: a set lunch that pushes the day past 23:59 is refused`); else fail(`${W}: set lunch not refused`);
+    await page.getByLabel('Wake up time').fill('05:30'); await saveRoutine();
+    { const r = (await saved()).routine || {}; const line = await page.locator('[data-routine-bedtime]').innerText().catch(() => '');
+      if (r.wake?.s === '05:30' && r.lunch?.s === '11:45' && !r.breakfast && line === 'Bedtime moves to 23:45 on study days to fit everything.') ok(`${W}: set lunch kept absolute, bedtime moves`); else fail(`${W}: set lunch / bedtime wrong (${JSON.stringify(r)} ${line})`); }
     await page.getByRole('button', { name: 'Reset to defaults' }).click(); await page.waitForTimeout(300);
     await lunchMin.fill('99');
     await page.getByRole('button', { name: 'Reset to defaults' }).click(); await page.waitForTimeout(300);
     if (await lunchMin.inputValue() === '75') ok(`${W}: reset clears unsaved edits`); else fail(`${W}: reset kept unsaved edit`);
     if (!Object.keys((await saved()).routine || {}).length) ok(`${W}: routine reset clears the map`); else fail(`${W}: routine reset left entries`);
     if (await page.getByLabel('Wake up time').inputValue() === '05:00') ok(`${W}: reset restores wake-up`); else fail(`${W}: reset kept wake-up`);
+    await page.getByLabel('Wake up time').fill('06:00');
+    if (await page.getByLabel('Lunch start').inputValue() === '12:45') ok(`${W}: after reset, slots are wake-relative again`); else fail(`${W}: after reset lunch not relative`);
+    await page.getByRole('button', { name: 'Reset to defaults' }).click(); await page.waitForTimeout(300);
 
     // start date picker saves immediately
     const s0 = (await saved()).start;

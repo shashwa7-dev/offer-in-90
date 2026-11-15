@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { nextMonday, parseDraft, parseRoutineForm, toDraft, toRoutineForm, routineDiff, bedtimeMessage, normalizeState, isPreV2, startOver } from '../src/lib/setup-helpers.ts';
-import { DEFAULT_ROUTINE } from '../src/lib/routine.ts';
+import { DEFAULT_ROUTINE, resolveRoutine } from '../src/lib/routine.ts';
 
 // 2026-11-16 is a Monday
 assert.equal(nextMonday('2026-11-16'), '2026-11-16');
@@ -22,6 +22,16 @@ assert.deepEqual(routineDiff(DEFAULT_ROUTINE, DEFAULT_ROUTINE), {});
 assert.deepEqual(routineDiff({ ...DEFAULT_ROUTINE, wake: { s: '04:30' }, lunch: { ...DEFAULT_ROUTINE.lunch, min: 60 } }, DEFAULT_ROUTINE),
   { wake: { s: '04:30' }, lunch: { ...DEFAULT_ROUTINE.lunch, min: 60 } });
 
+// R15: the form shows untouched slots at their wake-relative times; saving against that baseline stores none of them
+{
+  const shown = toRoutineForm(resolveRoutine({ wake: { s: '06:00' } }));
+  assert.equal(shown.breakfast.s, '08:15');
+  const full = parseRoutineForm(shown);
+  const baseline = { ...resolveRoutine({ wake: full.wake }), wake: DEFAULT_ROUTINE.wake };
+  assert.deepEqual(routineDiff(full, baseline), { wake: { s: '06:00' } }, 'untouched slots are not written');
+  const edited = parseRoutineForm({ ...shown, lunch: { ...shown.lunch, s: '11:45' } });
+  assert.deepEqual(routineDiff(edited, baseline), { wake: { s: '06:00' }, lunch: { ...DEFAULT_ROUTINE.lunch, s: '11:45' } });
+}
 assert.equal(bedtimeMessage('22:40'), 'Bedtime moves to 22:40 on study days to fit everything.');
 // normalize: a saved or fresh state always starts on a Monday (non-Monday starts snap to the next Monday)
 {
