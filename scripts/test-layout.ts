@@ -298,4 +298,60 @@ function checkOnce(days: Any[], label: string) {
   }
 }
 
+// ---------- regression: a cursor never skips past the next unplaced slot (fix round 2) ----------
+{
+  // (a) two switches with one item left unticked (aib[1]): live slots stay in order, same-track `after` holds
+  const d1 = steady[25].date;
+  const done = doneBefore(steady, d1);
+  for (const x of tracks.aib[1].items) delete done[x.id];
+  const m1 = switchMode({}, d1, 'grind', cursorsAt(steady, d1, done), START);
+  const p1 = plan(START, m1, done);
+  checkOnce(p1, 'aib[1] unticked, 1 switch');
+  const d2 = p1[40].date;
+  Object.assign(done, doneBefore(p1, d2));
+  const m2 = switchMode(m1, d2, 'steady', cursorsAt(p1, d2, done), START);
+  checkOnce(plan(START, m2, done), 'aib[1] unticked, 2 switches');
+
+  // (b) switch right after ticking that day's work: the day's slots are not dropped
+  const date = steady[20].date;
+  const ticked: Record<string, number> = {};
+  for (const d of steady) if (d.no <= 20) for (const t of TRACKS) for (const x of live(d, t)?.items ?? []) ticked[x.id] = 1;
+  const cur = cursorsAt(steady, date, ticked);
+  assert.ok(TRACKS.every((t) => cur[t] > steady[20].slots[t]?.index), 'cursors past the ticked day');
+  checkOnce(plan(START, switchMode({}, date, 'grind', cur, START), ticked), 'switch after ticking the day');
+}
+
+// ---------- property test: random switches, ticks and start moves (seeded) ----------
+{
+  let seed = 20261116;
+  const rnd = () => { // mulberry32
+    seed = (seed + 0x6d2b79f5) | 0;
+    let r = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
+    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+  };
+  const int = (lo: number, hi: number) => lo + Math.floor(rnd() * (hi - lo + 1));
+  const STARTS = ['2026-11-09', '2026-11-23', '2026-11-30', '2026-12-07'];
+  for (let trial = 0; trial < 100; trial++) {
+    let modes: Any = rnd() < 0.5 ? {} : GRIND_MODES;
+    const done: Record<string, number> = {};
+    let days = plan(START, modes, done);
+    let no = 0;
+    const switches = int(1, 4);
+    for (let k = 0; k < switches; k++) {
+      no = Math.min(no + int(1, 30), days.length - 2);
+      const date = days[no].date;
+      const ratio = rnd(), today = rnd() < 0.3; // sometimes the day's own work is ticked before the switch
+      for (const d of days) if (d.no < no || (today && d.no === no)) for (const t of TRACKS) for (const x of live(d, t)?.items ?? []) if (rnd() < ratio) done[x.id] = 1;
+      modes = switchMode(modes, date, rnd() < 0.5 ? 'grind' : 'steady', cursorsAt(days, date, done), START);
+      days = plan(START, modes, done);
+      checkOnce(days, `trial ${trial} switch ${k + 1}`);
+    }
+    for (const start of [STARTS[int(0, 3)], STARTS[int(0, 3)]]) checkOnce(plan(start, modes, done), `trial ${trial} start ${start}`);
+  }
+}
+
+// layoutDays never stops silently
+assert.throws(() => layoutDays({ start: START, kickoff: true, modes: {}, tracks: { ...tracks, dsa: Array.from({ length: 500 }, () => tracks.dsa[0]) }, done: {} }), /unplaced/);
+
 console.log('layout: ok');

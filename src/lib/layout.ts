@@ -151,7 +151,9 @@ export function layoutDays({ start, kickoff, modes, tracks, done }: LayoutInput)
       fromWeek = week;
       mode = seg.mode;
       const cursors = seg.cursors ?? Object.fromEntries(TRACK_IDS.map((t) => [t, firstNotDone(t)]));
-      for (const t of TRACK_IDS) ptr[t] = Math.min(Math.max(0, cursors[t]), len(t));
+      // Never past the next unplaced slot: skipping ahead would drop slots (ticked ahead of time, or a cursor taken
+      // after the day's work was ticked); slots already placed may be laid again (their old copy is superseded).
+      for (const t of TRACK_IDS) ptr[t] = Math.min(Math.max(0, cursors[t]), len(t), ptr[t]);
       rewindDependents();
       for (const t of TRACK_IDS) segFrom[t] = ptr[t];
       segStudy = 0;
@@ -161,7 +163,7 @@ export function layoutDays({ start, kickoff, modes, tracks, done }: LayoutInput)
 
     if (isSunday(date)) {
       days.push({ ...day, kind: 'sun', sundayNo: ++sundayNo, slots: {} });
-      if (TRACK_IDS.every((t) => ptr[t] >= len(t))) break;
+      if (TRACK_IDS.every((t) => ptr[t] >= len(t))) return days;
       continue;
     }
     // A track runs when it has slots left, the Steady rotation gives it the day, and its next slot's prerequisites
@@ -174,7 +176,7 @@ export function layoutDays({ start, kickoff, modes, tracks, done }: LayoutInput)
     segStudy++;
     days.push({ ...day, kind: 'study', studyNo: ++studyNo, slots });
   }
-  return days;
+  throw new Error(`layoutDays: slots still unplaced after ${MAX_DAYS} days`);
 }
 
 /** For each track, the first slot (at or after the cursor of the mode entry in force on `date`) with any item not
