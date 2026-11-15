@@ -45,8 +45,8 @@ export function PageHeader({ crumbs, count, actions, keepLast }: { crumbs: Crumb
   return (
     <header className="flex h-11 min-w-0 items-center gap-2 md:h-12">
       <SidebarTrigger className="-ml-1.5 hidden text-muted-foreground md:inline-flex" />
-      {/* On phones (no sidebar) the mode sits under the crumbs, inside the same 44px bar. */}
-      <div className="flex min-w-0 flex-col justify-center md:contents">
+      {/* Below lg the mode sits under the crumbs, inside the same 44px bar. */}
+      <div className="flex min-w-0 flex-col justify-center lg:contents">
       <Breadcrumb className="min-w-0">
         <BreadcrumbList className="flex-nowrap text-[14px] sm:gap-1.5">
           {crumbs.map((c, i) => {
@@ -66,7 +66,7 @@ export function PageHeader({ crumbs, count, actions, keepLast }: { crumbs: Crumb
           })}
         </BreadcrumbList>
       </Breadcrumb>
-      <ModeLine className="truncate text-[12px] leading-none text-muted-foreground md:hidden" />
+      <ModeLine className="truncate text-[12px] leading-none text-muted-foreground lg:hidden" />
       </div>
       {count && <span className="shrink-0 text-[13px] text-faint tabular-nums">{count}</span>}
       {actions && <div className="ml-auto flex shrink-0 items-center gap-1.5">{actions}</div>}

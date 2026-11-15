@@ -122,7 +122,7 @@ export function TodayView() {
         crumbs={[{ label: `Week ${d.week}`, phoneHidden: true }, d.no === 0 ? 'Day 0 · prep' : phone ? `Day ${d.no}` : `Day ${d.no} of ${totalDays(days)}`, fmtDate(d.date)]}
         keepLast
         actions={<>
-          <button type="button" data-mode-badge onClick={openMode} title="Change mode in Setup" className="rounded-[5px] outline-none focus-visible:ring-2 focus-visible:ring-ring/50 max-sm:hidden"><Chip>{modeBadge(state.modes, iso(d.date), state.start, days)}</Chip></button>
+          <button type="button" data-mode-badge onClick={openMode} title="Change mode in Setup" className="rounded-[5px] outline-none focus-visible:ring-2 focus-visible:ring-ring/50 max-lg:hidden"><Chip>{modeBadge(state.modes, iso(d.date), state.start, days)}</Chip></button>
           <Button variant="outline" size="icon-sm" onClick={openSearch} aria-label="Search" title="Search" data-search-phone className="md:hidden"><Search /></Button>
           <Button variant="outline" size="icon-sm" onClick={() => setViewIdx(clamp(viewIdx - 1))} aria-label="Previous day"><ChevronLeft /></Button>
           <Button variant="outline" size="sm" onClick={() => setViewIdx(clamp(todayIdx))} disabled={isToday} className="hidden sm:inline-flex">Today</Button>

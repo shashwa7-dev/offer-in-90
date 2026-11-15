@@ -1920,6 +1920,23 @@ try {
     checkErrors(errors, W);
     await ctx.close();
   }
+  // ---------- mode indicators: header at 800 and 1024 (one indicator, no crowding) ----------
+  for (const width of [800, 1024]) {
+    const W = `mode header ${width}`;
+    const { ctx, page, errors } = await open(width, 800);
+    const m = await page.evaluate(() => {
+      const h = document.querySelector('[data-slot="sidebar-inset"] [data-page-header]');
+      const vis = e => !!e && e.getClientRects().length > 0 && getComputedStyle(e).display !== 'none';
+      const crumbs = h.querySelector('nav[aria-label="breadcrumb"]');
+      return { over: h.scrollWidth - h.clientWidth, crumbW: crumbs ? crumbs.getBoundingClientRect().width : 0, line: [...h.querySelectorAll('[data-mode-line]')].filter(vis).length, badge: [...h.querySelectorAll('[data-mode-badge]')].filter(vis).length, hh: h.getBoundingClientRect().height };
+    });
+    if (m.over <= 0) ok(`${W}: no header overflow`); else fail(`${W}: header overflows by ${m.over}px`);
+    if (m.crumbW > 0) ok(`${W}: crumbs keep ${Math.round(m.crumbW)}px`); else fail(`${W}: crumbs squeezed to ${m.crumbW}`);
+    if (m.line + m.badge === 1 && (width < 1024 ? m.line === 1 : m.badge === 1)) ok(`${W}: exactly one header indicator (${m.line ? 'line' : 'badge'})`); else fail(`${W}: header indicators line ${m.line}, badge ${m.badge}`);
+    if (Math.abs(m.hh - 48) <= 1) ok(`${W}: header 48px`); else fail(`${W}: header ${m.hh}px`);
+    checkErrors(errors, W);
+    await ctx.close();
+  }
   // ---------- v2: day count per mode, and search finds patterns and owner labels ----------
   for (const [mode, modes, want] of [['Grind', GRIND, /Day 1 of 91\b/], ['Steady', {}, /Day 1 of 119\b/]]) {
     const at = new Date(2026, 10, 2, 10, 0); // Mon 2 Nov = Day 1
