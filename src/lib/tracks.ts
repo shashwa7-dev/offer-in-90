@@ -169,11 +169,14 @@ function dsaTrack(c: TrackContent): Slot[] {
 function aiCoreTrack(c: TrackContent): Slot[] {
   return toSlots('fe', (c.AI_CORE as Row[]).flatMap((r) => expandRow(r, 'ai')));
 }
-/** Interim (until Tasks 4, 7 and 8 replace the v2 sd, beh and ai tracks): ids the AI core lays out or absorbs
- * (`covers`) are skipped by those v2 tracks, so nothing is laid out twice. */
-function aiCoreIds(c: TrackContent): Set<string> {
-  return new Set<string>(((c.AI_CORE ?? []) as Row[]).flatMap((r) => [r.id, ...(r.covers ?? [])]));
-}
+/** A v3 track's ids: each row's primary id plus the v2 ids it absorbs (`covers`). */
+const rowIds = (rows: Row[] | undefined): Set<string> => new Set<string>((rows ?? []).flatMap((r: Row) => [r.id, ...(r.covers ?? [])]));
+/** Interim (until Tasks 7 and 8 replace the v2 beh and ai tracks): ids the AI core lays out or absorbs are skipped by
+ * those v2 tracks, so nothing is laid out twice. */
+const aiCoreIds = (c: TrackContent) => rowIds(c.AI_CORE);
+/** Interim (until Tasks 5 and 8 replace the v2 jt and ai tracks): the same for the ids Systems lays out or absorbs
+ * (the how-it-works case studies and the 4 DDIA reads). */
+const systemsIds = (c: TrackContent) => rowIds(c.SYSTEMS);
 
 // ---------- mc (§5): builds Mon/Wed/Fri, flagship Tue/Thu from week 2, LLD Sat, take-homes, timed second passes ----------
 function mcTrack(c: TrackContent): Slot[] {
@@ -223,17 +226,9 @@ function mcTrack(c: TrackContent): Slot[] {
   return toSlots('mc', slots);
 }
 
-// ---------- sd (§6): SD in order, then the SD_MOCKS rotation ----------
+// ---------- sd (v3 §3): Systems, one content row per slot ----------
 function sdTrack(c: TrackContent): Slot[] {
-  const core = aiCoreIds(c);
-  const slots: SlotItem[][] = (c.SD as Row[]).filter((x) => !core.has(x.id)).map((x) => [item(x, 'sd')]);
-  const M: Row[] = (c.SD_MOCKS as Row[]).filter((x) => !core.has(x.id));
-  for (let k = 0; slots.length < SLOTS; k++) {
-    const m = M[k % M.length], round = Math.floor(k / M.length);
-    const text = `Mock, 45 min, timed, out loud: ${m.text}. Then self-review against the HLD framework: what did you skip?`;
-    slots.push([round ? filler(`${m.id}:${round + 1}`, text, 'sd') : { id: m.id, text, cat: 'sd' }]);
-  }
-  return toSlots('sd', slots);
+  return toSlots('sd', (c.SYSTEMS as Row[]).flatMap((r) => expandRow(r, 'sd')));
 }
 
 // ---------- jt (§4): the judgment thread, Mon–Sat ----------
@@ -275,7 +270,8 @@ function jtSaturday(w: number): SlotItem[] {
 }
 
 function jtTrack(c: TrackContent): Slot[] {
-  const hiw = queue(c.HOW_IT_WORKS as Row[]), memos = queue(c.MEMOS as Row[]), practical = queue(c.PRACTICAL as Row[]), decomp = queue(c.DECOMP as Row[]);
+  const sys = systemsIds(c);
+  const hiw = queue((c.HOW_IT_WORKS as Row[]).filter((x) => !sys.has(x.id))), memos = queue(c.MEMOS as Row[]), practical = queue(c.PRACTICAL as Row[]), decomp = queue(c.DECOMP as Row[]);
   const fixes = queue(c.OSS_FIXES as Row[]);
   const reviews: Row[] = c.CODE_REVIEWS; // each carries its Grind week (Ruling R4: weeks 5, 8, 11, 13)
   // SRE ch. 12 must come before the first OSS fix (week 3 Fri). Week 3 Mon–Thu are full and a 45-min read doesn't fit
@@ -286,7 +282,7 @@ function jtTrack(c: TrackContent): Slot[] {
   const slots: SlotItem[][] = [];
   for (let i = 0; i < SLOTS; i++) {
     const w = weekOf(i), d = GRIND_DOW[i];
-    if (d === 1) slots.push(hiw.left ? [item(hiw.next(), 'sd')] : [rep('jt:hiw-repeat', 'How it really works, repeat: pick the earlier write-up you understood least, redraw the system from memory, then compare and name 3 trade-offs.', 'sd')]);
+    if (d === 1) slots.push(hiw.left ? [item(hiw.next(), 'sd')] : [rep('jt:hiw-repeat', 'How it really works, repeat: pick the case study from the Systems track you understood least, redraw the system from memory, then compare and name 3 trade-offs.', 'sd')]);
     else if (d === 2) slots.push(memos.left ? [item(memos.next(), 'sd')] : [rep('jt:memo-repeat', 'Decision memo, repeat: rewrite your weakest memo with what you know now.', 'sd')]);
     else if (d === 3) slots.push(practical.left ? [item(practical.next(), 'mc')] : [rep('jt:practical-repeat', 'Practical coding, repeat (45 min timed): redo the practical you found hardest, in the other language.', 'mc')]);
     else if (d === 4) {
@@ -349,10 +345,10 @@ const REVIEW_TAUGHT_BY: Record<string, string> = {
 };
 
 // ---------- ai (§7): the evening hour at its old days, depth reads after their targets, review in the gaps ----------
-// Interim until Task 8: items the AI core lays out or absorbs are skipped. A depth read whose `after` is not in this
+// Interim until Task 8: items the AI core or Systems lays out or absorbs are skipped. A depth read whose `after` is not in this
 // track takes the first free slot and drops that `after`.
 function aiTrack(c: TrackContent): Slot[] {
-  const core = aiCoreIds(c);
+  const core = new Set<string>([...aiCoreIds(c), ...systemsIds(c)]);
   const slots: (SlotItem[] | undefined)[] = Array.from({ length: SLOTS }, () => undefined);
   const E: Row[] = (c.AI_EVENING as Row[]).filter((x) => !core.has(x.id));
   for (const x of E.filter((x) => typeof x.day === 'number')) {

@@ -6,6 +6,7 @@ import { UX } from '../src/lib/content/ux.js';
 import { BEH, FDE, COMPANY_MAP, TEARDOWNS } from '../src/lib/content/career.js';
 import { AIB_MOVED, AIB, AI_EVENING, AI_REVIEW, AI_NEWS } from '../src/lib/content/ai.js';
 import { AI_CORE } from '../src/lib/content/ai-core.js';
+import { SYSTEMS } from '../src/lib/content/systems.js';
 import { MC, MC_TIMED, MC_SCREENSHOT, TAKE_HOMES, PROJECT, PROJECT_DEPTH_READS, LLD } from '../src/lib/content/mc.js';
 import { SD, SD_MOCKS } from '../src/lib/content/sd.js';
 import { PLAN } from '../src/lib/plan-data.js';
@@ -445,6 +446,7 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
   assert.equal(PLAN.FE, FE);
   assert.equal(PLAN.SUNDAY_READS, SUNDAY_READS);
   assert.equal(PLAN.AI_CORE, AI_CORE);
+  assert.equal(PLAN.SYSTEMS, SYSTEMS);
 }
 
 // ---- v3 AI engineering core (Task 3): row shape and copy rules; tracks.ts tests the layout ----

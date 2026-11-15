@@ -10,16 +10,20 @@ import * as aiCore from '../src/lib/content/ai-core.js';
 import * as mc from '../src/lib/content/mc.js';
 import * as sd from '../src/lib/content/sd.js';
 import * as judgment from '../src/lib/content/judgment.js';
+import * as systems from '../src/lib/content/systems.js';
 import * as reference from '../src/lib/content/reference.js';
 import { buildTracks, expandRow, GRIND_DOW, SLOTS } from '../src/lib/tracks.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
-const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...aiCore, ...mc, ...sd, ...judgment, ...reference };
+const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...aiCore, ...mc, ...sd, ...systems, ...judgment, ...reference };
 // AI core (v3) absorbs v2 ids: each row's primary id is laid out in the AI core track; its `covers` ids are not laid out anywhere.
 const CORE: Any[] = aiCore.AI_CORE as Any[];
 const CORE_PLACED = new Set<string>(CORE.map((r) => r.id));
 const CORE_COVERS = new Set<string>(CORE.flatMap((r) => r.covers ?? []));
+// Systems (v3) likewise: primary ids laid out in the sd track; `covers` ids are not laid out anywhere.
+const SYS: Any[] = (systems.SYSTEMS ?? []) as Any[];
+const SYS_COVERS = new Set<string>(SYS.flatMap((r) => r.covers ?? []));
 const T: Any = buildTracks(content);
 const TRACKS = ['dsa', 'fe', 'mc', 'sd', 'jt', 'beh', 'ai'];
 const idx = (w: number, d: number) => (w - 1) * 6 + (d - 1);
@@ -62,28 +66,26 @@ const expected: string[] = [
   // v2 FE (fe.js) is not laid out until Task 8 moves it into Frontend.
   ...(ux.UX as Any[]), ...(career.BEH as Any[]),
   ...(career.FDE as Any[]).filter((x) => !SKIP_FDE.has(x.id)), ...(career.TEARDOWNS as Any[]),
-  ...(ai.AI_EVENING as Any[]).filter((x) => !CORE_PLACED.has(x.id) && !CORE_COVERS.has(x.id)),
+  ...(ai.AI_EVENING as Any[]).filter((x) => !CORE_PLACED.has(x.id) && !CORE_COVERS.has(x.id) && !SYS_COVERS.has(x.id)),
   ...CORE.map((r) => r.id),
   ...(mc.MC as Any[]), ...(mc.MC_SCREENSHOT as Any[]), ...(mc.TAKE_HOMES as Any[]).flatMap((x) => x.parts),
   ...(mc.PROJECT as Any[]), ...(mc.PROJECT_DEPTH_READS as Any[]), ...(mc.LLD as Any[]),
-  ...(sd.SD as Any[]).filter((x) => !CORE_PLACED.has(x.id)),
-  ...(judgment.HOW_IT_WORKS as Any[]), ...(judgment.MEMOS as Any[]), ...(judgment.PRACTICAL as Any[]), ...(judgment.DECOMP as Any[]),
+  // v2 SD / SD_MOCKS / HOW_IT_WORKS are laid out through SYSTEMS (the sd:fe-* items wait for Task 8).
+  ...SYS.map((r) => r.id),
+  ...(judgment.MEMOS as Any[]), ...(judgment.PRACTICAL as Any[]), ...(judgment.DECOMP as Any[]),
   ...(judgment.OSS_FIXES as Any[]), ...(judgment.CODE_REVIEWS as Any[]), ...PRIMARY, ...(judgment.INTERVIEW_ENV as Any[]),
 ].map((x: Any) => (typeof x === 'string' ? x : x.id));
 // Items that take 2 slots appear once per part, keyed by id + part.
 const seen = all.filter((x) => !x.filler).map((x) => (x.part ? `${x.id.replace(/:part-\d$/, '')}#${x.part[0]}` : x.id));
 for (const id of expected) assert.equal(seen.filter((s) => s === id).length, 1, `${id} appears exactly once`);
 for (const id of CORE_COVERS) assert.equal(seen.filter((s) => s === id).length, 0, `${id} (absorbed by AI core) is not laid out`);
+for (const id of SYS_COVERS) assert.equal(seen.filter((s) => s === id).length, 0, `${id} (absorbed by Systems) is not laid out`);
 for (const id of (mc.MC_TIMED as string[])) assert.equal(allIds.filter((x) => x === `${id}:timed`).length, 1, `${id} timed pass once`);
 assert.equal(all.filter((x) => /^adv:[a-z-]+$/.test(x.id)).length, 3, 'ADV_DSA x3');
-const known = new Set([...expected, ...CORE.filter((r) => !r.kind).flatMap((r) => [`${r.id}:do`, `${r.id}:explain`]), ...(dsa.FOUNDATIONS as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`]), ...(dsa.ADV_DSA as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`]), ...(mc.MC_TIMED as string[]).map((id) => `${id}:timed`)]);
+const known = new Set([...expected, ...[...CORE, ...SYS].filter((r) => !r.kind).flatMap((r) => [`${r.id}:do`, `${r.id}:explain`]), ...(dsa.FOUNDATIONS as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`]), ...(dsa.ADV_DSA as Any[]).flatMap((f) => [f.id, `${f.id}:do`, `${f.id}:explain`]), ...(mc.MC_TIMED as string[]).map((id) => `${id}:timed`)]);
 const extras = all.filter((x) => !x.filler && !known.has(x.part ? `${x.id.replace(/:part-\d$/, '')}#${x.part[0]}` : x.id));
 // Non-content items the builder adds on purpose: pattern cards, explain-backs, foundations, ADV_DSA, Phase 3 sets, FE revision, SD mocks, jt Saturdays.
 for (const x of extras) assert.match(x.id, /^(dsa:(card|explain-back|oa|google|meta|revisit)-|fe:revise-|fe:bfe-|sdm:|jt:(ai-drill|mock|peer-mock|speed-pair|mock-loop)-)/, `unexpected item ${x.id}`);
-// The SD_MOCKS rotation is used in order from its first item.
-const sdm = T.sd.flatMap((s: Any) => s.items).filter((x: Any) => x.id.startsWith('sdm:')).map((x: Any) => x.id);
-const sdRotation = (sd.SD_MOCKS as Any[]).filter((x) => !CORE_PLACED.has(x.id));
-assert.deepEqual(sdm, sdRotation.slice(0, sdm.length).map((x) => x.id));
 
 // ---------- dsa ----------
 const HARD = ['dp', 'graph-traversal', 'topo-sort', 'union-find', 'shortest-path-mst', 'backtracking', 'tree-dfs', 'tree-bfs', 'top-k', 'two-heaps', 'k-way-merge', 'intervals', 'sliding-window', 'binary-search'];
@@ -243,28 +245,107 @@ for (const t of TRACKS.filter((t) => t !== 'dsa')) assert.ok(!T[t].some((s: Any)
   for (const n of [10, 11]) assert.match(CORE[n - 1].understand, /read the code, no retyping/, `Karpathy GPT slot ${n}`);
 }
 
-// ---------- sd ----------
-// Interim (until Task 4): the 4 AI designs and 2 AI mocks moved to AI core, so the v2 sd track skips them.
-const SD_LEFT = (sd.SD as Any[]).filter((x) => !CORE_PLACED.has(x.id));
-assert.equal(SD_LEFT.length, 57);
-assert.deepEqual(T.sd.slice(0, SD_LEFT.length).map((s: Any) => s.items[0].id), SD_LEFT.map((x) => x.id));
-for (let i = SD_LEFT.length; i < 78; i++) assert.ok(has('sd', i, /^sdm:/), `sd[${i}] mock`);
-assert.ok(!T.sd.some((s: Any) => s.items.some((x: Any) => CORE_PLACED.has(x.id.replace(/:\d+$/, '')))), 'sd track skips what AI core places');
+// ---------- sd (v3 Systems) ----------
+{
+  const HLD_LEARN = ['rate-limiter', 'dropbox', 'whatsapp', 'ticketmaster', 'fb-news-feed', 'youtube', 'web-crawler', 'distributed-cache', 'job-scheduler',
+    'payment-system', 'top-k-leaderboard', 'yelp', 'live-comments', 'ad-click-aggregator', 'news-aggregator', 'local-delivery', 'leetcode'].map((s) => `sd:hld-${s}`);
+  const DEPTH_1 = ['sd:ddia-2a', 'sd:ddia-2b', 'sd:idempotency-saga', 'sd:ddia-3a', 'sd:ddia-3b', 'jt:hiw-stripe-idempotency', 'sd:ddia-4a', 'sd:ddia-4b',
+    'sd:block-search', 'sd:ddia-5a', 'sd:ddia-5b', 'jt:hiw-discord-message-storage', 'sd:ddia-6a', 'sd:ddia-6b', 'sd:observability-security', 'sd:ddia-7a',
+    'sd:ddia-7b', 'sd:arch-styles', 'sd:testing-strategy', 'sd:block-geo', 'jt:hiw-figma-multiplayer', 'sd:block-probabilistic', 'sd:refactoring',
+    'jt:hiw-slack-real-time', 'sd:block-realtime-fanout'];
+  const MOCKS = ['sd:hld-tinder', 'sd:hld-instagram-post-search', 'sd:hld-price-tracker', 'sd:hld-online-auction', 'sd:hld-search-autocomplete',
+    'sd:hld-robinhood', 'sd:hld-instagram', 'sd:hld-google-docs', 'sdm:hld-rate-limiter', 'sdm:hld-whatsapp', 'sdm:hld-ticketmaster'];
+  const DEPTH_2 = ['sd:ddia-8a', 'sd:ddia-8b', 'sd:ddia-9a', 'sd:ddia-9b', 'jt:hiw-linear-sync-engine', 'jt:hiw-notion-data-model', 'jt:hiw-nextjs-caching',
+    'jt:hiw-shopify-bfcm', 'jt:hiw-cloudflare-nov-2025', 'jt:hiw-github-copilot', 'sd:block-stream-processing', 'sd:block-blob-media', 'sd:block-ids-clocks-locks'];
+  const ORDER = ['sd:numbers-card', 'sd:os', 'sd:concurrency', 'sd:internet', 'sd:fundamentals', 'sd:cap-pacelc', 'sd:communication', 'sd:caching',
+    'sd:messaging', 'sd:delivery-framework', 'sd:concepts-to-master', 'sd:hld-bitly'];
+  for (let k = 0; k < 17; k++) ORDER.push(HLD_LEARN[k], DEPTH_1[k]); // slots 13–46: HLD odd, depth even
+  ORDER.push(...DEPTH_1.slice(17)); // slots 47–54: the depth items left
+  for (let k = 0; k < 11; k++) ORDER.push(MOCKS[k], DEPTH_2[k]); // slots 55–76: mock odd, depth even
+  ORDER.push(...DEPTH_2.slice(11));
+  assert.equal(ORDER.length, 78);
+  assert.equal(new Set(ORDER).size, 78);
+  assert.equal(ORDER[12], 'sd:hld-rate-limiter');
+  assert.equal(ORDER[13], 'sd:ddia-2a');
+  assert.equal(ORDER[44], 'sd:hld-leetcode');
+  assert.equal(ORDER[45], 'sd:ddia-7b');
+  assert.equal(ORDER[53], 'sd:block-realtime-fanout');
+  assert.equal(ORDER[54], 'sd:hld-tinder');
+  assert.equal(ORDER[75], 'sd:block-stream-processing');
+  assert.equal(SYS.length, 78, 'SYSTEMS has 78 rows');
+  assert.deepEqual(SYS.map((r) => r.id), ORDER, 'SYSTEMS order');
+  assert.deepEqual(T.sd.map((s: Any) => s.items[0].id), ORDER, 'sd track = SYSTEMS, one row per slot');
+  for (const x of T.sd.flatMap((s: Any) => s.items)) assert.equal(x.cat, 'sd', `${x.id} cat sd`);
+  // Learning rows: Understand + Do + Explain. Mocks: one 45-min task with a self-review against the framework.
+  SYS.forEach((r, i) => {
+    const s = T.sd[i].items;
+    assert.match(r.url, /^https:\/\//, `${r.id} url`);
+    if (r.url2) { assert.match(r.url2, /^https:\/\//, `${r.id} url2`); assert.notEqual(r.url2, r.url, `${r.id} url2 differs`); }
+    assert.ok(!('after' in r), `${r.id} has no after`);
+    if (r.kind) {
+      assert.equal(r.kind, 'mock', `${r.id} kind`);
+      assert.equal(r.mins, 45, `${r.id} 45 min`);
+      assert.equal(s.length, 1);
+      assert.match(r.text, /self-review/i, `${r.id} self-review`);
+      assert.match(r.text, /delivery framework/i, `${r.id} against the framework`);
+    } else {
+      assert.deepEqual(s.map((x: Any) => x.id), [r.id, `${r.id}:do`, `${r.id}:explain`], `slot ${i + 1} has 3 tasks`);
+      assert.match(r.explain, /Deep enough when you can/, `${r.id} explain`);
+    }
+    const text = [r.understand, r.do, r.explain, r.text].filter(Boolean).join(' ');
+    assert.ok(!/python|pandas|notebook/i.test(text), `${r.id} no Python/pandas/notebook`);
+    assert.ok(!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(text), `${r.id} no emoji`);
+  });
+  assert.deepEqual(SYS.map((r, i) => (r.kind ? i + 1 : 0)).filter(Boolean), Array.from({ length: 11 }, (_, k) => 55 + 2 * k), 'mocks at slots 55–75 odd');
+  // 26 distinct HLD designs (learn + mock); the second-pass sdm: mocks are extra.
+  const hld = SYS.filter((r) => r.id.startsWith('sd:hld-'));
+  assert.equal(new Set(hld.map((r) => r.id)).size, 26, '26 HLD designs');
+  assert.equal(hld.filter((r) => !r.kind).length, 18, '18 learned');
+  assert.equal(hld.filter((r) => r.kind).length, 8, '8 as mocks');
+  for (const r of hld.filter((r) => !r.kind)) {
+    assert.match(r.url, /^https:\/\/(www\.)?(hellointerview\.com|bytebytego\.com)\//, `${r.id} Understand is Hello Interview or ByteByteGo`);
+    assert.ok(r.do.startsWith('Draw it yourself in Excalidraw, 45 min'), `${r.id} do`);
+    assert.match(r.explain, /compare/i, `${r.id} compare`);
+    assert.match(r.explain, /3 trade-offs/, `${r.id} 3 trade-offs`);
+  }
+  // DDIA chapters 2–9, 2 slots each, in book order.
+  const ddia = SYS.filter((r) => r.id.startsWith('sd:ddia-')).map((r) => r.id);
+  assert.deepEqual(ddia, [2, 3, 4, 5, 6, 7, 8, 9].flatMap((ch) => [`sd:ddia-${ch}a`, `sd:ddia-${ch}b`]));
+  // Sourcing rule: the System Design Primer as the secondary link.
+  const PRIMER = 'https://github.com/donnemartin/system-design-primer';
+  assert.ok([SYS[0].url, SYS[0].url2].includes(`${PRIMER}#latency-numbers-every-programmer-should-know`), 'slot 1 has the primer latency table');
+  const solved: Record<string, string> = { 'sd:hld-bitly': 'pastebin', 'sd:hld-web-crawler': 'web_crawler', 'sd:hld-distributed-cache': 'query_cache', 'sd:hld-fb-news-feed': 'twitter' };
+  for (const [id, sol] of Object.entries(solved)) assert.equal(SYS.find((r) => r.id === id).url2, `${PRIMER}/blob/master/solutions/system_design/${sol}/README.md`, `${id} primer solution`);
+  // No frontend or AI design in this track (sd:fe-* wait for Task 8; sd:ai-* are in the AI core).
+  assert.ok(!T.sd.some((s: Any) => s.items.some((x: Any) => /^sdm?:(fe|ai)-/.test(x.id))), 'no sd:fe-* or sd:ai-* in Systems');
+  // covers, as the brief names them
+  const COVERS: Record<string, string[]> = {
+    'sd:internet': ['fe:os-networking'], 'sd:fundamentals': ['sd:capacity-estimation'], 'sd:communication': ['fe:api-design'],
+    'sd:ddia-2a': ['ai:depth-ddia-data-models'], 'sd:ddia-3a': ['ai:depth-ddia-storage-indexes', 'sd:storage'],
+    'sd:ddia-5a': ['ai:depth-ddia-replication', 'sd:replication-sharding'], 'sd:ddia-7a': ['ai:depth-ddia-transactions', 'sd:transactions'],
+    'sd:ddia-9a': ['sd:reliability'], 'sd:hld-robinhood': ['sdm:hld-robinhood'], 'sd:hld-instagram': ['sdm:hld-instagram'], 'sd:hld-google-docs': ['sdm:hld-google-docs'],
+  };
+  for (const r of SYS) assert.deepEqual([...(r.covers ?? [])].sort(), [...(COVERS[r.id] ?? [])].sort(), `${r.id} covers`);
+  // v2 ids keep their url.
+  const v2 = new Map<string, Any>([...(sd.SD as Any[]), ...(sd.SD_MOCKS as Any[]), ...(judgment.HOW_IT_WORKS as Any[])].map((x) => [x.id, x]));
+  for (const r of SYS) if (v2.get(r.id)?.url) assert.equal(r.url, v2.get(r.id).url, `${r.id} keeps its v2 url`);
+  assert.equal(SYS.find((r) => r.id === 'jt:hiw-stripe-idempotency').url, (judgment.JT_DEPTH_READS as Any[])[0].url);
+}
 
 // ---------- ai (v2 evening track, interim until Task 8) ----------
-// AI core places or absorbs every AI_EVENING item but the 4 DDIA reads and every AI_REVIEW, so the v2 evening track skips
-// them: the DDIA chain from the first slot, then notes-revisit fillers.
+// AI core places or absorbs every AI_EVENING item but the 4 DDIA reads, and Systems absorbs those (ddia-2a/3a/5a/7a), so
+// the v2 evening track is notes-revisit fillers.
 {
   const left = (ai.AI_EVENING as Any[]).filter((x) => !CORE_PLACED.has(x.id) && !CORE_COVERS.has(x.id)).map((x) => x.id);
   assert.deepEqual(left, ['ai:depth-ddia-data-models', 'ai:depth-ddia-storage-indexes', 'ai:depth-ddia-replication', 'ai:depth-ddia-transactions']);
-  assert.deepEqual(T.ai.slice(0, 4).map((s: Any) => s.items[0].id), left, 'DDIA reads in order from slot 1');
-  for (let i = 4; i < 78; i++) {
+  for (const id of left) assert.ok(SYS_COVERS.has(id), `${id} covered by Systems`);
+  for (let i = 0; i < 78; i++) {
     assert.equal(T.ai[i].items.length, 1);
     const x = T.ai[i].items[0];
     assert.ok(x.filler && x.id.startsWith('ai:revisit-notes-'), `ai[${i}] notes revisit`);
     assert.match(x.text, /^Revisit: re-read your notes from /);
   }
-  for (const id of [...CORE_PLACED, ...CORE_COVERS]) assert.equal(slotOf('ai', id), -1, `${id} not in the v2 evening track`);
+  for (const id of [...CORE_PLACED, ...CORE_COVERS, ...SYS_COVERS]) assert.equal(slotOf('ai', id), -1, `${id} not in the v2 evening track`);
 }
 
 // ---------- mc ----------
@@ -322,7 +403,8 @@ const sre = slotOf('jt', 'jt:depth-sre-troubleshooting');
 assert.ok(sre >= 0 && sre < slotOf('jt', 'jt:oss-fix-1'), 'SRE read before oss-fix-1');
 assert.equal(allIds.filter((id) => id === 'jt:hiw-stripe-idempotency').length, 1);
 for (let w = 1; w <= 13; w++) {
-  if (w <= 10) assert.equal(ids('jt', idx(w, 1))[0], (judgment.HOW_IT_WORKS as Any[])[w - 1].id, `Mon wk${w}`);
+  // Interim until Task 5: Systems lays out the how-it-works case studies, so the jt Mondays are repeat fillers.
+  assert.ok(ids('jt', idx(w, 1)).every((id) => id.startsWith('jt:hiw-repeat-')), `Mon wk${w} how-it-works repeat`);
   assert.equal(ids('jt', idx(w, 2))[0], (judgment.MEMOS as Any[])[w - 1].id, `Tue wk${w}`);
   if (w <= 12) assert.equal(ids('jt', idx(w, 3))[0], (judgment.PRACTICAL as Any[])[w - 1].id, `Wed wk${w}`);
   if (w >= 2) assert.equal(ids('jt', idx(w, 4))[0], (judgment.DECOMP as Any[])[w - 2].id, `Thu wk${w}`);
