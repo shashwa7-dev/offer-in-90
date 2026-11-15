@@ -3,6 +3,8 @@
 // 90-day curriculum. Built from the "Amazon Interview Prep by AnubhavInTech" Whimsical board,
 // extended for frontend / full-stack loops at Google, Meta, Microsoft, Amazon.
 
+import { ADV_DSA } from './content/dsa.js';
+
 const LC = s => `https://leetcode.com/problems/${s}/`;
 const NC = s => `https://neetcode.io/problems/${s}`;
 
@@ -502,18 +504,6 @@ const AI_NEWS = [
   ['TLDR AI', 'https://tldr.tech/ai'], ["Simon Willison's blog", 'https://simonwillison.net/'], ['The Batch', 'https://www.deeplearning.ai/the-batch/'],
   ['Hacker News', 'https://news.ycombinator.com/'], ['LMArena leaderboard (how models compare)', 'https://lmarena.ai/leaderboard'], ['Artificial Analysis (speed, price, quality)', 'https://artificialanalysis.ai/'],
   ['Latent Space', 'https://www.latent.space/'],
-];
-
-// Advanced DSA from the board (revision block, s40–s56, every other day).
-const ADV_DSA = [
-  ['Advanced DSA: Union-Find / DSU', 'https://leetcode.com/discuss/post/1072418/disjoint-set-union-dsuunion-find-a-compl-2oqn/'],
-  ['Advanced DSA: Difference array', 'https://medium.com/@p.thapar99/the-beauty-of-difference-array-technique-in-problem-solving-6d45eb726531'],
-  ['Advanced DSA: Line sweep', 'https://leetcode.com/discuss/post/2166045/line-sweep-algorithms-by-c0d3m-8ebq/'],
-  ['Advanced DSA: Fenwick tree (BIT)', 'https://leetcode.com/discuss/post/1093346/introduction-to-fenwick-treebinary-index-tp6h/'],
-  ['Advanced DSA: Segment tree', 'https://www.youtube.com/watch?v=jGA1DonowlQ'],
-  ['Advanced DSA: DP on trees', 'https://www.youtube.com/watch?v=kM3A6AjHvjM'],
-  ['Advanced DSA: Digit DP', 'https://www.youtube.com/watch?v=KaU-AM8wo4Q'],
-  ['DP roadmap: map the DP patterns you know vs the ones you don\'t', 'https://www.reddit.com/r/leetcode/comments/14o10jd/the_ultimate_dynamic_programming_roadmap/'],
 ];
 
 const OA_LINKS = [
