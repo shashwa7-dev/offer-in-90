@@ -381,7 +381,6 @@ for (const [tr, plan, early] of [[tracks, S, false], [tracksEarly, SEarly, true]
   const pool = (dsa.PROBLEMS as Any[]).filter((p) => (p.role === 'var' || p.tier === 'optional') && !inSlots.has(p.slug));
   const bySlug = new Map(pool.map((p) => [p.slug, p]));
   const L = layoutDays({ start: START, kickoff: true, modes: {}, tracks, done: {} } as Any);
-  const lastDsa = L.findLastIndex((x: Any) => x.slots.dsa);
   const covered = new Set<string>(), used = new Set<string>();
   let revisits = 0, flaggedDays = 0, nonHardDays = 0;
   S.forEach((d, i) => {
@@ -389,7 +388,7 @@ for (const [tr, plan, early] of [[tracks, S, false], [tracksEarly, SEarly, true]
     if (d.type === 'sun') for (const t of d.tasks) if (t.id.startsWith('sp:')) used.add(t.slug!);
     if (d.type !== 'study') return;
     const date = isoOf(d.date);
-    if (!L[i].slots.dsa && i < lastDsa) {
+    if (!L[i].slots.dsa) {
       revisits++;
       assert.equal(block(d, 'buffer-dsa'), undefined, `${date}: no DSA buffer`);
       const ts = block(d, 'dsa').tasks;
@@ -414,12 +413,12 @@ for (const [tr, plan, early] of [[tracks, S, false], [tracksEarly, SEarly, true]
         if (!ts.some((t: Any) => HARD.includes(bySlug.get(t.slug).pattern))) nonHardDays++;
         for (const t of ts) used.add(t.slug);
       }
-    } else if (!L[i].slots.dsa) assert.ok(block(d, 'buffer-dsa'), `${date}: DSA finished, a buffer`);
+    }
     for (const x of L[i].slots.dsa?.items ?? []) if (x.pattern) covered.add(x.pattern);
   });
   assert.ok(revisits >= 20, `Steady has ${revisits} revisit days`);
-  // The spec's count: 23 (the last DSA rest day falls after DSA's final slot, so it is a buffer).
-  if (!early) assert.equal(revisits, 23, 'Steady has 23 revisit days');
+  // The spec's count: 24, including the study days after DSA's last slot (owner rule 2026-11-15).
+  if (!early) assert.equal(revisits, 24, 'Steady has 24 revisit days');
   if (early) assert.ok(flaggedDays >= 1, 'early revisit day with nothing covered: re-solve a flagged problem');
   assert.ok(nonHardDays >= 1, 'before any hard pattern: picks from any covered pattern');
   // Grind never revisits
@@ -449,10 +448,7 @@ assert.equal(S.length, 120, 'Steady length unchanged');
       const sm = Object.fromEntries(plan.filter((d: Any) => d.type === 'sun').map((d: Any) => [isoOf(d.date), sundayMode]));
       const P = sundayMode === 'rest' ? plan : build({ modes, sundayMode: sm });
       assert.equal(P.length, plan.length, `${name} ${sundayMode}: same length`);
-      const lastDsa = P.findLastIndex((d: Any) => d.type === 'study' && block(d, 'dsa'));
-      P.forEach((d: Any, i: number) => {
-        // A Steady study day after DSA's final slot has a DSA buffer (spec count: 23 revisit days): see the report.
-        if (d.type === 'study' && i > lastDsa) return;
+      P.forEach((d: Any) => {
         assert.ok(d.tasks.some(isProblem), `${name} ${sundayMode} day ${d.no} (${d.type}): a DSA problem`);
       });
       const covered = new Set<string>(), seen = new Set<string>();

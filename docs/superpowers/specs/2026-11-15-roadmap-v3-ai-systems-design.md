@@ -105,8 +105,8 @@ on earlier days:
 **On a DSA rest day the 05:15 hour is not a buffer.** It is a generated **pattern revisit**: 2 problems you haven't
 solved from the hardest patterns you have already covered (DP, graphs, backtracking, trees, heaps, intervals,
 sliding window, binary search). It draws first from those patterns' former `var` problems (25), then from their
-optional pool (`hot` first). It is timed (45 min) and logged as unseen. Steady has 23 of these days
-(the last DSA rest day falls after DSA's final slot, so it is a buffer).
+optional pool (`hot` first). It is timed (45 min) and logged as unseen. Steady has 24 of these days,
+including the study days after DSA's last slot.
 
 ## Track contents (exactly 78 slots each)
 

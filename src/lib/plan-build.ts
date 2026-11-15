@@ -213,14 +213,13 @@ export function buildPlanFrom(state: PlanState, updates: UpdateItem[], custom: R
   const covered = new Set<string>();
   const carry: Task[] = []; // sundayCarry items waiting for this week's Sunday (R9)
 
-  // Steady DSA rest days (until the track is finished): a pattern revisit instead of a buffer. The pool is the former
+  // Steady DSA rest days (also after the track is finished, owner rule 2026-11-15): a pattern revisit instead of a buffer. The pool is the former
   // `var` and the optional problems that no track slot uses.
   const inSlots = new Set(TRACK_IDS.flatMap((t) => lib.tracks[t].flatMap((s) => s.items.flatMap((x) => (x.slug ? [x.slug] : [])))));
   const revisitPool = problems.filter((p) => (p.role === 'var' || p.tier === 'optional') && !inSlots.has(p.slug));
   const patternRank = new Map<string, number>((c.PATTERNS ?? []).map((p: Row, j: number) => [p.id, j]));
-  const lastDsaDate = layout.filter((L) => live(L, 'dsa')).at(-1)?.date ?? '';
   const revisitUsed = new Set<string>();
-  const revisits = (L: LayoutDay) => L.mode === 'steady' && L.kind === 'study' && !L.slots.dsa && L.date < lastDsaDate;
+  const revisits = (L: LayoutDay) => L.mode === 'steady' && L.kind === 'study' && !L.slots.dsa;
   /** `n` problems not solved yet from covered patterns, marked used: the hard patterns first (any covered pattern before
    * one is covered), `var` before optional, `hot` first. Steady revisit days and Sunday problems share `used`. */
   function revisitPicks(seen: Set<string>, used: Set<string>, n: number): Row[] {
@@ -292,7 +291,7 @@ export function buildPlanFrom(state: PlanState, updates: UpdateItem[], custom: R
     }
 
     // Mon–Sat study day. A track block with no slot today becomes a buffer at the same times (Steady rotation, or a
-    // track already finished), except a Steady DSA rest day, which is a pattern revisit.
+    // track already finished), except a Steady DSA rest day (finished or not), which is a pattern revisit.
     const revisit = revisits(L);
     const slotTitled = (k: string) => (k === 'mc' ? !!L.slots.mc?.items.some((x) => x.cat === 'mc') : k === 'beh' && !!L.slots.beh?.items.some((x) => mockDayIds.has(x.id)));
     const tpl: TemplateBlock[] = lib.WEEKDAY_BLOCKS.map((b) => (TRACK_IDS.includes(b.k as TrackId) && !L.slots[b.k as TrackId] && !(revisit && b.k === 'dsa')
