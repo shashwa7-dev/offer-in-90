@@ -1,6 +1,6 @@
 // Run: node --experimental-strip-types scripts/test-task-status.ts
 import assert from 'node:assert/strict';
-import { STATUS_LABEL, applyStatus, counts, goodStreak, isSkipped, owes, rate, settled, statusOf, studyCounts } from '../src/lib/task-status.ts';
+import { STATUS_LABEL, applyStatus, counts, goodStreak, isSkipped, owes, rate, settled, statusOf, studyCounts, unseenHidden } from '../src/lib/task-status.ts';
 
 assert.deepEqual(STATUS_LABEL, { todo: 'Not started', progress: 'In progress', done: 'Done', skipped: 'Skipped' });
 
@@ -70,4 +70,8 @@ assert.equal(goodStreak([null, null]), 0);
   assert.equal(settled({ id: 's' }, {}, st), true);
 }
 
+// an unseen check stays hidden while not started or skipped; Start, progress or done reveals it
+assert.equal(unseenHidden(true, 'todo'), true); assert.equal(unseenHidden(true, 'skipped'), true);
+assert.equal(unseenHidden(true, 'progress'), false); assert.equal(unseenHidden(true, 'done'), false);
+assert.equal(unseenHidden(undefined, 'todo'), false); assert.equal(unseenHidden(false, 'skipped'), false);
 console.log('task-status: all checks pass');

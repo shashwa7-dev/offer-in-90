@@ -11,6 +11,7 @@ import { newsTabFor, useUI } from './ui-state';
 import { TaskInput, deleteOwn, parseTask } from './own-task';
 import { LabelChip, taskLabelViews } from './label-picker';
 import { namePrompt } from '@/lib/dsa-page';
+import { unseenHidden } from '@/lib/task-status';
 
 export const noteKey = (t: Task) => (t.slug ? `p-${t.slug}` : t.id);
 const DIFF = { E: 'Easy', M: 'Medium', H: 'Hard' } as const;
@@ -41,8 +42,8 @@ export function TaskRow({ t, dayIdx, extra, status, chip, noStatusChip }: { t: T
   const flag = () => update(s => { const f = { ...s.flags }; if (f[t.slug!]) delete f[t.slug!]; else f[t.slug!] = 1; return { ...s, flags: f }; });
   const lbls = taskLabelViews(t, state, st);
   const title = t.text.replace(/^Re-solve without looking: /, '');
-  // An unseen check shows no title, link, difficulty or pattern until Start (spec §2).
-  const hidden = !!t.hiddenUntilStart && st === 'todo';
+  // An unseen check shows no title, link, difficulty, pattern or update note until Start (spec §2); skipping keeps it hidden.
+  const hidden = unseenHidden(t.hiddenUntilStart, st);
 
   return (
     <div data-task={t.id} data-own={t.own ? '' : undefined} tabIndex={editing ? undefined : 0} onKeyDown={onKey}
@@ -70,7 +71,7 @@ export function TaskRow({ t, dayIdx, extra, status, chip, noStatusChip }: { t: T
             {chip && <Chip className="ml-2 max-w-[calc(100%-0.5rem)] align-[1px]" data-block-chip title={chip}><span className="truncate">{chip}</span></Chip>}
             {t.cat === 'update' && <Chip className="ml-2 align-[1px] border-input text-foreground">New</Chip>}
             {extra && <span className={cn('text-faint', missed && 'text-stone-foreground')}> · {extra}</span>}
-            {t.outdated && (
+            {t.outdated && !hidden && (
               <span className="mt-1 flex items-start gap-1.5 text-[12px] text-stone-foreground"><AlertTriangle className="mt-px size-3.5 shrink-0" />{t.outdated.kind === 'outdated' ? 'Outdated' : 'Changed'}: {t.outdated.why}{t.outdated.replacementUrl ? ' Link updated.' : ''}</span>
             )}
           </div>

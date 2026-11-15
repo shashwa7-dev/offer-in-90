@@ -667,6 +667,7 @@ try {
   for (const [width, height] of [[1100, 900], [390, 844]]) {
     for (const future of [false, true]) {
       const st = new Date(); st.setDate(st.getDate() + (future ? 5 : -9));
+      if (!future) st.setDate(st.getDate() - ((st.getDay() + 6) % 7)); // the Monday on or before (a start is always a Monday)
       const fx = { ...fixture, modes: GRIND, start: isoDay(st) };
       const ctx = await browser.newContext({ viewport: { width, height } });
       await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
@@ -1094,7 +1095,7 @@ try {
     const exported = JSON.parse(readFileSync(await dl.path(), 'utf8'));
     if (exported.start && exported.pages?.pgkeep && /^offer90-backup-\d{4}-\d{2}-\d{2}\.json$/.test(dl.suggestedFilename())) ok(`${W}: export downloads the state (${dl.suggestedFilename()})`); else fail(`${W}: export wrong (${dl.suggestedFilename()})`);
     const imp = join(shots, '..', 'smoke-import.json');
-    writeFileSync(imp, JSON.stringify({ ...exported, notes: { 0: 'Imported by smoke' } }));
+    writeFileSync(imp, JSON.stringify({ ...exported, notes: { 0: 'Imported by smoke' }, solves: { 'p-two-sum': { unseen: false, minutes: 12, at: 1 } }, scores: { 'w1/dsa': 55 }, sundayMode: { '2026-11-08': 'revision' }, labels: { 'lb-keep': { id: 'lb-keep', name: 'Keep me', color: '#2563eb', kind: 'label' } } }));
     await page.locator('input[type="file"]').setInputFiles(imp);
     await page.waitForTimeout(400);
     if ((await saved()).notes?.[0] === 'Imported by smoke' && await toastSeen(/Backup imported/)) ok(`${W}: import replaces the state`); else fail(`${W}: import did not apply`);
@@ -1114,7 +1115,8 @@ try {
     await alert.getByRole('button', { name: 'Start over' }).click();
     await page.waitForTimeout(400);
     let st = await saved();
-    if (st.start === nextMondayOf(new Date()) && !Object.keys(st.done).length && !Object.keys(st.flags).length && !Object.keys(st.notes).length && st.pages?.pgkeep && st.bookmarks?.['n-keep'] && st.custom?.ckeep) ok(`${W}: Start over resets the plan and keeps pages, bookmarks, own tasks`); else fail(`${W}: Start over wrong (${JSON.stringify({ start: st.start, done: Object.keys(st.done).length, flags: Object.keys(st.flags).length, notes: Object.keys(st.notes).length })})`);
+    const cleared = ['done', 'status', 'flags', 'notes', 'solves', 'scores', 'sundayMode'].filter(k => Object.keys(st[k] || {}).length);
+    if (st.start === nextMondayOf(new Date()) && !cleared.length && st.pages?.pgkeep && st.bookmarks?.['n-keep'] && st.custom?.ckeep && st.labels?.['lb-keep']) ok(`${W}: Start over resets the plan (ticks, logs, solves, scores, Sunday modes) and keeps pages, bookmarks, own tasks, labels`); else fail(`${W}: Start over wrong (${JSON.stringify({ start: st.start, notCleared: cleared, labels: !!st.labels?.['lb-keep'] })})`);
     // Erase → confirm
     await page.getByRole('button', { name: 'Erase…' }).click();
     await page.waitForTimeout(300);
@@ -1436,6 +1438,45 @@ try {
       await page.screenshot({ path: join(shots, `all-${label}-${v}.png`), fullPage: true });
     }
     await ctx.close();
+  }
+  // ---------- Start snaps to a Monday; one-time Roadmap v2 line for a pre-v6 state ----------
+  {
+    const run = async (fx, label) => {
+      const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
+      await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
+      const page = await ctx.newPage();
+      const errors = [];
+      page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+      page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+      await page.goto(URL, { waitUntil: 'networkidle' });
+      await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+      await page.waitForTimeout(400);
+      return { ctx, page, errors, W: `v2 notice ${label}` };
+    };
+    {
+      const { ctx, page, errors, W } = await run({ ...fixture, v: 5, start: '2026-11-04' }, 'v5'); // a Wednesday
+      const hdr = (await page.locator('header').first().innerText().catch(() => '')).replace(/\s+/g, ' ');
+      const line = page.locator('[data-v2-notice]');
+      if (await line.count() === 1 && /Roadmap v2 is here\. Ticks from the old plan don.t carry over — use Setup → Start over to begin fresh\./.test(await line.innerText())) ok(`${W}: the one-time line shows for a v5 state`); else fail(`${W}: no Roadmap v2 line for a v5 state`);
+      await page.locator('[data-v2-dismiss]').click();
+      await page.waitForTimeout(300);
+      if (!(await line.count())) ok(`${W}: dismiss hides it`); else fail(`${W}: dismiss did not hide it`);
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForTimeout(400);
+      if (!(await page.locator('[data-v2-notice]').count())) ok(`${W}: stays dismissed after reload`); else fail(`${W}: shown again after reload`);
+      // the saved Wednesday start reads as the next Monday (9 Nov): today's day number counts from Mon 9 Nov, not Wed 4 Nov
+      const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+      const dayNo = Math.round((+t0 - +new Date(2026, 10, 9)) / 864e5) + 1;
+      if (new RegExp(`Day ${dayNo} of `).test(hdr)) ok(`${W}: a Wednesday start snaps to Monday 9 Nov (today is day ${dayNo})`); else fail(`${W}: start not snapped (expected Day ${dayNo}: ${hdr})`);
+      checkErrors(errors, W);
+      await ctx.close();
+    }
+    {
+      const { ctx, page, errors, W } = await run(fixture, 'v6');
+      if (!(await page.locator('[data-v2-notice]').count())) ok(`${W}: no line for a v6 state`); else fail(`${W}: line shown to a v6 state`);
+      checkErrors(errors, W);
+      await ctx.close();
+    }
   }
   // ---------- No old design tokens left outside src/components/ui ----------
   {

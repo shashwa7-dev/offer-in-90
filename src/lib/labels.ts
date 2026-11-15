@@ -113,3 +113,9 @@ export function removeLabel(state: State, itemId: string, labelId: string): Stat
 export function labelsOf(itemLabels: Record<string, string[]>, t: TaskMeta): string[] {
   return [...(itemLabels[t.id] || []), ...systemLabelsFor(t)];
 }
+
+/** The label ids a task may show or match. An unseen check that is still hidden (not started, or skipped) keeps every
+ * system label back except Source, so no pattern, tier, frequency or depth hints at what it is. Owner labels stay. */
+export function visibleLabelIds(ids: string[], hidden: boolean): string[] {
+  return hidden ? ids.filter((id) => !id.startsWith('sys:') || id.startsWith('sys:source:')) : ids;
+}

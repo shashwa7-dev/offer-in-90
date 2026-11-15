@@ -12,7 +12,7 @@ import { PATTERN_IDS, addOwnProblem, greenStatus, leetcodeSlug } from '@/lib/pat
 import { DOT_LABEL, planDayMap, readinessDot, resolveDayMap, todayPattern, type Dot } from '@/lib/dsa-page';
 import { DIFFS, EMPTY_DSA_FILTER, HOTS, STATUSES, TIERS, facetCounts, filterRows, groupProblems, isFilterEmpty, liveFilter, parseDsaFilter, type DsaFilter, type DsaView as ViewSel, type Facet, type FilterRow } from '@/lib/dsa-filter';
 import { applyLabel, labelsOf, removeLabel } from '@/lib/labels';
-import { statusOf } from '@/lib/task-status';
+import { statusOf, unseenHidden } from '@/lib/task-status';
 import type { OwnProblem } from '@/lib/state-types';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -80,7 +80,7 @@ export function DsaView() {
     const all: Row[] = [...PLAN, ...Object.values(state.own).map((o): Row => ({ slug: o.slug, name: o.name, d: o.diff, pattern: o.pattern, tier: 'optional', flags: [], url: o.url, own: true }))];
     return all.map(r => {
       const id = `p-${r.slug}`, st = statusOf(id, state.done, state.status);
-      return { ...r, done: st === 'done', hidden: r.role === 'unseen' && st === 'todo',
+      return { ...r, done: st === 'done', hidden: unseenHidden(r.role === 'unseen', st),
         labels: labelsOf(state.itemLabels, { id, own: r.own ? r.slug : undefined, pattern: r.pattern, tier: r.tier, flags: r.flags as ('hot' | 'hard-hot')[] }) };
     });
   }, [state.own, state.done, state.status, state.itemLabels]);
@@ -255,7 +255,7 @@ function ProblemRow({ r, day, resolves, labelIds, highlighted, rowRef }: { r: Ro
   const { state, update } = useStore();
   const id = `p-${r.slug}`;
   const [st] = useTaskStatus(id);
-  const hidden = r.role === 'unseen' && st === 'todo'; // an unseen check keeps its name back until Start
+  const hidden = unseenHidden(r.role === 'unseen', st); // an unseen check keeps its name back until Start (skipping keeps it hidden)
   const label = hidden ? 'Unseen problem' : r.name;
   const views = labelIds.filter(x => !x.startsWith('sys:')).map(x => viewOf(x, state.labels)).filter((v): v is NonNullable<ReturnType<typeof viewOf>> => !!v);
   const toggle = (labelId: string, on: boolean) => update(s => { const n = (on ? applyLabel : removeLabel)({ labels: s.labels, itemLabels: s.itemLabels }, id, labelId); return n.itemLabels === s.itemLabels ? s : { ...s, itemLabels: n.itemLabels }; });

@@ -5,6 +5,7 @@ import { AlertTriangle, CalendarDays, Play, Clock, Flag, Gauge, Link2, Maximize2
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import { defaultBlock } from '@/lib/own-tasks';
+import { unseenHidden } from '@/lib/task-status';
 import { domainOf } from '@/lib/interview-feed';
 import { fmtDate, iso, type Day, type Task } from '@/lib/engine';
 import { applyLabel, removeLabel } from '@/lib/labels';
@@ -78,8 +79,8 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
   // Recognition drill: patterns stay hidden until the owner has named them.
   const [reveal, setReveal] = useState(false);
   useEffect(() => { setReveal(false); }, [t.id]);
-  // An unseen check stays anonymous until Start (spec §2).
-  const hidden = !!t.hiddenUntilStart && st === 'todo';
+  // An unseen check stays anonymous until Start (spec §2); skipping keeps it hidden.
+  const hidden = unseenHidden(t.hiddenUntilStart, st);
   const solveKey = solveKeyOf(t.id);
   const isProblem = !!solveKey?.startsWith('p-') && !!t.slug;
   const title = hidden ? 'Unseen problem' : t.text.replace(/^Re-solve without looking: /, '');
@@ -152,7 +153,7 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
           </div>
           <SheetDescription className="sr-only">Task details and note</SheetDescription>
           {!t.own && <p className="-mt-2 text-[13px] text-muted-foreground">Part of the plan. You can tick it, flag it and write notes, but not edit or remove it.</p>}
-          {t.outdated && (
+          {t.outdated && !hidden && (
             <p className="flex items-start gap-1.5 rounded-md border border-stone-border bg-stone px-3 py-2 text-[13px] text-stone-foreground"><AlertTriangle className="mt-0.5 size-3.5 shrink-0" />{t.outdated.kind === 'outdated' ? 'Outdated' : 'Changed'}: {t.outdated.why}{t.outdated.replacementUrl ? ' Link updated.' : ''}</p>
           )}
 

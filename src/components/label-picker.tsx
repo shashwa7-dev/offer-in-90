@@ -5,7 +5,8 @@ import { useState } from 'react';
 import { Check, Flame, Star, Tag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useStore, type State } from '@/lib/store';
-import { labelsOf, type TaskMeta } from '@/lib/labels';
+import { labelsOf, visibleLabelIds, type TaskMeta } from '@/lib/labels';
+import { unseenHidden, type TaskStatus } from '@/lib/task-status';
 import { PATTERN_IDS } from '@/lib/patterns';
 import { patternNameOf, type Task } from '@/lib/engine';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -57,11 +58,10 @@ export function taskMeta(t: Task, state: State): TaskMeta {
 }
 
 /** The labels a task shows: system Source (Yours only) and Pattern first, then owner labels, then other system labels.
-    Stale owner ids are dropped. An unseen problem keeps its Pattern hidden until it is started. */
-export function taskLabelViews(t: Task, state: State, status: string): LabelView[] {
-  const ids = labelsOf(state.itemLabels, taskMeta(t, state));
-  const hidePattern = !!t.hiddenUntilStart && status === 'todo';
-  const views = ids.filter(id => !(hidePattern && id.startsWith('sys:pattern:'))).map(id => viewOf(id, state.labels)).filter((v): v is LabelView => !!v);
+    Stale owner ids are dropped. A hidden unseen check (not started, or skipped) shows no system label but Source. */
+export function taskLabelViews(t: Task, state: State, status: TaskStatus): LabelView[] {
+  const ids = visibleLabelIds(labelsOf(state.itemLabels, taskMeta(t, state)), unseenHidden(t.hiddenUntilStart, status));
+  const views = ids.map(id => viewOf(id, state.labels)).filter((v): v is LabelView => !!v);
   const rank = (v: LabelView) => v.id === 'sys:source:yours' ? 0 : v.id.startsWith('sys:pattern:') ? 1 : !v.system ? 2 : 3;
   return views.filter(v => v.id !== 'sys:source:plan').sort((a, b) => rank(a) - rank(b));
 }

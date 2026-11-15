@@ -402,7 +402,7 @@ The AI build slot then also takes the build steps from the existing AI units, so
 
 ### 11. Readiness checks (shown as Sunday checks; applying never required)
 
-- **Week 4:** 3 past-project deep dives rehearsed; story bank of 12 stories; pitch recorded; unseen checks passed for the Arrays and Stack patterns; 3 decision memos; weekly test ≥ 70%.
+- **Week 4:** 3 past-project deep dives rehearsed; story bank of 12 stories; pitch recorded; unseen checks passed for the hash map, prefix sum, two pointers, sliding window, cyclic sort and stack patterns; 3 decision memos; weekly test ≥ 70%.
 - **Week 8:** Linked List, Trees and Heaps green; 4 open-source fixes submitted; flagship has real-time and 1 AI feature working; take-home 1 done.
 - **Week 10:** unseen checks passed for 18 of the 24 patterns; 6 decomposition reps.
 - **Week 12:** all 24 patterns green (the second unseen solve comes from Phase 3 timed sets and mocks); the top-12 machine-coding builds done in ≤ 45 min.

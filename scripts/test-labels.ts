@@ -1,6 +1,6 @@
 // Run: node --experimental-strip-types scripts/test-labels.ts
 import assert from 'node:assert/strict';
-import { applyLabel, createGroup, createLabel, deleteLabel, labelsOf, removeLabel, renameLabel, recolorLabel, systemLabelsFor } from '../src/lib/labels.ts';
+import { applyLabel, createGroup, createLabel, deleteLabel, labelsOf, removeLabel, renameLabel, recolorLabel, systemLabelsFor, visibleLabelIds } from '../src/lib/labels.ts';
 
 type L = Record<string, any>;
 const ok = (r: any) => { assert.ok(!('error' in r), JSON.stringify(r)); return r as { labels: L; id: string }; };
@@ -72,4 +72,10 @@ assert.equal(applyLabel(base, 'p', co.id), base);
 // labelsOf
 assert.deepEqual(labelsOf({ p: [swi.id] }, { id: 'p', tier: 'must' }), [swi.id, 'sys:tier:must', 'sys:source:plan']);
 
+// an unseen check while hidden shows only owner labels and Source (no pattern, tier, frequency, depth, flagged)
+{
+  const ids = ['lb-1', 'sys:pattern:dp', 'sys:tier:must', 'sys:freq:hot', 'sys:depth', 'sys:flagged', 'sys:source:plan'];
+  assert.deepEqual(visibleLabelIds(ids, true), ['lb-1', 'sys:source:plan']);
+  assert.deepEqual(visibleLabelIds(ids, false), ids);
+}
 console.log('labels ok');

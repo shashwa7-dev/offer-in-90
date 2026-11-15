@@ -68,3 +68,9 @@ export function goodStreak(rates: (number | null)[], good = 0.8): number {
   }
   return k;
 }
+
+/** An unseen check stays anonymous (name, pattern, difficulty and hints hidden) until it is started or done; skipping
+ * it does not reveal it. */
+export function unseenHidden(hiddenUntilStart: boolean | undefined, st: TaskStatus): boolean {
+  return !!hiddenUntilStart && (st === 'todo' || st === 'skipped');
+}

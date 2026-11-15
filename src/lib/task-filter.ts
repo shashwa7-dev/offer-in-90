@@ -52,6 +52,9 @@ export function matches(
   itemLabels: Record<string, string[]> = {},
 ): boolean {
   const st = statusOf(t.id, done, status);
+  // An unseen check not yet started (or skipped) is anonymous: only its Source and owner labels can match, never its
+  // pattern, tier, frequency, depth or difficulty (local copy of unseenHidden in task-status.ts).
+  const hidden = !!t.hiddenUntilStart && (st === 'todo' || st === 'skipped');
   if (f.status !== 'all' && st !== f.status) return false;
   if (f.tracks.length) {
     const tr = trackOfCat(t.cat);
@@ -59,11 +62,11 @@ export function matches(
   }
   if (f.blocks.length && !f.blocks.includes(blockKey)) return false;
   if (f.labels.length) {
-    // An unseen problem keeps its pattern hidden until Start.
-    const ids = [...(itemLabels[t.id] || []), ...systemIds(t, !(t.hiddenUntilStart && st === 'todo'))];
+    const sys = systemIds(t, !hidden);
+    const ids = [...(itemLabels[t.id] || []), ...(hidden ? sys.filter(id => id.startsWith('sys:source:')) : sys)];
     if (!f.labels.some(l => ids.includes(l))) return false;
   }
-  if (f.diff.length && (!t.diff || !f.diff.includes(t.diff))) return false;
+  if (f.diff.length && (hidden || !t.diff || !f.diff.includes(t.diff))) return false;
   return true;
 }
 

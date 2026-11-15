@@ -50,6 +50,16 @@ assert.equal(matches(pat, 'k', { ...EMPTY_FILTER, labels: ['sys:pattern:trie'] }
 const hid = { ...pat, hiddenUntilStart: true };
 assert.equal(matches(hid, 'k', { ...EMPTY_FILTER, labels: ['sys:pattern:dp'] }, {}, {}, {}), false);
 assert.equal(matches(hid, 'k', { ...EMPTY_FILTER, labels: ['sys:pattern:dp'] }, {}, { p: 'progress' }, {}), true);
+// ...nor its frequency, tier, depth or difficulty; Source still matches; skipping keeps it hidden; Start/done reveals
+const hidD = { ...hid, diff: 'H' as const };
+for (const id of ['sys:freq:hot', 'sys:tier:must', 'sys:depth', 'sys:flagged']) assert.equal(matches(hidD, 'k', { ...EMPTY_FILTER, labels: [id] }, {}, {}, {}), false, `hidden: ${id}`);
+assert.equal(matches(hidD, 'k', { ...EMPTY_FILTER, labels: ['sys:source:plan'] }, {}, {}, {}), true, 'hidden: Source still matches');
+assert.equal(matches(hidD, 'k', { ...EMPTY_FILTER, labels: ['lb-1'] }, {}, {}, { p: ['lb-1'] }), true, 'hidden: owner labels still match');
+assert.equal(matches(hidD, 'k', { ...EMPTY_FILTER, diff: ['H'] }, {}, {}, {}), false, 'hidden: difficulty');
+assert.equal(matches(hidD, 'k', { ...EMPTY_FILTER, diff: ['H'] }, {}, { p: 'skipped' }, {}), false, 'skipped stays hidden');
+assert.equal(matches(hidD, 'k', { ...EMPTY_FILTER, labels: ['sys:freq:hot'] }, {}, { p: 'skipped' }, {}), false, 'skipped stays hidden (labels)');
+assert.equal(matches(hidD, 'k', { ...EMPTY_FILTER, diff: ['H'] }, {}, { p: 'progress' }, {}), true, 'started: difficulty matches');
+assert.equal(matches(hidD, 'k', { ...EMPTY_FILTER, labels: ['sys:freq:hot'] }, { p: 1 }, {}, {}), true, 'done: frequency matches');
 
 // diff excludes tasks without diff
 assert.equal(matches(t, 'k', { ...EMPTY_FILTER, diff: ['M', 'H'] }, {}, {}), true);

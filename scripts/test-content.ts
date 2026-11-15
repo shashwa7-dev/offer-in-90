@@ -407,9 +407,9 @@ const byId = (list: any[], id: string) => list.find((x) => x.id === id);
   assert.deepEqual(SUNDAY_OPTIONAL.map((x) => [x.id, x.fromWeek, x.optional]), [['sun:apply-roles', 8, true]]);
   assert.match(SUNDAY_OPTIONAL[0].text, /apply to 3–5 roles/);
 
-  // Readiness checks (§11): 5 checks keyed by Grind week, text exactly as §11
+  // Readiness checks (§11): 5 checks keyed by Grind week, text as §11 (week 4 names its patterns, final review)
   const READY = {
-    4: '3 past-project deep dives rehearsed; story bank of 12 stories; pitch recorded; unseen checks passed for the Arrays and Stack patterns; 3 decision memos; weekly test ≥ 70%.',
+    4: '3 past-project deep dives rehearsed; story bank of 12 stories; pitch recorded; unseen checks passed for the hash map, prefix sum, two pointers, sliding window, cyclic sort and stack patterns; 3 decision memos; weekly test ≥ 70%.',
     8: 'Linked List, Trees and Heaps green; 4 open-source fixes submitted; flagship has real-time and 1 AI feature working; take-home 1 done.',
     10: 'unseen checks passed for 20 of the 27 patterns; 6 decomposition reps.',
     12: 'all 27 patterns green (the second unseen solve comes from Phase 3 timed sets and mocks); the top-12 machine-coding builds done in ≤ 45 min.',

@@ -20,7 +20,7 @@ Built with Next.js (static export), Tailwind and shadcn/ui. Hosted on GitHub Pag
 
 | File | Holds |
 | --- | --- |
-| `dsa.js` | 24 patterns in teaching order, the tiered and flagged problem set, advanced topics |
+| `dsa.js` | 27 patterns in teaching order, the tiered and flagged problem set, advanced topics |
 | `fe.js` | Frontend and CS core, one topic per item |
 | `mc.js` | Machine-coding builds, timed second passes, take-home simulations, the flagship project, LLD |
 | `sd.js` | System design sequence and the mock rotation |
@@ -50,7 +50,7 @@ Every task carries read-only **system labels** (pattern, tier, frequency, source
 
 ## DSA page
 
-The DSA page lists the 24 patterns with their template, signal and problems. A pattern turns green after 2+ unseen problems solved within the time limit (Easy 15, Medium 25, Hard 40 minutes) and a blank-file re-solve 7+ days after the first solve. You can add your own LeetCode problems under a pattern; a problem already in the plan is stored and counted once. Search also finds patterns.
+The DSA page lists the 27 patterns with their template, signal and problems. A pattern turns green after 2+ unseen problems solved within the time limit (Easy 15, Medium 25, Hard 40 minutes) and a blank-file re-solve 7+ days after the first solve. You can add your own LeetCode problems under a pattern; a problem already in the plan is stored and counted once. Search also finds patterns.
 
 ## Commands
 
