@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { EMPTY_FILTER, isActive, matches, parseFilter, statusCounts, trackOfCat } from '../src/lib/task-filter.ts';
 
 // trackOfCat
-const map: Record<string, string | null> = { dsa: 'dsa', fe: 'fe', sd: 'sd', mc: 'mc', proj: 'mc', ai: 'ai', beh: 'career', ux: 'career', fde: 'career', review: null, health: null, update: null, nope: null };
+const map: Record<string, string | null> = { dsa: 'dsa', fe: 'fe', sd: 'sd', mc: 'mc', proj: 'mc', ai: 'ai', platform: 'platform', beh: 'career', ux: 'career', fde: 'career', review: null, health: null, update: null, nope: null };
 for (const [cat, tr] of Object.entries(map)) assert.equal(trackOfCat(cat), tr, cat);
 
 assert.equal(isActive(EMPTY_FILTER), false);
@@ -82,6 +82,9 @@ assert.deepEqual(p, { filter: { status: 'done', tracks: ['dsa'], blocks: ['b'], 
 assert.deepEqual(parseFilter({ filter: { owner: 'own' } }).filter.labels, ['sys:source:yours']);
 assert.deepEqual(parseFilter({ filter: { owner: 'plan', labels: ['x'] } }).filter.labels, ['x', 'sys:source:plan']);
 assert.equal(parseFilter({ filter: {}, groupBy: 'bad' }).groupBy, 'time');
+// old saved filters: an unknown track key (v2 had none for platform; a stray `aib`) is dropped and never throws
+assert.deepEqual(parseFilter({ filter: { tracks: ['aib', 'platform', 'fe'] } }).filter.tracks, ['platform', 'fe']);
+for (const cat of ['dsa', 'ai', 'fe', 'platform', 'review']) assert.equal(matches({ id: 'x', cat }, 'k', { ...EMPTY_FILTER, tracks: ['aib' as never] }, {}, {}), false, `unknown track matches nothing (${cat})`);
 assert.notEqual(parseFilter('x').filter, EMPTY_FILTER, 'fresh copy, not shared');
 
 console.log('task-filter: all checks pass');

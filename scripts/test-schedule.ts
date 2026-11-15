@@ -12,11 +12,24 @@ for (let i = 1; i < WEEKDAY_BLOCKS.length; i++) {
   assert.equal(WEEKDAY_BLOCKS[i].s, WEEKDAY_BLOCKS[i - 1].e, `gap/overlap before ${WEEKDAY_BLOCKS[i].k}`);
   assert.ok(mins(WEEKDAY_BLOCKS[i].e) > mins(WEEKDAY_BLOCKS[i].s));
 }
-for (const [k, s, e] of [['dsa', '05:15', '06:45'], ['aib', '06:45', '07:15'], ['rev', '14:45', '15:15'], ['jt', '15:15', '16:00']]) {
+// v3 times and titles (spec: Track identity)
+for (const [k, s, e, title] of [
+  ['dsa', '05:15', '06:15', 'Deep work 1 · DSA pattern'],
+  ['aib', '06:15', '07:15', 'Recall + AI news'],
+  ['fe', '08:00', '10:00', 'Deep work 2 · AI engineering core'],
+  ['mc', '10:15', '11:45', 'Deep work 3 · Product: the flagship'],
+  ['sd', '13:00', '14:30', 'Deep work 4 · Systems and architecture'],
+  ['rev', '14:45', '15:15', 'DSA revision + recognition drill'],
+  ['jt', '15:15', '16:00', 'Platform, data and DevOps'],
+  ['beh', '16:00', '17:00', 'Career and FDE'],
+  ['ai', '20:00', '21:00', 'Frontend (senior)'],
+]) {
   const b = find(WEEKDAY_BLOCKS, k);
   assert.ok(b, k);
-  assert.deepEqual([b.s, b.e], [s, e], k);
+  assert.deepEqual([b.s, b.e, b.title], [s, e, title], k);
 }
+const studyMin = WEEKDAY_BLOCKS.filter((b: any) => b.kind === 'study').reduce((a: number, b: any) => a + mins(b.e) - mins(b.s), 0);
+assert.equal(studyMin, 645, 'study time 10.75 h');
 assert.deepEqual(BUFFER_BLOCK, { k: 'buffer', title: 'Buffer: catch up, rest or explore', kind: 'life' });
 
 // Sunday

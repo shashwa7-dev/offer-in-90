@@ -11,7 +11,7 @@ assert.equal(bandOf('16:59'), 'afternoon');
 assert.equal(bandOf('17:00'), 'evening');
 assert.equal(bandOf('23:30'), 'evening');
 
-assert.equal(TRACKS.length, 6);
+assert.deepEqual(TRACKS.map((t) => [t.key, t.name]), [['dsa', 'DSA'], ['ai', 'AI engineering'], ['sd', 'Systems'], ['mc', 'Product'], ['platform', 'Platform'], ['career', 'Career'], ['fe', 'Frontend']]);
 assert.equal(STAGES.length, 16);
 
 const T = (id: string, cat: string, own?: string, pattern?: string) => ({ id, cat, ...(own ? { own } : {}), ...(pattern ? { pattern } : {}) });

@@ -17,7 +17,7 @@ import { steadyRuns, layoutDays, cursorsAt, WEEKS } from '../src/lib/layout.ts';
 type Any = any;
 const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...mc, ...sd, ...judgment, ...reference };
 const tracks: Any = buildTracks(content);
-const TRACKS = ['dsa', 'aib', 'fe', 'mc', 'sd', 'jt', 'beh', 'ai'];
+const TRACKS = ['dsa', 'fe', 'mc', 'sd', 'jt', 'beh', 'ai'];
 const ZERO: Any = Object.fromEntries(TRACKS.map((t) => [t, 0]));
 const START = '2026-11-16';
 
@@ -67,7 +67,7 @@ assert.deepEqual(modeOn({}, START), { mode: 'steady', cursors: ZERO, since: '' }
   m = switchMode(m, '2026-12-05', 'grind', { ...ZERO, dsa: 13 }, START);
   assert.deepEqual(modeOn(m, '2026-12-05'), { mode: 'grind', cursors: { ...ZERO, dsa: 13 }, basis: START, since: '2026-12-05' });
   assert.equal(Object.keys(m).length, 2);
-  // partial cursors are filled to all 8 tracks
+  // partial cursors are filled to all 7 tracks
   const p = switchMode({}, '2026-12-05', 'grind', { dsa: 3 } as Any, START);
   assert.deepEqual(p['2026-12-05'].cursors, { ...ZERO, dsa: 3 });
 }
@@ -75,6 +75,7 @@ assert.deepEqual(modeOn({}, START), { mode: 'steady', cursors: ZERO, since: '' }
 // ---------- rotation ----------
 {
   const runs = TRACKS.map(() => 0);
+  const skips = (t: string, d: number) => !steadyRuns(TRACKS.indexOf(t), d);
   for (let d = 0; d < 102; d++) {
     let n = 0;
     TRACKS.forEach((_, t) => {
@@ -82,6 +83,8 @@ assert.deepEqual(modeOn({}, START), { mode: 'steady', cursors: ZERO, since: '' }
       else assert.ok(d === 0 || steadyRuns(t, d - 1), `track ${TRACKS[t]} skips days ${d - 1} and ${d}`);
     });
     assert.ok(n >= 5, `day ${d} runs ${n} tracks`);
+    assert.ok(!(skips('dsa', d) && skips('fe', d)), `day ${d}: DSA and AI core never rest together`);
+    assert.equal(skips('fe', d), skips('mc', d), `day ${d}: fe and mc skip on the same days`);
   }
   assert.deepEqual(runs, TRACKS.map(() => 78), 'each track runs 78 of 102 days');
 }
@@ -149,16 +152,18 @@ assert.equal(steady.filter((d) => d.kind === 'study').length, 102);
 }
 
 // ---------- the `after` rule: every prerequisite on an earlier calendar day ----------
-const withAfter: Any[] = Object.values(content).filter(Array.isArray).flat().filter((x: Any) => x && typeof x.after === 'string');
-assert.ok(withAfter.some((x) => x.id.startsWith('aib:') && x.after.startsWith('ai:')), 'cross-track prerequisites exist');
-function checkAfter(days: Any[], label: string) {
+/** Every laid-out item with an `after` (the aib track is no longer laid out, so its content is not checked). */
+const afterItems = (ts: Any) => TRACKS.flatMap((t) => ts[t].flatMap((s: Any) => s.items)).filter((x: Any) => typeof x.after === 'string')
+  .map((x: Any) => ({ id: x.id.replace(/:part-\d+$/, ''), after: x.after }));
+const withAfter: Any[] = afterItems(tracks);
+function checkAfter(days: Any[], label: string, items: Any[] = withAfter) {
   const first = new Map<string, number>(), last = new Map<string, number>();
   for (const d of days) for (const t of TRACKS) for (const x of live(d, t)?.items ?? []) {
     const base = x.id.replace(/:part-\d+$/, '');
     if (!first.has(base)) first.set(base, d.no);
     last.set(base, d.no);
   }
-  for (const x of withAfter) {
+  for (const x of items) {
     assert.ok(first.has(x.id) && last.has(x.after), `${label}: ${x.id} and ${x.after} laid out`);
     assert.ok(last.get(x.after)! < first.get(x.id)!, `${label}: ${x.after} (day ${last.get(x.after)}) before ${x.id} (day ${first.get(x.id)})`);
   }
@@ -187,7 +192,7 @@ function switched(base: Any[], baseModes: Any, date: string, mode: 'steady' | 'g
   return { modes, done, days: plan(START, modes, done) };
 }
 /** R12: each track's slots 0..77 live exactly once, in order; superseded copies are only history before a switch. */
-function checkOnce(days: Any[], label: string) {
+function checkOnce(days: Any[], label: string, items: Any[] = withAfter) {
   const seq = sequences(days);
   for (const t of TRACKS) assert.deepEqual(seq[t], range78, `${label} ${t}: every slot exactly once, in order`);
   const ids = itemIds(days);
@@ -196,7 +201,7 @@ function checkOnce(days: Any[], label: string) {
     assert.ok(d.slots[t].items.every((x: Any) => x.superseded), `${label}: superseded items marked`);
     assert.ok(placements(days).some(([u, i, no]) => u === t && i === d.slots[t].index && no > d.no), `${label}: superseded ${t}[${d.slots[t].index}] has a later live copy`);
   }
-  checkAfter(days, label);
+  checkAfter(days, label, items);
 }
 {
   const day20 = steady[20].date;
@@ -246,23 +251,38 @@ function checkOnce(days: Any[], label: string) {
 }
 
 // ---------- uneven progress at a switch: prerequisites still on an earlier day (fix I1) ----------
+// Synthetic fixture: the real tracks, with product slot 31 `after` AI-core slot 30 (the v3 product → AI-core link).
+const fx: Any = { ...tracks, mc: tracks.mc.map((s: Any, i: number) => (i === 31 ? { items: s.items.map((x: Any, j: number) => (j === 0 ? { ...x, after: tracks.fe[30].items[0].id } : x)) } : s)) };
+const fxAfter = afterItems(fx);
+assert.ok(fxAfter.some((x: Any) => x.after === tracks.fe[30].items[0].id), 'fixture has the mc → fe prerequisite');
+const fxPlan = (modes: Any = {}, done: Any = {}) => layoutDays({ start: START, kickoff: true, modes, tracks: fx, done });
 {
+  const fxSteady = fxPlan(), fxGrind = fxPlan(GRIND_MODES);
+  checkOnce(fxSteady, 'fixture steady', fxAfter);
+  checkOnce(fxGrind, 'fixture grind', fxAfter);
   const slotDay = (days: Any[], t: string, i: number) => days.find((d) => live(d, t)?.index === i)!;
-  for (const [label, base, baseModes, mode] of [['steady→grind', steady, {}, 'grind'], ['grind→steady', grind, GRIND_MODES, 'steady']] as const) {
+  for (const [label, base, baseModes, mode] of [['steady→grind', fxSteady, {}, 'grind'], ['grind→steady', fxGrind, GRIND_MODES, 'steady']] as const) {
     const date = base[50].date;
-    const ai30 = slotDay(base, 'ai', 30);
-    assert.ok(ai30.date < date && ai30.slots.ai.items.some((x: Any) => x.id === 'ai:contextual-retrieval'));
+    const fe30 = slotDay(base, 'fe', 30);
+    assert.ok(fe30.date < date);
     const done = doneBefore(base, date);
-    for (const x of ai30.slots.ai.items) delete done[x.id];
+    for (const x of fe30.slots.fe.items) delete done[x.id];
     const cur = cursorsAt(base, date, done);
-    assert.equal(cur.ai, 30, `${label}: ai cursor back at the undone read`);
-    assert.ok(cur.aib > 31, `${label}: aib ahead of it`);
-    const s = switched(base, baseModes, date, mode, done);
-    checkOnce(s.days, `uneven ${label}`);
-    assert.ok(s.days.find((d) => d.no === ai30.no)!.slots.ai.superseded, `${label}: the old ai[30] copy is superseded`);
-    const live31 = slotDay(s.days, 'aib', 31), liveAi30 = slotDay(s.days, 'ai', 30);
-    assert.ok(liveAi30.no < live31.no, `${label}: aib:rag-build-notes (day ${live31.no}) waits for ai:contextual-retrieval (day ${liveAi30.no})`);
+    assert.equal(cur.fe, 30, `${label}: fe cursor back at the undone slot`);
+    assert.ok(cur.mc > 31, `${label}: mc ahead of it`);
+    const modes = switchMode(baseModes, date, mode, cur, START);
+    const s = fxPlan(modes, done);
+    checkOnce(s, `uneven ${label}`, fxAfter);
+    assert.ok(s.find((d) => d.no === fe30.no)!.slots.fe.superseded, `${label}: the old fe[30] copy is superseded`);
+    const liveMc31 = slotDay(s, 'mc', 31), liveFe30 = slotDay(s, 'fe', 30);
+    assert.ok(liveFe30.no < liveMc31.no, `${label}: mc[31] (day ${liveMc31.no}) waits for fe[30] (day ${liveFe30.no})`);
   }
+  // Review Focus 1: Grind → Steady at study day 25 with every earlier slot ticked: every slot placed once, and it returns
+  const sw = fxGrind.find((d) => d.studyNo === 25)!.date;
+  const done = doneBefore(fxGrind, sw);
+  const g2s = fxPlan(switchMode(GRIND_MODES, sw, 'steady', cursorsAt(fxGrind, sw, done), START), done);
+  checkOnce(g2s, 'grind→steady at study day 25', fxAfter);
+  assert.equal(g2s.at(-1)!.kind, 'sun');
 }
 
 // ---------- nothing done at a switch: the past stays as history, marked superseded (Ruling R12) ----------
@@ -300,17 +320,17 @@ function checkOnce(days: Any[], label: string) {
 
 // ---------- regression: a cursor never skips past the next unplaced slot (fix round 2) ----------
 {
-  // (a) two switches with one item left unticked (aib[1]): live slots stay in order, same-track `after` holds
+  // (a) two switches with one item left unticked (jt[1]): live slots stay in order, same-track `after` holds
   const d1 = steady[25].date;
   const done = doneBefore(steady, d1);
-  for (const x of tracks.aib[1].items) delete done[x.id];
+  for (const x of tracks.jt[1].items) delete done[x.id];
   const m1 = switchMode({}, d1, 'grind', cursorsAt(steady, d1, done), START);
   const p1 = plan(START, m1, done);
-  checkOnce(p1, 'aib[1] unticked, 1 switch');
+  checkOnce(p1, 'jt[1] unticked, 1 switch');
   const d2 = p1[40].date;
   Object.assign(done, doneBefore(p1, d2));
   const m2 = switchMode(m1, d2, 'steady', cursorsAt(p1, d2, done), START);
-  checkOnce(plan(START, m2, done), 'aib[1] unticked, 2 switches');
+  checkOnce(plan(START, m2, done), 'jt[1] unticked, 2 switches');
 
   // (b) switch right after ticking that day's work: the day's slots are not dropped
   const date = steady[20].date;
@@ -349,6 +369,16 @@ function checkOnce(days: Any[], label: string) {
     }
     for (const start of [STARTS[int(0, 3)], STARTS[int(0, 3)]]) checkOnce(plan(start, modes, done), `trial ${trial} start ${start}`);
   }
+}
+
+// ---------- old state: a v1/v2 mode entry with an `aib` cursor is ignored (Review Focus 4) ----------
+{
+  const date = steady[20].date;
+  const cur = cursorsAt(steady, date, doneBefore(steady, date));
+  const clean = plan(START, switchMode({}, date, 'grind', cur, START), doneBefore(steady, date));
+  const old = plan(START, { [date]: { mode: 'grind', cursors: { ...cur, aib: 12 }, basis: START } }, doneBefore(steady, date));
+  assert.deepEqual(old, clean, 'aib cursor ignored');
+  for (const d of old) assert.ok(!('aib' in d.slots), 'no aib slots');
 }
 
 // layoutDays never stops silently

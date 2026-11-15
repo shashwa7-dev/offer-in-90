@@ -1,11 +1,12 @@
-/* Plan assembly (roadmap v2, Task 8): the calendar layout (layout.ts) over the 8 track sequences (tracks.ts), turned into
- * Day[] with block times and tasks. engine.ts wires in the content and the runtime helpers; tests pass their own.
+/* Plan assembly (roadmap v2, Task 8; v3 template): the calendar layout (layout.ts) over the 7 track sequences
+ * (tracks.ts), turned into Day[] with block times and tasks. engine.ts wires in the content and the runtime helpers; tests pass their own.
  * Pure: type imports only (extensionless runtime imports don't resolve under node strip-types; see task-filter.ts),
  * so the layout, tracks and routine functions come in through `PlanLib`.
  *
  * Task IDs are content-based (Constraints): track items keep their content IDs, problems `p-<slug>`. Daily habits that
- * repeat use the date: `d:<date>:drill|log|wo|news` on study days, `d:<date>:check|reflect|preview|walk|catchup|flagged|
- * explore|apply` on Sundays. Teaching-problem re-solves are `rs:<slug>:<k>` for k = 3, 7, 21 (the day offset). */
+ * repeat use the date: `d:<date>:drill|log|wo|news|recall-ai|recall-sd|revisit-flagged` on study days,
+ * `d:<date>:check|reflect|preview|walk|catchup|flagged|explore|apply` on Sundays. Teaching-problem re-solves are `rs:<slug>:<k>` for k = 3, 7, 21 (the day offset); Steady
+ * DSA pattern revisits are `rv:<slug>:<date>`. */
 import type { Block, CustomTask, Day, Task, UpdateItem, Cat } from './engine';
 import type { LayoutDay, LayoutInput, LayoutSlot } from './layout';
 import type { Slot, SlotItem, TrackContent } from './tracks';
@@ -30,7 +31,7 @@ export type PlanLib = {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Row = any;
-const TRACK_IDS: TrackId[] = ['dsa', 'aib', 'fe', 'mc', 'sd', 'jt', 'beh', 'ai'];
+const TRACK_IDS: TrackId[] = ['dsa', 'fe', 'mc', 'sd', 'jt', 'beh', 'ai'];
 const RESOLVE_AT = [3, 7, 21];
 const MAX_RESOLVES = 3;
 const DRILL_SIZE = 3;
@@ -49,7 +50,7 @@ export const isStudy = (t: Task) => t.cat !== 'health' && !t.optional && !t.supe
 /** A slot item as a task. A superseded copy (R12) says where the slot moved. */
 function fromItem(x: SlotItem, movedTo?: string): Task {
   const t = T(x.id, x.text, x.cat);
-  const keys = ['url', 'pattern', 'tier', 'role', 'depth', 'hiddenUntilStart', 'slug', 'mins', 'part', 'brief', 'practice', 'summary'] as const;
+  const keys = ['url', 'url2', 'pattern', 'tier', 'role', 'depth', 'hiddenUntilStart', 'slug', 'mins', 'part', 'brief', 'practice', 'summary'] as const;
   for (const k of keys) if (x[k] !== undefined) (t as unknown as Record<string, unknown>)[k] = x[k];
   if (x.flags) t.flags = [...x.flags];
   if (x.diff === 'E' || x.diff === 'M' || x.diff === 'H') t.diff = x.diff;
@@ -88,12 +89,10 @@ export function cursorsNowFrom(state: Pick<PlanState, 'start' | 'kickoff' | 'mod
 }
 
 const live = (L: LayoutDay, t: TrackId): LayoutSlot | undefined => (L.slots[t] && !L.slots[t]!.superseded ? L.slots[t] : undefined);
-/** The jt slot takes the revision time (R8): the revision block merges into it. */
-const takesRevision = (L: LayoutDay) => !!live(L, 'jt')?.items.some((x) => x.takesRevision);
 
 type Resolve = { id: string; slug: string; name: string; url?: string; diff?: string; k: number; due: string };
-/** Re-solves of teaching problems at +3/+7/+21 days, at most 3 per revision block, earliest due first. A day whose
- * revision time goes to the jt slot has none (they wait). Returns the tasks per date and any that never found a day. */
+/** Re-solves of teaching problems at +3/+7/+21 days, at most 3 per revision block, earliest due first. Returns the
+ * tasks per date and any that never found a day. */
 function planResolves(layout: LayoutDay[]): { byDate: Map<string, Task[]>; left: Task[] } {
   const due: Resolve[] = [];
   for (const L of layout) {
@@ -110,13 +109,36 @@ function planResolves(layout: LayoutDay[]): { byDate: Map<string, Task[]>; left:
   const byDate = new Map<string, Task[]>();
   let q = due;
   for (const L of layout) {
-    if (L.kind !== 'study' || takesRevision(L)) continue;
+    if (L.kind !== 'study') continue;
     let n = 0;
     while (n < q.length && n < MAX_RESOLVES && q[n].due <= L.date) n++;
     if (n) { byDate.set(L.date, q.slice(0, n).map(task)); q = q.slice(n); }
   }
   return { byDate, left: q.map(task) };
 }
+
+// ---------- recall + news (the `aib` block, generated every study day) ----------
+const RECALL_AI = 30, RECALL_SD = 20, SD_WINDOW = [3, 7];
+/** AI recall of the latest AI-core (`fe`) slot on an earlier study day (a warm-up before the first one), Systems recall
+ * of the latest `sd` slot placed 3–7 study days earlier (with none, the AI recall takes its 20 min), then the AI news. */
+function recallTasks(L: LayoutDay, layout: LayoutDay[], i: number): Task[] {
+  const k = (x: string) => `d:${L.date}:${x}`;
+  const earlier = layout.slice(0, i).filter((x) => x.kind === 'study');
+  const ai = earlier.filter((x) => live(x, 'fe')).at(-1)?.slots.fe!.items[0];
+  const sd = earlier.filter((x) => live(x, 'sd') && x.studyNo! >= L.studyNo! - SD_WINDOW[1] && x.studyNo! <= L.studyNo! - SD_WINDOW[0]).at(-1)?.slots.sd!.items[0];
+  const aiMins = sd ? RECALL_AI : RECALL_AI + RECALL_SD;
+  const out: Task[] = [ai
+    ? T(k('recall-ai'), `AI recall (${aiMins} min): without notes, explain "${ai.text}" out loud or on paper. Then check against its link and note what you missed.`, 'ai', { mins: aiMins, ...(ai.url ? { url: ai.url } : {}) })
+    : T(k('recall-ai'), `Warm-up: write down what you already know about LLMs (how they are trained, how they answer a prompt, where they go wrong), with no notes and no searching (${aiMins} min).`, 'ai', { mins: aiMins })];
+  if (sd) out.push(T(k('recall-sd'), `Systems recall (${RECALL_SD} min): without notes, explain "${sd.text}" from a few days ago. Then check against its link and note what you missed.`, 'sd', { mins: RECALL_SD, ...(sd.url ? { url: sd.url } : {}) }));
+  out.push(T(k('news'), NEWS_TASK, 'ai', { newsId: 'reads', mins: 10 }));
+  return out;
+}
+
+// ---------- Steady DSA pattern revisit (the 05:15 block on a DSA rest day) ----------
+/** Hardest first: a revisit draws from these patterns while any of them is covered and has problems left. */
+const HARD_PATTERNS = ['dp', 'graph-traversal', 'topo-sort', 'union-find', 'shortest-path-mst', 'backtracking', 'tree-dfs', 'tree-bfs', 'top-k', 'two-heaps', 'k-way-merge', 'intervals', 'sliding-window', 'binary-search'];
+const REVISIT_PICKS = 2, REVISIT_MINS = 45;
 
 // ---------- fixed templates ----------
 const PREP_BLOCKS: TemplateBlock[] = [
@@ -130,6 +152,7 @@ const PREP_BLOCKS: TemplateBlock[] = [
   { s: '21:30', e: '22:00', k: 'wind', title: 'Wind down · sleep at 22:00', kind: 'life' },
 ];
 const NEWS_TASK = "Skim today's News tab and open the 1–2 reads that matter. Save one takeaway in AI notes (10 min)";
+const SAT_TITLE: Record<string, string> = { mc: 'Deep work 3 · Low-level design', beh: 'Career · Mock day' };
 const WORKOUTS = ['', 'Workout: push (chest, shoulders, triceps)', 'Workout: pull (back, biceps)', 'Workout: legs + core', 'Workout: 30 min run or cycling', 'Workout: full body', 'Workout: yoga + mobility'];
 
 function prepTasks(): Record<string, Task[]> {
@@ -140,10 +163,14 @@ function prepTasks(): Record<string, Task[]> {
       T('k-env', 'Set up a TypeScript scratch project with Vitest for daily solutions', 'dsa', { url: 'https://vitest.dev/guide/' }),
       T('k-tour', 'Skim the Roadmap tab so you know the whole plan', 'review'),
     ],
+    // One task per score section (sundays.ts SCORE_SECTIONS), 90 min in all, each self-scored 0–100.
     baseline: [
-      T('baseline:dsa', 'Baseline · DSA (40 min, timed): 2 problems you haven\'t seen, one easy and one medium, in TypeScript from a blank file. Score yourself 0–100.', 'dsa', { scoreKey: 'baseline/dsa', mins: 40, url: 'https://leetcode.com/problemset/' }),
-      T('baseline:fe', 'Baseline · Frontend (30 min): a 20-question quiz from memory on JavaScript, the browser, CSS and React, then check your answers. Score yourself 0–100.', 'fe', { scoreKey: 'baseline/fe', mins: 30 }),
-      T('baseline:sd', 'Baseline · System design (20 min): a mini design of a URL shortener, out loud, with a diagram. Score yourself 0–100 on requirements, API, data model and scaling.', 'sd', { scoreKey: 'baseline/sd', mins: 20, url: 'https://excalidraw.com/' }),
+      T('baseline:dsa', 'Baseline · DSA (25 min, timed): 2 problems you haven\'t seen, one easy and one medium, in TypeScript from a blank file. Score yourself 0–100.', 'dsa', { scoreKey: 'baseline/dsa', mins: 25, url: 'https://leetcode.com/problemset/' }),
+      T('baseline:ai', 'Baseline · AI engineering (15 min): explain out loud, without notes, how an LLM answers a prompt, from the text you type to the words it writes back. Score yourself 0–100.', 'ai', { scoreKey: 'baseline/ai', mins: 15 }),
+      T('baseline:sd', 'Baseline · Systems (15 min): a mini design of a URL shortener, out loud, with a diagram. Score yourself 0–100 on requirements, API, data model and scaling.', 'sd', { scoreKey: 'baseline/sd', mins: 15, url: 'https://excalidraw.com/' }),
+      T('baseline:platform', 'Baseline · Platform & DevOps (10 min): write down how you would deploy an app and how you would monitor it once it is live. Score yourself 0–100.', 'platform', { scoreKey: 'baseline/platform', mins: 10 }),
+      T('baseline:product', 'Baseline · Product (10 min): critique a product you use every week. Who is it for, what works, and what would you change first, and why? Score yourself 0–100.', 'proj', { scoreKey: 'baseline/product', mins: 10 }),
+      T('baseline:fe', 'Baseline · Frontend (15 min): answer 10 senior frontend questions from memory (rendering, performance, React internals, state, accessibility), then check your answers. Score yourself 0–100.', 'fe', { scoreKey: 'baseline/fe', mins: 15 }),
     ],
     workout: [T('k-wo', 'Workout: full body (first gym day)', 'health')],
     beh: [T('k-pos', 'Write your target: role titles (frontend / full-stack / forward-deployed), 10 dream companies, and why', 'beh', { url: 'https://www.linkedin.com/jobs/' })],
@@ -181,6 +208,33 @@ export function buildPlanFrom(state: PlanState, updates: UpdateItem[], custom: R
   const covered = new Set<string>();
   const carry: Task[] = []; // sundayCarry items waiting for this week's Sunday (R9)
 
+  // Steady DSA rest days (until the track is finished): a pattern revisit instead of a buffer. The pool is the former
+  // `var` and the optional problems that no track slot uses.
+  const inSlots = new Set(TRACK_IDS.flatMap((t) => lib.tracks[t].flatMap((s) => s.items.flatMap((x) => (x.slug ? [x.slug] : [])))));
+  const revisitPool = problems.filter((p) => (p.role === 'var' || p.tier === 'optional') && !inSlots.has(p.slug));
+  const patternRank = new Map<string, number>((c.PATTERNS ?? []).map((p: Row, j: number) => [p.id, j]));
+  const lastDsaDate = layout.filter((L) => live(L, 'dsa')).at(-1)?.date ?? '';
+  const revisitUsed = new Set<string>();
+  const revisits = (L: LayoutDay) => L.mode === 'steady' && L.kind === 'study' && !L.slots.dsa && L.date < lastDsaDate;
+  /** 2 problems not solved yet from covered patterns: the hard patterns first (any covered pattern before one is
+   * covered), `var` before optional, `hot` first. With nothing covered yet: re-solve a flagged problem. */
+  function revisitTasks(L: LayoutDay, seen: Set<string>, used: Set<string>): Task[] {
+    const rank = (p: Row) => [p.role === 'var' ? 0 : 1, p.flags?.includes('hot') ? 0 : 1, HARD_PATTERNS.includes(p.pattern) ? HARD_PATTERNS.indexOf(p.pattern) : HARD_PATTERNS.length + (patternRank.get(p.pattern) ?? 0)];
+    const byRank = (a: Row, b: Row) => { const x = rank(a), y = rank(b); return x[0] - y[0] || x[1] - y[1] || x[2] - y[2]; };
+    const open = revisitPool.filter((p) => seen.has(p.pattern) && !used.has(p.slug));
+    const hard = open.filter((p) => HARD_PATTERNS.includes(p.pattern)).sort(byRank);
+    const picks = [...hard, ...open.filter((p) => !HARD_PATTERNS.includes(p.pattern)).sort(byRank)].slice(0, REVISIT_PICKS);
+    if (!picks.length) {
+      return [T(`d:${L.date}:revisit-flagged`, `Re-solve one flagged or hardest problem so far from a blank file, timed (${REVISIT_MINS} min), talking out loud. Log it with your minutes.`, 'dsa', { mins: REVISIT_MINS })];
+    }
+    return picks.map((p) => {
+      used.add(p.slug);
+      return T(`rv:${p.slug}:${L.date}`, `Pattern revisit (unseen, timed: ${REVISIT_MINS} min for ${picks.length === 1 ? 'it' : 'both'}): solve ${p.name} from a blank file, talking out loud. Log it as unseen with your minutes.`, 'dsa', {
+        slug: p.slug, url: p.url, mins: REVISIT_MINS / picks.length, ...(p.d === 'E' || p.d === 'M' || p.d === 'H' ? { diff: p.d } : {}),
+      });
+    });
+  }
+
   const days: Day[] = layout.map((L, i) => {
     const date = localDate(L.date);
     const base = { i, no: L.no, date, week: Math.max(1, L.week), grindWeek: L.grindWeek, phase: L.phase, mode: L.mode };
@@ -217,14 +271,11 @@ export function buildPlanFrom(state: PlanState, updates: UpdateItem[], custom: R
     }
 
     // Mon–Sat study day. A track block with no slot today becomes a buffer at the same times (Steady rotation, or a
-    // track already finished). The revision block merges into a jt slot that takes the revision time (R8).
-    const merge = takesRevision(L);
-    let tpl: TemplateBlock[] = lib.WEEKDAY_BLOCKS.map((b) => (TRACK_IDS.includes(b.k as TrackId) && !L.slots[b.k as TrackId]
-      ? { ...b, ...lib.BUFFER_BLOCK, k: `${lib.BUFFER_BLOCK.k}-${b.k}`, s: b.s, e: b.e } : { ...b }));
-    if (merge) {
-      const rev = tpl.find((b) => b.k === 'rev');
-      tpl = tpl.filter((b) => b.k !== 'rev').map((b) => (b.k === 'jt' && rev ? { ...b, s: rev.s, title: `${b.title} (75 min, takes the revision time)` } : b));
-    }
+    // track already finished), except a Steady DSA rest day, which is a pattern revisit.
+    const revisit = revisits(L);
+    const sat = dowOf(L.date) === 6;
+    const tpl: TemplateBlock[] = lib.WEEKDAY_BLOCKS.map((b) => (TRACK_IDS.includes(b.k as TrackId) && !L.slots[b.k as TrackId] && !(revisit && b.k === 'dsa')
+      ? { ...b, ...lib.BUFFER_BLOCK, k: `${lib.BUFFER_BLOCK.k}-${b.k}`, s: b.s, e: b.e } : { ...b, ...(sat && SAT_TITLE[b.k] ? { title: SAT_TITLE[b.k] } : {}) }));
     const placed = lib.placeDay(tpl as RoutineBlock[], routine);
     const blocks = (placed.ok ? placed.blocks : tpl) as TemplateBlock[];
 
@@ -240,18 +291,17 @@ export function buildPlanFrom(state: PlanState, updates: UpdateItem[], custom: R
       }
     }
     const k = (x: string) => `d:${L.date}:${x}`;
-    if (!merge) {
-      by.rev = [...(resolves.get(L.date) ?? [])];
-      // Only patterns from earlier days: the drill never draws from the pattern taught today.
-      const picks = drillPicks(problems, covered, L.date);
-      if (picks.length) {
-        by.rev.push(T(k('drill'), `Recognition drill (10 min): name the pattern and why for each, no code. ${picks.map((p, j) => `${j + 1}) ${p.name} (${p.url})`).join('; ')}`, 'dsa', {
-          drill: picks.map((p) => ({ slug: p.slug, name: p.name, url: p.url, pattern: patternName.get(p.pattern) ?? p.pattern })),
-        }));
-      }
+    if (revisit) by.dsa = revisitTasks(L, covered, revisitUsed);
+    by.aib = recallTasks(L, layout, i);
+    by.rev = [...(resolves.get(L.date) ?? [])];
+    // Only patterns from earlier days: the drill never draws from the pattern taught today.
+    const picks = drillPicks(problems, covered, L.date);
+    if (picks.length) {
+      by.rev.push(T(k('drill'), `Recognition drill (10 min): name the pattern and why for each, no code. ${picks.map((p, j) => `${j + 1}) ${p.name} (${p.url})`).join('; ')}`, 'dsa', {
+        drill: picks.map((p) => ({ slug: p.slug, name: p.name, url: p.url, pattern: patternName.get(p.pattern) ?? p.pattern })),
+      }));
     }
     for (const x of live(L, 'dsa')?.items ?? []) if (x.pattern) covered.add(x.pattern);
-    by.ai = [T(k('news'), NEWS_TASK, 'ai', { newsId: 'reads' }), ...(by.ai ?? [])];
     by.workout = [T(k('wo'), WORKOUTS[dowOf(L.date)] || 'Workout', 'health')];
     by.review = [T(k('log'), 'Tick off today, write a one-line log below, glance at tomorrow', 'review', { log: true })];
     return { ...base, type: 'study', s: L.studyNo, blocks: withTasks(blocks, by), tasks: [] };

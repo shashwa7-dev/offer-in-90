@@ -10,18 +10,18 @@ import * as mc from '../src/lib/content/mc.js';
 import * as sd from '../src/lib/content/sd.js';
 import * as judgment from '../src/lib/content/judgment.js';
 import * as reference from '../src/lib/content/reference.js';
-import { buildTracks, GRIND_DOW, SLOTS } from '../src/lib/tracks.ts';
+import { buildTracks, expandRow, GRIND_DOW, SLOTS } from '../src/lib/tracks.ts';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Any = any;
 const content: Any = { ...dsa, ...fe, ...ux, ...career, ...ai, ...mc, ...sd, ...judgment, ...reference };
 const T: Any = buildTracks(content);
-const TRACKS = ['dsa', 'aib', 'fe', 'mc', 'sd', 'jt', 'beh', 'ai'];
+const TRACKS = ['dsa', 'fe', 'mc', 'sd', 'jt', 'beh', 'ai'];
 const idx = (w: number, d: number) => (w - 1) * 6 + (d - 1);
 const ids = (track: string, i: number): string[] => T[track][i].items.map((x: Any) => x.id);
 const slotOf = (track: string, id: string) => T[track].findIndex((s: Any) => s.items.some((x: Any) => x.id === id));
 const has = (track: string, i: number, re: RegExp) => ids(track, i).some((id) => re.test(id));
-const CATS = ['dsa', 'fe', 'mc', 'proj', 'sd', 'ux', 'beh', 'fde', 'ai', 'review', 'health', 'update'];
+const CATS = ['dsa', 'fe', 'mc', 'proj', 'sd', 'ux', 'beh', 'fde', 'ai', 'platform', 'review', 'health', 'update'];
 
 // ---------- shape ----------
 assert.deepEqual(Object.keys(T).sort(), [...TRACKS].sort());
@@ -57,7 +57,6 @@ const expected: string[] = [
   ...(dsa.FOUNDATIONS as Any[]),
   ...(fe.FE as Any[]), ...(fe.FE_DEPTH_READS as Any[]), ...(ux.UX as Any[]), ...(career.BEH as Any[]),
   ...(career.FDE as Any[]).filter((x) => !SKIP_FDE.has(x.id)), ...(career.TEARDOWNS as Any[]),
-  ...(ai.AIB as Any[]).flatMap((x) => (x.slots === 2 ? [{ id: `${x.id}#1` }, { id: `${x.id}#2` }] : [x])),
   ...(ai.AI_EVENING as Any[]), ...(ai.AI_REVIEW as Any[]),
   ...(mc.MC as Any[]), ...(mc.MC_SCREENSHOT as Any[]), ...(mc.TAKE_HOMES as Any[]).flatMap((x) => x.parts),
   ...(mc.PROJECT as Any[]), ...(mc.PROJECT_DEPTH_READS as Any[]), ...(mc.LLD as Any[]),
@@ -65,7 +64,7 @@ const expected: string[] = [
   ...(judgment.HOW_IT_WORKS as Any[]), ...(judgment.MEMOS as Any[]), ...(judgment.PRACTICAL as Any[]), ...(judgment.DECOMP as Any[]),
   ...(judgment.OSS_FIXES as Any[]), ...(judgment.CODE_REVIEWS as Any[]), ...PRIMARY, ...(judgment.INTERVIEW_ENV as Any[]),
 ].map((x: Any) => (typeof x === 'string' ? x : x.id));
-// AIB items that take 2 slots appear once per part, keyed by id + part.
+// Items that take 2 slots appear once per part, keyed by id + part.
 const seen = all.filter((x) => !x.filler).map((x) => (x.part ? `${x.id.replace(/:part-\d$/, '')}#${x.part[0]}` : x.id));
 for (const id of expected) assert.equal(seen.filter((s) => s === id).length, 1, `${id} appears exactly once`);
 for (const id of (mc.MC_TIMED as string[])) assert.equal(allIds.filter((x) => x === `${id}:timed`).length, 1, `${id} timed pass once`);
@@ -133,34 +132,6 @@ for (const [n, env] of (judgment.INTERVIEW_ENV as Any[]).entries()) {
   assert.equal(Math.floor(i / 6) + 1, env.week);
 }
 for (const t of TRACKS.filter((t) => t !== 'dsa')) assert.ok(!T[t].some((s: Any) => s.items.some((x: Any) => x.id.startsWith('env:'))), `env only in dsa (${t})`);
-
-// ---------- aib ----------
-assert.deepEqual(T.aib.slice(0, 4).map((s: Any) => [s.items[0].id, s.items[0].part]), [
-  ['aib:python-for-js:part-1', [1, 2]], ['aib:python-for-js:part-2', [2, 2]], ['aib:pandas:part-1', [1, 2]], ['aib:pandas:part-2', [2, 2]],
-]);
-const aibFirst = (id: string) => T.aib.findIndex((s: Any) => s.items.some((x: Any) => x.id === id || x.id === `${id}:part-1`));
-const aibLast = (id: string) => T.aib.findLastIndex((s: Any) => s.items.some((x: Any) => x.id === id || x.id.startsWith(`${id}:part-`)));
-let cursor = 0;
-for (const x of ai.AIB as Any[]) {
-  const n = x.slots === 2 ? 2 : 1;
-  for (let k = 0; k < n; k++, cursor++) {
-    const it = T.aib[cursor].items[0];
-    assert.equal(T.aib[cursor].items.length, 1);
-    assert.equal(it.id, n === 2 ? `${x.id}:part-${k + 1}` : x.id, `aib[${cursor}]`);
-    if (n === 2) assert.deepEqual(it.part, [k + 1, 2]);
-    assert.equal(it.cat, 'ai');
-  }
-  if (x.after) {
-    const inAib = (ai.AIB as Any[]).some((y) => y.id === x.after);
-    const before = inAib ? aibLast(x.after) : slotOf('ai', x.after);
-    assert.ok(before >= 0 && before < aibFirst(x.id), `${x.id} after ${x.after} (${before} < ${aibFirst(x.id)})`);
-  }
-}
-assert.equal(cursor, 54);
-for (let i = 54; i < 78; i++) {
-  assert.equal(T.aib[i].items[0].text, "Revisit: re-run your week's AI build with one improvement");
-  assert.equal(T.aib[i].items[0].filler, true);
-}
 
 // ---------- fe ----------
 const feIds = T.fe.map((s: Any) => s.items[0].id);
@@ -265,13 +236,12 @@ for (let w = 1; w <= 13; w++) {
   if (w >= 2) assert.equal(ids('jt', idx(w, 4))[0], (judgment.DECOMP as Any[])[w - 2].id, `Thu wk${w}`);
   const sat = T.jt[idx(w, 6)].items;
   if (w % 2 === 1 && w <= 9) assert.ok(sat.every((x: Any) => x.id.startsWith('jt:ai-drill-')), `Sat wk${w} AI drill`);
-  // R8: every Saturday (drill or mock) takes the revision time; R9: the slot holds ≤ 75 min, the rest carries to Sunday.
+  // R9: the slot holds ≤ 75 min (interim v2 text; Task 5 replaces these), the rest carries to Sunday. v3 has no
+  // revision merge, so nothing takes the revision time.
   const kept = sat.filter((x: Any) => !x.sundayCarry);
-  assert.ok(kept.length && kept.every((x: Any) => x.takesRevision === true), `Sat wk${w} takesRevision`);
+  assert.ok(kept.length && sat.every((x: Any) => !('takesRevision' in x)), `Sat wk${w} no takesRevision`);
   assert.ok(sat.every((x: Any) => typeof x.mins === 'number' && x.mins > 0), `Sat wk${w} every item has mins`);
-  const cap = kept.every((x: Any) => x.takesRevision) ? 75 : 45;
-  assert.ok(kept.reduce((m: number, x: Any) => m + x.mins, 0) <= cap, `Sat wk${w} ≤ ${cap} min in the slot`);
-  for (const x of sat.filter((x: Any) => x.sundayCarry)) assert.ok(!x.takesRevision, `${x.id} carried, not in the slot`);
+  assert.ok(kept.reduce((m: number, x: Any) => m + x.mins, 0) <= 75, `Sat wk${w} ≤ 75 min in the slot`);
   if (w >= 10) {
     const rounds = sat.filter((x: Any) => x.id.startsWith('jt:mock-loop-'));
     assert.equal(rounds.length, 3, `Sat wk${w} loop has 3 rounds`);
@@ -307,6 +277,29 @@ assert.deepEqual(fdeOrder, (career.FDE as Any[]).map((x) => x.id).filter((id) =>
 const lastBeh = Math.max(...(career.BEH as Any[]).filter((x) => !x.id.startsWith('beh:negotiation')).map((x) => slotOf('beh', x.id)));
 for (const x of [...(career.FDE as Any[]).filter((x) => !SKIP_FDE.has(x.id)), ...(career.TEARDOWNS as Any[])]) assert.ok(slotOf('beh', x.id) > lastBeh, `${x.id} after BEH runs out`);
 for (const x of T.beh.flatMap((s: Any) => s.items)) assert.equal(x.cat, x.id.startsWith('ux:') ? 'ux' : x.id.startsWith('fde:') ? 'fde' : 'beh', `${x.id} cat`);
+
+// ---------- expandRow (the v3 content row format) ----------
+{
+  const learn = { id: 'ai:x', covers: ['ai:old'], understand: 'Read X', url: 'https://a.example/1', url2: 'https://a.example/2', do: 'In a TS file, do Y', explain: 'Out loud: Z. Deep enough when you can W', after: 'fe:y' };
+  assert.deepEqual(expandRow(learn, 'ai'), [[
+    { id: 'ai:x', text: 'Read X', cat: 'ai', url: 'https://a.example/1', url2: 'https://a.example/2', after: 'fe:y' },
+    { id: 'ai:x:do', text: 'In a TS file, do Y', cat: 'ai' },
+    { id: 'ai:x:explain', text: 'Out loud: Z. Deep enough when you can W', cat: 'ai' },
+  ]]);
+  // `do` omitted: 2 tasks; `cat` overrides the track's
+  const two = expandRow({ id: 'beh:y', understand: 'Read', url: 'https://b.example/', explain: 'Deep enough when you can V', cat: 'fde' }, 'beh');
+  assert.deepEqual(two, [[{ id: 'beh:y', text: 'Read', cat: 'fde', url: 'https://b.example/' }, { id: 'beh:y:explain', text: 'Deep enough when you can V', cat: 'fde' }]]);
+  // a rep / mock: one task with its id, text, url and minutes
+  assert.deepEqual(expandRow({ id: 'fe:rep-1', kind: 'rep', text: 'Timed rep (45 min): Q', url: 'https://c.example/', mins: 45, covers: ['fe:a'] }, 'fe'),
+    [[{ id: 'fe:rep-1', text: 'Timed rep (45 min): Q', cat: 'fe', url: 'https://c.example/', mins: 45 }]]);
+  // `parts: 2`: two slots, part-suffixed ids and texts
+  const parts = expandRow({ id: 'pf:z', understand: 'Read', url: 'https://d.example/', do: 'Do', explain: 'Explain', parts: 2 }, 'platform');
+  assert.equal(parts.length, 2);
+  assert.deepEqual(parts.map((s) => s.map((x) => x.id)), [['pf:z:part-1', 'pf:z:part-1:do', 'pf:z:part-1:explain'], ['pf:z:part-2', 'pf:z:part-2:do', 'pf:z:part-2:explain']]);
+  assert.deepEqual(parts[1].map((x) => x.text), ['Read (part 2/2)', 'Do (part 2/2)', 'Explain (part 2/2)']);
+  assert.deepEqual(parts.map((s) => s.map((x) => x.part)), [[[1, 2], [1, 2], [1, 2]], [[2, 2], [2, 2], [2, 2]]]);
+  assert.ok(parts.flat().every((x) => x.cat === 'platform'));
+}
 
 // ---------- purity ----------
 const src = readFileSync(new URL('../src/lib/tracks.ts', import.meta.url), 'utf8');

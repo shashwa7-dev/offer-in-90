@@ -1,4 +1,4 @@
-/* Track sequences (roadmap v2 §1–§9, §14): the curriculum as 8 ordered tracks of 78 slots each, one track per study block.
+/* Track sequences (roadmap v2 §1–§9, §14; v3 drops the aib track): the curriculum as 7 ordered tracks of 78 slots each, one track per study block.
  * The Grind weekday rules are baked into the order: Grind slot i falls on week floor(i / 6) + 1, weekday GRIND_DOW[i].
  * Steady (Task 6) runs the same sequences on whichever days a track runs.
  * Pure: content comes in as an argument and only type imports are used (extensionless runtime imports don't resolve
@@ -7,9 +7,9 @@ import type { Cat } from './engine';
 import type { TrackId } from './state-types';
 
 export type SlotItem = {
-  id: string; text: string; url?: string; cat: Cat;
+  id: string; text: string; url?: string; /** A free secondary link (v3 content rows). */ url2?: string; cat: Cat;
   pattern?: string; tier?: string; flags?: string[]; role?: string; depth?: boolean;
-  hiddenUntilStart?: boolean; takesRevision?: boolean; part?: [number, number];
+  hiddenUntilStart?: boolean; part?: [number, number];
   slug?: string; diff?: string; mins?: number; practice?: string; summary?: string;
   /** The take-home brief, on part 1 of each take-home. */
   brief?: string;
@@ -52,6 +52,36 @@ const filler = (id: string, text: string, cat: Cat, url?: string): SlotItem => (
 function fillers() {
   const n: Record<string, number> = {};
   return (prefix: string, text: string, cat: Cat) => filler(`${prefix}-${(n[prefix] = (n[prefix] ?? 0) + 1)}`, text, cat);
+}
+
+/** One v3 content row → its slots (the plan's "Content row format"). A rep / mock row (`kind`) is one task with its
+ * `id`. A learning row is Understand (`id`, with `url`, `url2` and `after`), Do (`id:do`, when given) and Explain
+ * (`id:explain`). A `parts: 2` row fills two slots: ids `id:part-k` (`:do` / `:explain` on each part), texts end
+ * "(part k/2)". `cat` overrides the track's category; `covers` stays in the content (the coverage test reads it). */
+export function expandRow(row: Row, cat: Cat): SlotItem[][] {
+  const c: Cat = row.cat ?? cat;
+  if (row.kind) {
+    const it: SlotItem = { id: row.id, text: row.text, cat: c };
+    if (row.url) it.url = row.url;
+    if (row.url2) it.url2 = row.url2;
+    if (typeof row.mins === 'number') it.mins = row.mins;
+    if (typeof row.after === 'string') it.after = row.after;
+    return [[it]];
+  }
+  const slot = (id: string, suffix: string, part?: [number, number]): SlotItem[] => {
+    const extra = part ? { part } : {};
+    const u: SlotItem = { id, text: `${row.understand}${suffix}`, cat: c, ...extra };
+    if (row.url) u.url = row.url;
+    if (row.url2) u.url2 = row.url2;
+    if (typeof row.after === 'string' && (!part || part[0] === 1)) u.after = row.after;
+    return [
+      u,
+      ...(row.do ? [{ id: `${id}:do`, text: `${row.do}${suffix}`, cat: c, ...extra }] : []),
+      { id: `${id}:explain`, text: `${row.explain}${suffix}`, cat: c, ...extra },
+    ];
+  };
+  if (row.parts === 2) return [1, 2].map((k) => slot(`${row.id}:part-${k}`, ` (part ${k}/2)`, [k, 2]));
+  return [slot(row.id, '')];
 }
 
 /** A list consumed front to back. */
@@ -126,17 +156,6 @@ function dsaTrack(c: TrackContent): Slot[] {
   // Interview-environment practice rides along on the Monday of its week (weeks 10–13).
   for (const env of c.INTERVIEW_ENV as Row[]) slots[at(env.week, 1)].push(item(env, 'dsa'));
   return toSlots('dsa', slots);
-}
-
-// ---------- aib (§7, §8): the 30-min AI-build slot ----------
-function aibTrack(c: TrackContent): Slot[] {
-  const slots: SlotItem[][] = [];
-  for (const x of c.AIB as Row[]) {
-    if (x.slots === 2) for (const k of [1, 2]) slots.push([item(x, 'ai', { id: `${x.id}:part-${k}`, text: `${x.text} (part ${k}/2)`, part: [k, 2] })]);
-    else slots.push([item(x, 'ai')]);
-  }
-  for (let n = 1; slots.length < SLOTS; n++) slots.push([filler(`aib:revisit-${n}`, "Revisit: re-run your week's AI build with one improvement", 'ai')]);
-  return toSlots('aib', slots);
 }
 
 // ---------- fe (§9): FE topics, the depth reads after their `after`, then revision pairs ----------
@@ -228,29 +247,28 @@ const LOOPS: { name: string; peer: boolean; rounds: string[] }[] = [
   { name: 'product engineer', peer: true, rounds: ['coding (DSA)', 'machine coding', 'product/system design'] },
   { name: "your top target company's loop, from the company map", peer: false, rounds: ['coding', 'system design', 'behavioral'] },
 ];
-const SAT_CAP = 75; // revision + judgment merged (min)
+const SAT_CAP = 75; // the v2 Saturday slot (min); interim text until Task 5 replaces these items
 
 function jtSaturday(w: number): SlotItem[] {
-  const rev = (x: Omit<SlotItem, 'takesRevision'>): SlotItem => ({ ...x, takesRevision: true });
   const carry = (x: SlotItem): SlotItem => ({ ...x, sundayCarry: true });
-  // Odd weeks 1–9: the 60-min AI drill, which also takes the revision time (Ruling R8).
-  if (w % 2 === 1 && w <= 9) return [rev({ id: `jt:ai-drill-${(w + 1) / 2}`, cat: 'dsa', url: AI_DRILL_URL, text: AI_DRILL, mins: 60 })];
+  // Odd weeks 1–9: the 60-min AI drill.
+  if (w % 2 === 1 && w <= 9) return [{ id: `jt:ai-drill-${(w + 1) / 2}`, cat: 'dsa', url: AI_DRILL_URL, text: AI_DRILL, mins: 60 }];
   if (w >= 10) {
     const n = w - 9, loop = LOOPS[n - 1];
     return loop.rounds.map((round, k) => {
       const it: SlotItem = { id: `jt:mock-loop-${n}-round-${k + 1}`, cat: 'dsa', url: PEER_URL, mins: 45,
         text: `Full mock loop ${n} of 4 (${loop.name}), round ${k + 1} of ${loop.rounds.length}: ${round}, 45 min, ${loop.peer ? 'with a peer on Pramp/Exponent' : 'with a peer or recorded solo'}, timed and out loud.` };
-      return k === 0 ? rev(it) : carry(it);
+      return k === 0 ? it : carry(it);
     });
   }
   const items: SlotItem[] = [];
   if (w >= 4) {
     const n = (w - 4) / 2, [round, cat] = PEER_ROUNDS[n % PEER_ROUNDS.length];
-    items.push(rev({ id: `jt:peer-mock-${n + 1}`, cat, url: PEER_URL, mins: SAT_CAP,
-      text: `Peer mock with a real person (Pramp or Exponent, 45 min): ${round} round. This is the week's timed mock; use the rest of the 75-min slot to write down the feedback and redo what you missed.` }));
+    items.push({ id: `jt:peer-mock-${n + 1}`, cat, url: PEER_URL, mins: SAT_CAP,
+      text: `Peer mock with a real person (Pramp or Exponent, 45 min): ${round} round. This is the week's timed mock; use the rest of the 75-min slot to write down the feedback and redo what you missed.` });
   } else {
-    items.push(rev({ id: `jt:mock-${w / 2}`, cat: 'dsa', mins: SAT_CAP,
-      text: 'Weekly timed mock (75 min, out loud; uses the whole revision + judgment slot): 2 problems you haven\'t seen, from the optional pools of patterns you\'ve covered. Log each as unseen with your minutes.' }));
+    items.push({ id: `jt:mock-${w / 2}`, cat: 'dsa', mins: SAT_CAP,
+      text: 'Weekly timed mock (75 min, out loud; uses the whole revision + judgment slot): 2 problems you haven\'t seen, from the optional pools of patterns you\'ve covered. Log each as unseen with your minutes.' });
   }
   // From week 5: the speed pair. The mock fills the 75-min slot, so it carries to Sunday (R9).
   if (w >= 5) items.push(carry({ id: `jt:speed-pair-${(w - 4) / 2}`, cat: 'dsa', mins: 35, text: 'Speed pair (35 min): re-solve 2 must-solve problems you\'ve already done, from a blank file, talking out loud.' }));
@@ -346,7 +364,7 @@ function aiTrack(c: TrackContent): Slot[] {
     if (from < 0 || free < 0) mustFit('ai', 1);
     slots[free] = [item(x, 'ai')];
   }
-  // The gaps (old build days that moved to AIB) and the tail: explain-it-back reviews, each only after the evening slot
+  // The gaps (old v2 build days) and the tail: explain-it-back reviews, each only after the evening slot
   // that teaches its topic. Least-used covered review first (never the same one twice running); with none, a notes revisit.
   const at_ = (id: string) => slots.findIndex((s) => s?.some((y) => y.id === id));
   const reviews = (c.AI_REVIEW as Row[]).map((r) => {
@@ -370,11 +388,11 @@ function aiTrack(c: TrackContent): Slot[] {
   return toSlots('ai', out);
 }
 
-/** The 8 track sequences, 78 slots each. `content` is the merged exports of src/lib/content/*.js. */
+/** The 7 track sequences, 78 slots each. `content` is the merged exports of src/lib/content/*.js. */
 export function buildTracks(content: TrackContent): Record<TrackId, Slot[]> {
   if (WEEKS * 6 !== SLOTS) throw new Error('Grind has 13 weeks of 6 study days');
   return {
-    dsa: dsaTrack(content), aib: aibTrack(content), fe: feTrack(content), mc: mcTrack(content),
+    dsa: dsaTrack(content), fe: feTrack(content), mc: mcTrack(content),
     sd: sdTrack(content), jt: jtTrack(content), beh: behTrack(content), ai: aiTrack(content),
   };
 }

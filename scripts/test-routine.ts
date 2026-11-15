@@ -181,4 +181,14 @@ assert.deepEqual(validateRoutine({ ...DEFAULT_ROUTINE, lunch: { on: false, title
   assert.ok(buildICS('2026-11-16', 91, { ...DEFAULT_ROUTINE, dinner: { on: true, title: 'Dinner', s: '19:15', min: 180 } }).includes('SUMMARY:Gym'));
 }
 
+// Review Focus 5: a moved wake-up on the v3 60/60 DSA/recall split keeps every block and 10.75 study hours
+{
+  const r = must(placeDay(WEEKDAY_BLOCKS, { wake: { s: '06:30' } }));
+  fullDay(r.blocks);
+  assert.equal(find(r.blocks, 'dsa').s, '06:45');
+  assert.equal(find(r.blocks, 'aib').s, '07:45');
+  const study = r.blocks.filter((b: any) => b.kind === 'study').reduce((a: number, b: any) => a + mins(b.e) - mins(b.s), 0);
+  assert.equal(study, 645);
+}
+
 console.log('routine: all scenarios pass');

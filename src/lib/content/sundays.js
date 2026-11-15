@@ -7,7 +7,7 @@
 
 export const SUNDAY_CORE = [
   // R1 placeholder for the weekly test (R2 replaces it with the graded quiz): hand-scored 0–100 per section into `scores` (`w<n>/<section>`).
-  { id: 'sun:weekly-self-check', scores: true, mins: 40, text: "Weekly self-check: 40 min, closed book. From memory, answer 5 questions per section on this week's topics (DSA, frontend & CS, system design, AI), Depth topics counted twice, then check against your notes and enter a 0–100 score for each section." },
+  { id: 'sun:weekly-self-check', scores: true, mins: 40, text: "Weekly self-check: 40 min, closed book. From memory, answer 5 questions per section on this week's topics (DSA, AI engineering, Systems, Platform & DevOps, Product, Frontend), then check against your notes and enter a 0–100 score for each section." },
   { id: 'sun:reflection', mins: 30, text: 'Weekly reflection with a listen-back: write what went well, what slipped and why. Then listen to one recording of yourself explaining something this week, and write one thing to change.' },
   { id: 'sun:next-week-preview', mins: 10, text: "Preview next week (10 min): skim next week's topics and flag anything that needs setup or a booking (peer mocks, repos, accounts)." },
 ];

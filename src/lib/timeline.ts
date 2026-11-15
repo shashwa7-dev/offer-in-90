@@ -1,13 +1,15 @@
 // Roadmap stages and Today day bands. Pure: no runtime imports.
-export type TrackKey = 'dsa' | 'fe' | 'sd' | 'mc' | 'ai' | 'career';
+export type TrackKey = 'dsa' | 'ai' | 'sd' | 'mc' | 'platform' | 'career' | 'fe';
 
+/** Progress and filter tracks (v3). Keyed by task category through trackOfCat (task-filter.ts), not by TrackId. */
 export const TRACKS: { key: TrackKey; name: string }[] = [
   { key: 'dsa', name: 'DSA' },
-  { key: 'fe', name: 'Frontend & CS' },
-  { key: 'sd', name: 'System design' },
-  { key: 'mc', name: 'Machine coding' },
-  { key: 'ai', name: 'AI' },
+  { key: 'ai', name: 'AI engineering' },
+  { key: 'sd', name: 'Systems' },
+  { key: 'mc', name: 'Product' },
+  { key: 'platform', name: 'Platform' },
   { key: 'career', name: 'Career' },
+  { key: 'fe', name: 'Frontend' },
 ];
 
 export interface TimelineDay {

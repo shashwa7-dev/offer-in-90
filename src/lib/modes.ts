@@ -8,7 +8,7 @@ export type Modes = Record<string, ModeEntry>;
 
 export const MODE_INFO = { grind: { weeks: 13, studyDays: 78 }, steady: { weeks: 17, studyDays: 102 } } as const;
 
-const TRACK_IDS: TrackId[] = ['dsa', 'aib', 'fe', 'mc', 'sd', 'jt', 'beh', 'ai'];
+const TRACK_IDS: TrackId[] = ['dsa', 'fe', 'mc', 'sd', 'jt', 'beh', 'ai'];
 const zeroCursors = (): Record<TrackId, number> => Object.fromEntries(TRACK_IDS.map((t) => [t, 0])) as Record<TrackId, number>;
 
 /** The entry in force on `isoDate`: the latest one dated on or before it, else Steady from the start. */

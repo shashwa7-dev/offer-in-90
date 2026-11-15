@@ -1,8 +1,11 @@
 /* Sunday helpers (roadmap v2 §11, §17): score fields, the Scores table, the burnout guard. Pure: no imports. */
 
-export type ScoreSection = 'dsa' | 'fe' | 'sd' | 'ai';
+/** The six v3 sections. `dsa`, `ai`, `sd` and `fe` keep their v2 keys, so old weekly scores stay readable; a key not
+ * listed here (an old or unknown section) is ignored. */
+export type ScoreSection = 'dsa' | 'ai' | 'sd' | 'platform' | 'product' | 'fe';
 export const SCORE_SECTIONS: { key: ScoreSection; label: string }[] = [
-  { key: 'dsa', label: 'DSA' }, { key: 'fe', label: 'Frontend & CS' }, { key: 'sd', label: 'System design' }, { key: 'ai', label: 'AI' },
+  { key: 'dsa', label: 'DSA' }, { key: 'ai', label: 'AI engineering' }, { key: 'sd', label: 'Systems' },
+  { key: 'platform', label: 'Platform & DevOps' }, { key: 'product', label: 'Product' }, { key: 'fe', label: 'Frontend' },
 ];
 
 /** A hand-typed score: a whole number 0–100, or null (empty or invalid). */
@@ -13,7 +16,7 @@ export function parseScore(raw: string): number | null {
   return n >= 0 && n <= 100 ? n : null;
 }
 
-/** The `scores` keys one task asks for. `baseline/<section>` is one field; `w<n>` is the weekly self-check (all four sections). */
+/** The `scores` keys one task asks for. `baseline/<section>` is one field; `w<n>` is the weekly self-check (all six sections). */
 export function scoreFields(scoreKey: string): { key: string; label: string }[] {
   if (scoreKey.includes('/')) return [{ key: scoreKey, label: 'Score' }];
   return SCORE_SECTIONS.map((s) => ({ key: `${scoreKey}/${s.key}`, label: s.label }));

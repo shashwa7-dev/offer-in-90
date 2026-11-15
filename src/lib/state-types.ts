@@ -1,6 +1,8 @@
 /* Types for the v6 synced maps. Pure: no imports, so tests and other pure modules can use them. */
 
-export type TrackId = 'dsa' | 'aib' | 'fe' | 'mc' | 'sd' | 'jt' | 'beh' | 'ai';
+/** The 7 track sequences (roadmap v3). `aib` is a template key only (the generated recall block); an old mode entry's
+ * `aib` cursor is ignored. */
+export type TrackId = 'dsa' | 'fe' | 'mc' | 'sd' | 'jt' | 'beh' | 'ai';
 /** What the owner picked for one day, plus where each track's sequence stood. `basis` is the plan start the cursors
  * were taken against; with any other start the layout re-derives them (R11). */
 export type ModeEntry = { mode: 'steady' | 'grind'; cursors: Record<TrackId, number>; basis?: string };

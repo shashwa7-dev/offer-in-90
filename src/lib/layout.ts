@@ -1,4 +1,4 @@
-/* Calendar layout (roadmap v2 §14): the 8 track sequences (78 slots each) placed on calendar days in Grind or Steady,
+/* Calendar layout (roadmap v2 §14, v3 pairing): the 7 track sequences (78 slots each) placed on calendar days in Grind or Steady,
  * following the owner's mode history.
  * - The prep day is day 0, the Sunday before `start` (a Monday). Weeks run Mon–Sun; Mon–Sat are study days.
  * - Grind: every track runs every study day (13 weeks). Steady: each track runs on 78 of every 102 study days (17 weeks).
@@ -27,7 +27,7 @@ export type LayoutInput = {
   done: Record<string, number>;
 };
 
-const TRACK_IDS: TrackId[] = ['dsa', 'aib', 'fe', 'mc', 'sd', 'jt', 'beh', 'ai'];
+const TRACK_IDS: TrackId[] = ['dsa', 'fe', 'mc', 'sd', 'jt', 'beh', 'ai'];
 const STEADY_DAYS = 102;
 const STEADY_SKIPS = STEADY_DAYS - 78;
 /** Max days a plan can run, a guard against bad input (Steady from scratch is 119). */
@@ -35,13 +35,14 @@ const MAX_DAYS = 400;
 
 // ---------- Steady rotation ----------
 /* Bresenham: a track skips study day k (mod 102) when floor((k+1)·24/102) steps up, i.e. 24 skips in 102 days, 4 in
- * every 17, at least 4 days apart (so never 2 in a row). Tracks go in pairs with the same phase; the 4 pairs are
- * offset by 0–3 days, so on any day at most one pair skips and at least 6 of the 8 tracks run.
- * aib and ai share a pair: the AI build's cross-track prerequisites (`after` an ai item, 1+ slots earlier) then always
- * fall on an earlier day, since both tracks' k-th slots land on the same day. */
-const PAIR_PHASE = [0, 1, 0, 2, 2, 3, 3, 1]; // dsa+fe, aib+ai, mc+sd, jt+beh
+ * every 17, at least 4 days apart (so never 2 in a row). Tracks with the same phase skip together; the 4 phases are
+ * offset by 0–3 days, so on any day at most one phase skips and at least 5 of the 7 tracks run.
+ * - dsa and fe (AI core) are in different phases, so they never rest on the same day.
+ * - fe and mc (product) share a phase: both tracks' k-th slots land on the same day, so a product step `after` an
+ *   AI-core slot with a lower index always falls on a later day. */
+const PAIR_PHASE = [0, 1, 1, 2, 2, 0, 3]; // dsa+beh, fe+mc, sd+jt, ai
 
-/** Does track `trackIndex` (dsa, aib, fe, mc, sd, jt, beh, ai) run on Steady study day `studyDay` (0-based)? */
+/** Does track `trackIndex` (dsa, fe, mc, sd, jt, beh, ai) run on Steady study day `studyDay` (0-based)? */
 export function steadyRuns(trackIndex: number, studyDay: number): boolean {
   const k = (((studyDay + PAIR_PHASE[trackIndex]) % STEADY_DAYS) + STEADY_DAYS) % STEADY_DAYS;
   return Math.floor(((k + 1) * STEADY_SKIPS) / STEADY_DAYS) === Math.floor((k * STEADY_SKIPS) / STEADY_DAYS);
@@ -167,7 +168,7 @@ export function layoutDays({ start, kickoff, modes, tracks, done }: LayoutInput)
       continue;
     }
     // A track runs when it has slots left, the Steady rotation gives it the day, and its next slot's prerequisites
-    // are on earlier days (otherwise it waits: after an uneven switch, an aib build waits for its ai read).
+    // are on earlier days (otherwise it waits: after an uneven switch, a product step waits for its AI-core slot).
     const slots: LayoutDay['slots'] = {};
     TRACK_IDS.forEach((t, i) => {
       if (ptr[t] >= len(t) || (mode === 'steady' && !steadyRuns(i, segStudy))) return;

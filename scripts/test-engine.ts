@@ -52,10 +52,14 @@ for (const d of [...G, ...S]) for (const t of d.tasks) assert.ok(!('lld' in d) &
 
 // ---------- day 1: each track's slot 0 in its block ----------
 const d1 = G[1];
-for (const t of ['dsa', 'aib', 'fe', 'mc', 'sd', 'jt', 'beh']) {
+for (const t of ['dsa', 'fe', 'mc', 'sd', 'jt', 'beh', 'ai']) {
   assert.deepEqual(ids(d1, t), tracks[t][0].items.map((x: Any) => x.id), `day 1 ${t} block`);
 }
-assert.deepEqual(ids(d1, 'ai'), [`d:${START}:news`, ...tracks.ai[0].items.map((x: Any) => x.id)]);
+assert.ok(!('aib' in tracks), 'aib is not a track');
+// day 1: no AI-core slot yet (warm-up) and no Systems slot 3–7 days back, so the AI recall takes the full 50 min
+assert.deepEqual(ids(d1, 'aib'), [`d:${START}:recall-ai`, `d:${START}:news`]);
+assert.match(block(d1, 'aib').tasks[0].text, /^Warm-up:/);
+assert.equal(block(d1, 'aib').tasks[0].mins, 50);
 assert.deepEqual(ids(d1, 'review'), [`d:${START}:log`]);
 assert.ok(block(d1, 'review').tasks[0].log);
 // day 1 is foundations: no covered pattern yet, so no drill and no re-solves
@@ -63,8 +67,13 @@ assert.deepEqual(ids(d1, 'rev'), []);
 
 // ---------- prep day: setup + baseline scored by hand ----------
 const prep = G[0];
-assert.deepEqual(ids(prep, 'baseline'), ['baseline:dsa', 'baseline:fe', 'baseline:sd']);
-assert.deepEqual(block(prep, 'baseline').tasks.map((t: Any) => t.scoreKey), ['baseline/dsa', 'baseline/fe', 'baseline/sd']);
+const SECTIONS = ['dsa', 'ai', 'sd', 'platform', 'product', 'fe'];
+assert.deepEqual(ids(prep, 'baseline'), SECTIONS.map((x) => `baseline:${x}`));
+assert.deepEqual(block(prep, 'baseline').tasks.map((t: Any) => t.scoreKey), SECTIONS.map((x) => `baseline/${x}`));
+assert.deepEqual(block(prep, 'baseline').tasks.map((t: Any) => t.mins), [25, 15, 15, 10, 10, 15]);
+assert.equal(block(prep, 'baseline').tasks.reduce((a: number, t: Any) => a + t.min, 0), 90);
+assert.deepEqual(ids(prep, 'beh'), ['k-pos']);
+assert.deepEqual(ids(prep, 'ai'), ['k-news']);
 assert.ok(ids(prep, 'setup').includes('k-ics'));
 
 // ---------- Sundays ----------
@@ -137,7 +146,7 @@ for (const [plan, name] of [[G, 'grind'], [S, 'steady']] as const) {
   let drills = 0, resolves = 0;
   for (const plan of [G, S]) for (const d of plan.filter((x) => x.type === 'study')) {
     const rev = block(d, 'rev');
-    if (!rev) { assert.ok(block(d, 'jt').title.includes('75 min'), 'no revision block only when jt takes it'); continue; }
+    assert.ok(rev, `${isoOf(d.date)}: the revision block is never merged away`);
     const rs = rev.tasks.filter((t: Any) => t.id.startsWith('rs:'));
     const dr = rev.tasks.filter((t: Any) => /^d:.*:drill$/.test(t.id));
     assert.ok(rs.length <= 3, `${isoOf(d.date)}: ≤ 3 re-solves`);
@@ -171,13 +180,16 @@ for (const [plan, name] of [[G, 'grind'], [S, 'steady']] as const) {
   assert.notDeepEqual(a.map((p: Any) => p.slug), drillPicks(dsa.PROBLEMS, covered, '2026-12-02').map((p: Any) => p.slug));
   assert.deepEqual(drillPicks(dsa.PROBLEMS, new Set(), '2026-12-01'), []);
 }
-// takesRevision Saturdays: the revision block merges into jt (75 min)
+// Saturdays: no revision merge in v3; the product block is low-level design and the career block a mock day
 {
-  const sat = G.find((d) => d.type === 'study' && d.date.getDay() === 6)!; // week 1 Saturday: AI drill (odd week)
-  const jt = block(sat, 'jt');
-  assert.equal(block(sat, 'rev'), undefined);
-  assert.equal(jt.s, '14:45');
-  assert.equal(jt.e, '16:00');
+  for (const sat of G.filter((d) => d.type === 'study' && d.date.getDay() === 6)) {
+    assert.deepEqual([block(sat, 'rev').s, block(sat, 'rev').e], ['14:45', '15:15']);
+    assert.deepEqual([block(sat, 'jt').s, block(sat, 'jt').e, block(sat, 'jt').title], ['15:15', '16:00', 'Platform, data and DevOps']);
+    assert.equal(block(sat, 'mc').title, 'Deep work 3 · Low-level design');
+    assert.equal(block(sat, 'beh').title, 'Career · Mock day');
+  }
+  assert.equal(block(d1, 'mc').title, 'Deep work 3 · Product: the flagship');
+  assert.equal(block(d1, 'beh').title, 'Career and FDE');
 }
 
 // ---------- routine changes block times ----------
@@ -222,7 +234,11 @@ for (const [plan, name] of [[G, 'grind'], [S, 'steady']] as const) {
 // ---------- minutes ----------
 {
   const dsaB = block(d1, 'dsa');
-  assert.equal(dsaB.tasks.reduce((a: number, t: Any) => a + t.min, 0), 90);
+  assert.equal(dsaB.tasks.reduce((a: number, t: Any) => a + t.min, 0), 60);
+  for (const d of G.filter((x) => x.type === 'study')) {
+    const study = d.blocks.filter((b) => b.kind === 'study');
+    assert.equal(study.reduce((a, b) => a + (Number(b.e.slice(0, 2)) * 60 + Number(b.e.slice(3)) - Number(b.s.slice(0, 2)) * 60 - Number(b.s.slice(3))), 0), 645, `${isoOf(d.date)}: 10.75 h of study blocks`);
+  }
   for (const d of G) for (const t of d.tasks) if (!isStudy(t)) assert.equal(t.min, 0, `${t.id} not counted`);
 }
 
@@ -273,6 +289,85 @@ for (const plan of [G, S]) {
     for (const p of drill?.drill ?? []) assert.ok(seen.has(byName.get(p.pattern) as string), `${isoOf(d.date)}: drill pattern ${p.pattern} covered on an earlier day`);
     for (const p of today) seen.add(p as string);
   }
+}
+
+// ---------- recall + news (the aib block, generated every study day; Review Focus 2) ----------
+for (const [plan, modes, name] of [[G, GRIND, 'grind'], [S, {}, 'steady']] as const) {
+  const L = layoutDays({ start: START, kickoff: true, modes, tracks, done: {} } as Any);
+  const liveSlot = (x: Any, t: string) => (x.slots[t] && !x.slots[t].superseded ? x.slots[t] : undefined);
+  plan.forEach((d, i) => {
+    if (d.type !== 'study') return;
+    const date = isoOf(d.date), aib = block(d, 'aib');
+    const aiSrc = L.slice(0, i).filter((x: Any) => x.kind === 'study' && liveSlot(x, 'fe')).at(-1);
+    const sdSrc = L.slice(0, i).filter((x: Any) => x.kind === 'study' && liveSlot(x, 'sd') && x.studyNo >= L[i].studyNo - 7 && x.studyNo <= L[i].studyNo - 3).at(-1);
+    assert.deepEqual(ids(d, 'aib'), [`d:${date}:recall-ai`, ...(sdSrc ? [`d:${date}:recall-sd`] : []), `d:${date}:news`], `${name} ${date} recall ids`);
+    const [ra] = aib.tasks;
+    assert.equal(ra.mins, sdSrc ? 30 : 50, `${name} ${date} recall-ai mins`);
+    if (aiSrc) {
+      const src = aiSrc.slots.fe.items[0];
+      assert.ok(ra.text.includes(src.text), `${name} ${date}: AI recall of ${src.id}`);
+      assert.equal(ra.url, src.url);
+    } else assert.match(ra.text, /^Warm-up:/);
+    if (sdSrc) {
+      const rs = aib.tasks[1], src = sdSrc.slots.sd.items[0];
+      assert.equal(rs.mins, 20);
+      assert.ok(rs.text.includes(src.text), `${name} ${date}: Systems recall of ${src.id}`);
+      assert.equal(rs.url, src.url);
+    }
+    const news = aib.tasks.at(-1);
+    assert.deepEqual([news.mins, news.newsId, news.cat], [10, 'reads', 'ai']);
+    assert.equal(aib.tasks.reduce((a: number, t: Any) => a + t.min, 0), 60);
+    assert.ok(!(block(d, 'ai')?.tasks ?? []).some((t: Any) => t.newsId), `${name} ${date}: no news in the evening block`);
+  });
+  assert.ok(plan.some((d) => d.type === 'study' && ids(d, 'aib').some((id: string) => id.endsWith(':recall-sd'))), `${name}: Systems recall happens`);
+}
+
+// ---------- Steady: DSA rest days are a pattern revisit, not a buffer (Review Focus 3) ----------
+{
+  const HARD = ['dp', 'graph-traversal', 'topo-sort', 'union-find', 'shortest-path-mst', 'backtracking', 'tree-dfs', 'tree-bfs', 'top-k', 'two-heaps', 'k-way-merge', 'intervals', 'sliding-window', 'binary-search'];
+  const inSlots = new Set(Object.values(tracks).flatMap((ts: Any) => ts.flatMap((s: Any) => s.items.map((x: Any) => x.slug).filter(Boolean))));
+  const pool = (dsa.PROBLEMS as Any[]).filter((p) => (p.role === 'var' || p.tier === 'optional') && !inSlots.has(p.slug));
+  const bySlug = new Map(pool.map((p) => [p.slug, p]));
+  const L = layoutDays({ start: START, kickoff: true, modes: {}, tracks, done: {} } as Any);
+  const lastDsa = L.findLastIndex((x: Any) => x.slots.dsa);
+  const covered = new Set<string>(), used = new Set<string>();
+  let revisits = 0, flaggedDays = 0, nonHardDays = 0;
+  S.forEach((d, i) => {
+    if (d.type !== 'study') return;
+    const date = isoOf(d.date);
+    if (!L[i].slots.dsa && i < lastDsa) {
+      revisits++;
+      assert.equal(block(d, 'buffer-dsa'), undefined, `${date}: no DSA buffer`);
+      const ts = block(d, 'dsa').tasks;
+      if (!covered.size) {
+        assert.deepEqual(ts.map((t: Any) => t.id), [`d:${date}:revisit-flagged`]);
+        assert.match(ts[0].text, /^Re-solve one flagged or hardest problem so far/);
+        flaggedDays++;
+      } else {
+        assert.equal(ts.length, 2, `${date}: 2 revisit problems`);
+        assert.equal(ts.reduce((a: number, t: Any) => a + t.mins, 0), 45);
+        const avail = pool.filter((p) => covered.has(p.pattern) && !used.has(p.slug));
+        const hardAvail = avail.filter((p) => HARD.includes(p.pattern));
+        for (const t of ts) {
+          assert.equal(t.id, `rv:${t.slug}:${date}`);
+          assert.equal(t.cat, 'dsa');
+          const p = bySlug.get(t.slug);
+          assert.ok(p && covered.has(p.pattern), `${t.id} from a covered pattern`);
+          assert.ok(!used.has(t.slug), `${t.slug} never revisited twice`);
+          if (!HARD.includes(p.pattern)) assert.ok(hardAvail.length < 2, `${t.id}: hard patterns first`);
+          if (p.role !== 'var') assert.ok(!(HARD.includes(p.pattern) ? hardAvail : avail).some((q) => q.role === 'var' && !ts.some((x: Any) => x.slug === q.slug)), `${t.id}: var before optional`);
+        }
+        if (!ts.some((t: Any) => HARD.includes(bySlug.get(t.slug).pattern))) nonHardDays++;
+        for (const t of ts) used.add(t.slug);
+      }
+    } else if (!L[i].slots.dsa) assert.ok(block(d, 'buffer-dsa'), `${date}: DSA finished, a buffer`);
+    for (const x of L[i].slots.dsa?.items ?? []) if (x.pattern) covered.add(x.pattern);
+  });
+  assert.ok(revisits >= 20, `Steady has ${revisits} revisit days`);
+  assert.ok(flaggedDays >= 1, 'early revisit day with nothing covered: re-solve a flagged problem');
+  assert.ok(nonHardDays >= 1, 'before any hard pattern: picks from any covered pattern');
+  // Grind never revisits
+  assert.ok(!G.some((d) => d.tasks.some((t) => t.id.startsWith('rv:') || t.id.endsWith(':revisit-flagged'))));
 }
 
 console.log('test-engine: ok');

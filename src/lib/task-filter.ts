@@ -14,8 +14,8 @@ export interface TaskFilter {
 
 export const EMPTY_FILTER: TaskFilter = { status: 'all', tracks: [], blocks: [], labels: [], diff: [] };
 
-const CAT_TRACK: Record<string, TrackKey> = { dsa: 'dsa', fe: 'fe', sd: 'sd', mc: 'mc', proj: 'mc', ai: 'ai', beh: 'career', ux: 'career', fde: 'career' };
-const TRACKS: TrackKey[] = ['dsa', 'fe', 'sd', 'mc', 'ai', 'career'];
+const CAT_TRACK: Record<string, TrackKey> = { dsa: 'dsa', ai: 'ai', sd: 'sd', mc: 'mc', proj: 'mc', platform: 'platform', beh: 'career', ux: 'career', fde: 'career', fe: 'fe' };
+const TRACKS: TrackKey[] = ['dsa', 'ai', 'sd', 'mc', 'platform', 'career', 'fe'];
 const STATUSES = ['all', 'todo', 'progress', 'done', 'skipped'];
 const DIFFS = ['E', 'M', 'H'];
 

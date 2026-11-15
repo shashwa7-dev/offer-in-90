@@ -14,9 +14,9 @@ const P: any = PLAN;
 export { P };
 const DAY_MS = 864e5;
 
-export type Cat = 'dsa' | 'fe' | 'mc' | 'proj' | 'sd' | 'ux' | 'beh' | 'fde' | 'ai' | 'review' | 'health' | 'update';
+export type Cat = 'dsa' | 'fe' | 'mc' | 'proj' | 'sd' | 'ux' | 'beh' | 'fde' | 'ai' | 'platform' | 'review' | 'health' | 'update';
 export interface Task {
-  id: string; text: string; cat: Cat; url?: string; diff?: 'E' | 'M' | 'H'; slug?: string;
+  id: string; text: string; cat: Cat; url?: string; /** A free secondary link (v3 content rows). */ url2?: string; diff?: 'E' | 'M' | 'H'; slug?: string;
   log?: boolean; min: number; bk: string; outdated?: UpdateItem; fromUpdate?: UpdateItem; newsId?: string;
   /** Id of the user's own task (State.custom). Only these can be edited or removed. */
   own?: string;
@@ -69,7 +69,7 @@ export const hrs = (m: number) => { const h = m / 60; return h >= 10 ? Math.roun
 /** Calendar days from `start` (day 1) to `date`. The days array index is this plus 1 when the prep day is on. */
 export const dayIndexOf = (start: string, date = new Date()) => Math.round((new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime() - parseISO(start).getTime()) / DAY_MS);
 export const phaseName = (p: number) => ['', 'Foundations', 'Depth', 'Interview mode'][p];
-export const catName: Record<string, string> = { dsa: 'DSA', fe: 'Frontend & CS', mc: 'Machine coding & LLD', proj: 'Flagship project', sd: 'System design', ux: 'Product & UX', beh: 'Career', fde: 'Forward-deployed', ai: 'AI', review: 'Review', update: 'Updates' };
+export const catName: Record<string, string> = { dsa: 'DSA', fe: 'Frontend & CS', mc: 'Machine coding & LLD', proj: 'Flagship project', sd: 'System design', ux: 'Product & UX', beh: 'Career', fde: 'Forward-deployed', ai: 'AI', platform: 'Platform & DevOps', review: 'Review', update: 'Updates' };
 
 const LIB: PlanLib = {
   content: CONTENT, tracks: buildTracks(CONTENT), layoutDays, cursorsAt, placeDay, resolveRoutine,
