@@ -187,9 +187,22 @@ for (const [plan, name] of [[G, 'grind'], [S, 'steady']] as const) {
   assert.equal(before.lunch, '11:45');
   assert.equal(after.lunch, '12:00');
   assert.equal(after.workout, undefined, 'gym off: no gym block');
-  // a routine that can't be placed falls back to the template
-  const F = build({ routine: { breakfast: { on: true, title: 'Breakfast', s: '07:15', min: 75 }, lunch: { on: true, title: 'Lunch', s: '12:00', min: 60 } } });
-  assert.deepEqual(F[1].blocks.map((b) => b.s), G[1].blocks.map((b) => b.s));
+  // a routine that overruns moves bedtime: every study block keeps its full length, wind-down shows the new time
+  const F = build({ routine: { lunch: { on: true, title: 'Lunch', s: '12:00', min: 90 } } });
+  const dur = (b: { s?: string; e?: string }) => Number(b.e!.slice(0, 2)) * 60 + Number(b.e!.slice(3)) - Number(b.s!.slice(0, 2)) * 60 - Number(b.s!.slice(3));
+  for (const b of G[1].blocks.filter((x) => x.kind === 'study')) assert.equal(dur(F[1].blocks.find((x) => x.k === b.k)!), dur(b), `${b.k} full length`);
+  const fw = F[1].blocks.find((b) => b.k === 'wind')!;
+  assert.ok(fw.s! > '21:30', 'wind-down moved later');
+  assert.equal(fw.title, `Wind down, no screens · sleep at ${fw.e}`);
+  // a routine that cannot be placed (past 23:59) falls back to the template
+  const X = build({ routine: { dinner: { on: true, title: 'Dinner', s: '19:15', min: 180 } } });
+  assert.deepEqual(X[1].blocks.map((b) => b.s), G[1].blocks.map((b) => b.s));
+  // wake-up shifts study days, not Sundays
+  const W = build({ routine: { wake: { s: '04:30' } } });
+  assert.equal(W[1].blocks.find((b) => b.k === 'wake')!.s, '04:30');
+  assert.equal(W[1].blocks.find((b) => b.k === 'dsa')!.s, '04:45');
+  const wSun = G.findIndex((d) => d.type === 'sun');
+  assert.deepEqual(W[wSun].blocks.map((b) => b.s), G[wSun].blocks.map((b) => b.s), 'Sundays ignore wake-up');
   assert.equal(R[1].blocks.find((b) => b.k === 'lunch')!.title, 'Lunch');
   assert.deepEqual(R[0].blocks.map((b) => b.s), G[0].blocks.map((b) => b.s), 'prep day keeps its template');
   const sunIdx = G.findIndex((d) => d.type === 'sun');

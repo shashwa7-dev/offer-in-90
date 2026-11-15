@@ -16,7 +16,7 @@ import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { cursorsNow, fmtDate, iso, parseISO, totalDays } from '@/lib/engine';
 import { DEFAULT_ROUTINE, ROUTINE_KEYS, placeDay, resolveRoutine, validateRoutine } from '@/lib/routine';
 import { modeOn, switchMode, type Mode } from '@/lib/modes';
-import { nextMonday, overflowMessage, startOver, parseRoutineForm, toDraft, type RoutineDraft } from '@/lib/setup-helpers';
+import { nextMonday, bedtimeMessage, startOver, parseRoutineForm, routineDiff, toRoutineForm, type RoutineDraft, type RoutineForm as RoutineFormState } from '@/lib/setup-helpers';
 import type { RoutineKey } from '@/lib/state-types';
 import { companyCounts, flattenThreads } from '@/lib/interview-feed';
 import { useUI } from './ui-state';
@@ -59,27 +59,32 @@ function Timetable({ title, blocks }: { title: string; blocks: { s: string; e: s
 
 const ROUTINE_ROW: Record<RoutineKey, string> = { breakfast: 'Breakfast', lunch: 'Lunch', extra: 'Fourth slot', dinner: 'Dinner' };
 
+/** The bedtime line for a stored routine: shown when study days need a later bedtime than the usual one. */
+const bedNote = (stored: Parameters<typeof placeDay>[1]) => {
+  const p = placeDay(WEEKDAY_BLOCKS, stored);
+  return p.ok && p.bedShiftMin > 0 ? bedtimeMessage(p.bedtime) : '';
+};
+
 /** The "My routine" form. Remounted (by key) whenever the saved routine changes, so the fields always match it. */
 function RoutineForm() {
   const { state, update } = useStore();
   const { toast } = useUI();
-  const draftsOf = (stored: typeof state.routine): Record<RoutineKey, RoutineDraft> => {
-    const r = resolveRoutine(stored);
-    return { breakfast: toDraft(r.breakfast), lunch: toDraft(r.lunch), extra: toDraft(r.extra), dinner: toDraft(r.dinner) };
-  };
+  const draftsOf = (stored: typeof state.routine): RoutineFormState => toRoutineForm(resolveRoutine(stored));
   const [form, setForm] = useState(() => draftsOf(state.routine));
   const [error, setError] = useState('');
   const edit = (k: RoutineKey, patch: Partial<RoutineDraft>) => { setError(''); setForm(f => ({ ...f, [k]: { ...f[k], ...patch } })); };
+  const editWake = (v: string) => { setError(''); setForm(f => ({ ...f, wake: v })); };
+  const note = bedNote(state.routine);
 
   const save = () => {
-    const slots = parseRoutineForm(form);
-    const v = validateRoutine(slots);
+    const full = parseRoutineForm(form);
+    const v = validateRoutine(full);
     if (!v.ok) { setError(v.error); return; }
-    const p = placeDay(WEEKDAY_BLOCKS, slots);
-    if (!p.ok) { setError(overflowMessage(p.block.title, p.overMin)); return; }
-    // Only slots that differ from the defaults are stored; the rest are removed so sync records the deletion.
-    const next: Partial<Record<RoutineKey, (typeof slots)[RoutineKey]>> = {};
-    for (const k of ROUTINE_KEYS) if (JSON.stringify(slots[k]) !== JSON.stringify(DEFAULT_ROUTINE[k])) next[k] = slots[k];
+    // Bedtime may move to fit the day (shown below once saved); only invalid input or a day past 23:59 is refused.
+    const p = placeDay(WEEKDAY_BLOCKS, full);
+    if (!p.ok) { setError(p.error); return; }
+    // Only entries that differ from the defaults are stored; the rest are removed so sync records the deletion.
+    const next = routineDiff(full, DEFAULT_ROUTINE);
     if (JSON.stringify(next) === JSON.stringify(state.routine)) { setError(''); toast('No changes'); return; }
     update(s => ({ ...s, routine: next }));
     toast('Routine saved. Download the calendar again.');
@@ -88,10 +93,14 @@ function RoutineForm() {
 
   return (
     <div data-routine>
+      <div className="flex flex-wrap items-center gap-2 px-4 py-2.5">
+        <span className="w-20 shrink-0 text-[13px] text-muted-foreground">Wake up</span>
+        <Input type="time" aria-label="Wake up time" value={form.wake} onChange={e => editWake(e.target.value)} className="h-8 w-28 text-[13px] tabular-nums" />
+      </div>
       {ROUTINE_KEYS.map(k => {
         const x = form[k];
         return (
-          <div key={k} className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-2.5 first:border-t-0">
+          <div key={k} className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-2.5">
             <span className="w-20 shrink-0 text-[13px] text-muted-foreground">{ROUTINE_ROW[k]}</span>
             <Switch aria-label={`${ROUTINE_ROW[k]} on`} checked={x.on} onCheckedChange={v => edit(k, { on: v })} />
             <Input aria-label={`${ROUTINE_ROW[k]} name`} value={x.title} onChange={e => edit(k, { title: e.target.value })} className="h-8 min-w-40 flex-1 text-[13px]" />
@@ -105,8 +114,9 @@ function RoutineForm() {
         <Button variant="outline" size="sm" onClick={save}>Save</Button>
         <Button variant="ghost" size="sm" onClick={reset}>Reset to defaults</Button>
         {error && <p data-routine-error role="alert" className="min-w-0 basis-full text-[13px] text-foreground">{error}</p>}
+        {!error && note && <p data-routine-bedtime className="min-w-0 basis-full text-[13px] text-foreground">{note}</p>}
       </div>
-      <p className="border-t border-border px-4 py-2.5 text-[13px] leading-snug text-muted-foreground">The routine applies Mon–Sat. A calendar file you have already downloaded must be downloaded again after any change.</p>
+      <p className="border-t border-border px-4 py-2.5 text-[13px] leading-snug text-muted-foreground">The routine applies Mon–Sat; Sundays keep their own times. Wake-up shifts the whole study day, bedtime included (17 h later); meals and gym keep the times you set. Study blocks always keep their full length: if they need it, bedtime moves later. A calendar file you have already downloaded must be downloaded again after any change.</p>
     </div>
   );
 }

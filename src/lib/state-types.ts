@@ -12,3 +12,7 @@ export type SolveLog = { unseen: boolean; minutes?: number; at: number; /** Task
 export type RoutineKey = 'breakfast' | 'lunch' | 'dinner' | 'extra';
 /** One owner-editable weekday slot (meal or gym). `s` is 'HH:MM'. */
 export type RoutineSlot = { on: boolean; title: string; s: string; min: number };
+/** Wake-up time in the routine map. `s` is 'HH:MM'. */
+export type RoutineTime = { s: string };
+/** The synced `routine` map: meal/gym slots plus wake-up. A missing key means its default. */
+export type RoutineMap = Partial<Record<RoutineKey, RoutineSlot>> & { wake?: RoutineTime };

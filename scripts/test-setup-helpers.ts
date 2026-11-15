@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { nextMonday, parseDraft, parseRoutineForm, toDraft, overflowMessage, normalizeState, isPreV2, startOver } from '../src/lib/setup-helpers.ts';
+import { nextMonday, parseDraft, parseRoutineForm, toDraft, toRoutineForm, routineDiff, bedtimeMessage, normalizeState, isPreV2, startOver } from '../src/lib/setup-helpers.ts';
 import { DEFAULT_ROUTINE } from '../src/lib/routine.ts';
 
 // 2026-11-16 is a Monday
@@ -12,10 +12,17 @@ assert.equal(nextMonday('2026-12-29'), '2027-01-04'); // across the year
 assert.deepEqual(parseDraft({ on: true, title: '  Yoga ', s: '18:00', min: ' 45 ' }), { on: true, title: 'Yoga', s: '18:00', min: 45 });
 assert.ok(Number.isNaN(parseDraft({ on: true, title: 'x', s: '18:00', min: '4.5' }).min));
 assert.ok(Number.isNaN(parseDraft({ on: true, title: 'x', s: '18:00', min: '' }).min));
-const form = { breakfast: toDraft(DEFAULT_ROUTINE.breakfast), lunch: toDraft(DEFAULT_ROUTINE.lunch), extra: toDraft(DEFAULT_ROUTINE.extra), dinner: toDraft(DEFAULT_ROUTINE.dinner) };
+const form = toRoutineForm(DEFAULT_ROUTINE);
+assert.deepEqual(form.breakfast, toDraft(DEFAULT_ROUTINE.breakfast));
+assert.equal(form.wake, '05:00'); assert.ok(!('bed' in form));
 assert.deepEqual(parseRoutineForm(form), DEFAULT_ROUTINE);
+assert.deepEqual(parseRoutineForm({ ...form, wake: '06:00' }).wake, { s: '06:00' });
+// only what differs from the defaults is stored (so Reset / reverting a field records the deletion)
+assert.deepEqual(routineDiff(DEFAULT_ROUTINE, DEFAULT_ROUTINE), {});
+assert.deepEqual(routineDiff({ ...DEFAULT_ROUTINE, wake: { s: '04:30' }, lunch: { ...DEFAULT_ROUTINE.lunch, min: 60 } }, DEFAULT_ROUTINE),
+  { wake: { s: '04:30' }, lunch: { ...DEFAULT_ROUTINE.lunch, min: 60 } });
 
-assert.equal(overflowMessage('Deep work 3 · Machine coding', 40), "Doesn't fit: 'Deep work 3 · Machine coding' would run 40 min past 21:30. Move a slot or shorten it.");
+assert.equal(bedtimeMessage('22:40'), 'Bedtime moves to 22:40 on study days to fit everything.');
 // normalize: a saved or fresh state always starts on a Monday (non-Monday starts snap to the next Monday)
 {
   const f = { v: 6, start: '2026-11-15', kickoff: true, targets: ['A'], pages: { p: 1 }, done: {}, status: {}, flags: {}, notes: {}, tnotes: {}, seenUpdates: {}, bookmarks: {}, custom: {}, modes: {}, labels: {}, itemLabels: {}, own: {}, solves: {}, sundayMode: {}, scores: {}, routine: {}, meta: {}, updatedAt: 0 };

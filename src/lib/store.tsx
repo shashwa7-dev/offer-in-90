@@ -8,7 +8,7 @@ import { DEFAULT_TARGETS, type ThreadsFeed } from '@/lib/interview-feed';
 import type { StatusMap } from './task-status';
 import { merge, sameData, stamp } from './sync-merge';
 import { isPreV2, nextMonday, normalizeState } from './setup-helpers';
-import type { ModeEntry, OwnerLabel, OwnProblem, SolveLog, RoutineKey, RoutineSlot } from './state-types';
+import type { ModeEntry, OwnerLabel, OwnProblem, SolveLog, RoutineMap } from './state-types';
 
 export interface TaskNote { title: string; body: string; upd: number; url?: string }
 /** A saved copy of a news item, interview thread or plan update, kept after it leaves the feed. */
@@ -19,7 +19,7 @@ export interface State {
   tnotes: Record<string, TaskNote>; pages: Record<string, Page>; seenUpdates: Record<string, number>; bookmarks: Record<string, Bookmark>; custom: Record<string, CustomTask>;
   modes: Record<string, ModeEntry>; labels: Record<string, OwnerLabel>; itemLabels: Record<string, string[]>; own: Record<string, OwnProblem>;
   solves: Record<string, SolveLog>; sundayMode: Record<string, 'rest' | 'revision'>; scores: Record<string, number>;
-  routine: Partial<Record<RoutineKey, RoutineSlot>>;
+  routine: RoutineMap;
   meta: Record<string, number>; updatedAt: number;
 }
 type SyncStatus = { state: 'off' | 'syncing' | 'synced' | 'error'; msg?: string; at?: number };

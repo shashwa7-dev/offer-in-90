@@ -1,5 +1,5 @@
-/* Pure helpers for the Setup page: Monday snapping, the routine form, the overflow line. No runtime imports. */
-import type { ModeEntry, RoutineKey, RoutineSlot } from './state-types';
+/* Pure helpers for the Setup page: Monday snapping, the routine form, the bedtime line. No runtime imports. */
+import type { ModeEntry, RoutineKey, RoutineMap, RoutineSlot, RoutineTime } from './state-types';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const isoOf = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -23,12 +23,27 @@ export function parseDraft(d: RoutineDraft): RoutineSlot {
   return { on: d.on, title: d.title.trim(), s: d.s, min: /^\d+$/.test(t) ? Number(t) : NaN };
 }
 
-export const parseRoutineForm = (form: Record<RoutineKey, RoutineDraft>): Record<RoutineKey, RoutineSlot> =>
-  ({ breakfast: parseDraft(form.breakfast), lunch: parseDraft(form.lunch), extra: parseDraft(form.extra), dinner: parseDraft(form.dinner) });
+/** The whole "My routine" form as typed: four slot rows plus wake-up ('HH:MM'). */
+export type RoutineForm = Record<RoutineKey, RoutineDraft> & { wake: string };
+type FullRoutine = Record<RoutineKey, RoutineSlot> & { wake: RoutineTime };
 
-/** The line shown when a block no longer fits before wind-down. */
-export const overflowMessage = (title: string, overMin: number, windStart = '21:30') =>
-  `Doesn't fit: '${title}' would run ${overMin} min past ${windStart}. Move a slot or shorten it.`;
+export const toRoutineForm = (r: FullRoutine): RoutineForm =>
+  ({ breakfast: toDraft(r.breakfast), lunch: toDraft(r.lunch), extra: toDraft(r.extra), dinner: toDraft(r.dinner), wake: r.wake.s });
+
+export const parseRoutineForm = (form: RoutineForm): FullRoutine => ({
+  breakfast: parseDraft(form.breakfast), lunch: parseDraft(form.lunch), extra: parseDraft(form.extra), dinner: parseDraft(form.dinner),
+  wake: { s: form.wake },
+});
+
+/** What gets stored: only the entries that differ from `defaults`, so a field put back to its default is removed. */
+export function routineDiff(full: FullRoutine, defaults: FullRoutine): RoutineMap {
+  const out: Record<string, unknown> = {};
+  for (const k of Object.keys(defaults) as (keyof FullRoutine)[]) if (JSON.stringify(full[k]) !== JSON.stringify(defaults[k])) out[k] = full[k];
+  return out as RoutineMap;
+}
+
+/** The line shown when the day needs a later bedtime than the usual one. */
+export const bedtimeMessage = (bedtime: string) => `Bedtime moves to ${bedtime} on study days to fit everything.`;
 
 const STATE_MAPS = ['status', 'seenUpdates', 'bookmarks', 'custom', 'modes', 'labels', 'itemLabels', 'own', 'solves', 'sundayMode', 'scores', 'routine', 'meta'] as const;
 

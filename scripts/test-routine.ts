@@ -4,72 +4,161 @@ import { WEEKDAY_BLOCKS, buildICS } from '../src/lib/schedule.js';
 import { DEFAULT_ROUTINE, ROUTINE_BLOCK_KEY, resolveRoutine, validateRoutine, placeDay } from '../src/lib/routine.ts';
 
 const mins = (hm: string) => Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3));
-const must = (r: ReturnType<typeof placeDay>) => { assert.ok(r.ok, JSON.stringify(r)); return (r as any).blocks as any[]; };
+const hm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+const must = (r: ReturnType<typeof placeDay>) => { assert.ok(r.ok, JSON.stringify(r)); return r as Extract<ReturnType<typeof placeDay>, { ok: true }>; };
 const find = (bs: any[], k: string) => bs.find((b) => b.k === k);
+const SLOT_KEYS = Object.values(ROUTINE_BLOCK_KEY);
+const STUDY = WEEKDAY_BLOCKS.filter((b) => b.kind === 'study');
+/** Every study block of the template is present at full length, and nothing overlaps. */
+const fullDay = (bs: any[]) => {
+  for (const t of STUDY) { const b = find(bs, t.k); assert.ok(b, `${t.k} kept`); assert.equal(mins(b.e) - mins(b.s), mins(t.e) - mins(t.s), `${t.k} full length`); }
+  for (let i = 1; i < bs.length; i++) assert.ok(mins(bs[i].s) >= mins(bs[i - 1].e), `${bs[i - 1].k} / ${bs[i].k} overlap`);
+};
 
-// 1. defaults reproduce the template exactly
-assert.deepEqual(must(placeDay(WEEKDAY_BLOCKS, DEFAULT_ROUTINE)), WEEKDAY_BLOCKS);
+// 1. defaults reproduce the template exactly, bedtime unmoved
+{
+  const d = must(placeDay(WEEKDAY_BLOCKS, DEFAULT_ROUTINE));
+  assert.deepEqual(d.blocks, WEEKDAY_BLOCKS);
+  assert.equal(d.bedtime, '22:00');
+  assert.equal(d.bedShiftMin, 0);
+  assert.deepEqual(must(placeDay(WEEKDAY_BLOCKS, {})).blocks, WEEKDAY_BLOCKS, 'an empty stored routine = defaults');
+}
 assert.deepEqual(ROUTINE_BLOCK_KEY, { breakfast: 'breakfast', lunch: 'lunch', dinner: 'dinner', extra: 'workout' });
 assert.deepEqual(DEFAULT_ROUTINE.extra, { on: true, title: 'Gym', s: '18:00', min: 60 });
 assert.deepEqual(DEFAULT_ROUTINE.lunch, { on: true, title: 'Lunch + 20 min power nap', s: '11:45', min: 75 });
+assert.deepEqual(DEFAULT_ROUTINE.wake, { s: '05:00' });
+assert.ok(!('bed' in DEFAULT_ROUTINE), 'no editable bedtime');
 
-// 2. lunch at 12:30 for 60 min: sd cannot fit before it, starts 13:30; durations kept; the computed result is a failure
-const lr = placeDay(WEEKDAY_BLOCKS, { ...DEFAULT_ROUTINE, lunch: { on: true, title: 'Lunch', s: '12:30', min: 60 } });
-// sd 13:30-15:00, break2, rev, jt, beh, free all shift; free (60) collides with gym and dinner and lands at 20:00-21:00,
-// then shower 21:00-21:15 and ai (60) would collide with wind and move to 22:00-23:00, 90 min past 21:30.
-assert.equal(lr.ok, false);
-assert.equal((lr as any).block.k, 'ai');
-assert.equal((lr as any).overMin, 90);
-// a smaller shift that still works: lunch 12:00 for 45 min
-const ok2 = must(placeDay(WEEKDAY_BLOCKS, { ...DEFAULT_ROUTINE, lunch: { on: true, title: 'Lunch', s: '12:00', min: 45 } }));
-for (const b of ok2) { const t = WEEKDAY_BLOCKS.find((x) => x.k === b.k); if (t && !Object.values(ROUTINE_BLOCK_KEY).includes(b.k)) assert.equal(mins(b.e) - mins(b.s), mins(t.e) - mins(t.s), b.k); }
-assert.equal(find(ok2, 'sd').s, '13:00');
-// sorted, no overlap
-for (let i = 1; i < ok2.length; i++) assert.ok(mins(ok2[i].s) >= mins(ok2[i - 1].e));
+// 2. lunch at 12:30 for 60 min: everything still fits at full length; bedtime moves instead of refusing.
+// sd 13:30-15:00, break2, rev, jt, beh shift; free (60) jumps gym and dinner to 20:00-21:00, shower 21:00-21:15,
+// ai 21:15-22:15, review 22:15-22:45, so wind runs 22:45-23:15: bedtime 23:15, 75 min later.
+{
+  const r = must(placeDay(WEEKDAY_BLOCKS, { ...DEFAULT_ROUTINE, lunch: { on: true, title: 'Lunch', s: '12:30', min: 60 } }));
+  fullDay(r.blocks);
+  assert.equal(find(r.blocks, 'sd').s, '13:30');
+  assert.equal(find(r.blocks, 'review').e, '22:45');
+  assert.equal(r.bedShiftMin, 75);
+  assert.equal(r.bedtime, '23:15');
+  const w = find(r.blocks, 'wind');
+  assert.deepEqual([w.s, w.e], ['22:45', '23:15']);
+  assert.equal(w.title, 'Wind down, no screens · sleep at 23:15', 'the wind-down title shows the moved bedtime');
+  assert.equal(r.blocks.at(-1).k, 'wind');
+}
+// a smaller shift that fits before wind: lunch 12:00 for 45 min
+{
+  const r = must(placeDay(WEEKDAY_BLOCKS, { ...DEFAULT_ROUTINE, lunch: { on: true, title: 'Lunch', s: '12:00', min: 45 } }));
+  fullDay(r.blocks);
+  assert.equal(find(r.blocks, 'sd').s, '13:00');
+  assert.equal(r.bedShiftMin, 0);
+  assert.deepEqual(find(r.blocks, 'wind'), WEEKDAY_BLOCKS.at(-1));
+}
 
-// 3. breakfast off
-const nb = must(placeDay(WEEKDAY_BLOCKS, { ...DEFAULT_ROUTINE, breakfast: { ...DEFAULT_ROUTINE.breakfast, on: false } }));
-assert.ok(!find(nb, 'breakfast'));
-for (const b of nb) { const t = WEEKDAY_BLOCKS.find((x) => x.k === b.k)!; assert.ok(mins(b.s) >= mins(t.s), b.k); }
-assert.equal(find(nb, 'fe').s, '08:00');
+// 3. wake 06:00 shifts every template block by 60 min (slots moved by the owner too, since slots keep absolute times)
+{
+  const plus = (x: { s: string; min: number }) => ({ ...x, s: hm(mins(x.s) + 60) });
+  const R = { wake: { s: '06:00' }, breakfast: plus(DEFAULT_ROUTINE.breakfast), lunch: plus(DEFAULT_ROUTINE.lunch), extra: plus(DEFAULT_ROUTINE.extra), dinner: plus(DEFAULT_ROUTINE.dinner) };
+  const r = must(placeDay(WEEKDAY_BLOCKS, R));
+  assert.equal(r.blocks.length, WEEKDAY_BLOCKS.length);
+  for (const t of WEEKDAY_BLOCKS) {
+    const b = find(r.blocks, t.k);
+    assert.equal(b.s, hm(mins(t.s) + 60), `${t.k} start +60`);
+    assert.equal(b.e, hm(mins(t.e) + 60), `${t.k} end +60`);
+  }
+  assert.equal(find(r.blocks, 'wake').s, '06:00');
+  // bedtime shifts with wake-up (17 h later): 23:00 is the usual bedtime here, so it has not moved
+  assert.equal(r.bedtime, '23:00'); assert.equal(r.bedShiftMin, 0);
+  assert.equal(find(r.blocks, 'wind').title, 'Wind down, no screens · sleep at 23:00');
+  // wake 04:30 with the default (absolute) slots: study blocks keep full length and start no earlier than shifted
+  const r3 = must(placeDay(WEEKDAY_BLOCKS, { wake: { s: '04:30' } }));
+  fullDay(r3.blocks);
+  for (const t of WEEKDAY_BLOCKS) if (!SLOT_KEYS.includes(t.k) && t.k !== 'wind') assert.ok(mins(find(r3.blocks, t.k).s) >= mins(t.s) - 30, t.k);
+  assert.equal(find(r3.blocks, 'wake').s, '04:30');
+  assert.equal(find(r3.blocks, 'dsa').s, '04:45');
+  assert.equal(find(r3.blocks, 'breakfast').s, '07:15', 'slots keep their absolute times');
+  assert.equal(r3.bedtime, '22:00'); assert.equal(r3.bedShiftMin, 30, 'usual bedtime 21:30; the day still ends at 21:30, so wind-down moves 30 min');
+  // wake 06:00 with the default slots: blocks jump past breakfast, lunch, gym and dinner and the day runs past 23:59
+  const r4 = placeDay(WEEKDAY_BLOCKS, { wake: { s: '06:00' } });
+  assert.equal(r4.ok, false);
+  assert.match((r4 as any).error, /23:59/);
+}
 
-// 4. extra renamed Yoga
-const yg = must(placeDay(WEEKDAY_BLOCKS, { ...DEFAULT_ROUTINE, extra: { on: true, title: 'Yoga', s: '17:00', min: 30 } }));
-const y = yg.find((b) => b.title === 'Yoga');
-assert.ok(y && y.kind === 'health' && y.s === '17:00' && y.e === '17:30' && y.remind === true);
-assert.ok(!yg.some((b) => b.title === 'Gym'));
+// 4. wake 04:30 brings the usual bedtime to 21:30; an overrun is measured from there
+{
+  const r = must(placeDay(WEEKDAY_BLOCKS, { wake: { s: '04:30' }, lunch: { on: true, title: 'Lunch', s: '12:30', min: 60 } }));
+  fullDay(r.blocks);
+  assert.equal(r.bedShiftMin, mins(r.bedtime) - mins('21:30'));
+  assert.ok(r.bedShiftMin > 0);
+}
 
-// 5. pushing study past wind fails, naming the first block that does not fit
-const late = placeDay(WEEKDAY_BLOCKS, { ...DEFAULT_ROUTINE, dinner: { on: true, title: 'Dinner', s: '19:15', min: 180 } });
-assert.equal(late.ok, false);
-assert.ok((late as any).overMin > 0 && (late as any).block.k === 'ai');
+// 5. a day that would run past 23:59 is refused
+{
+  const late = placeDay(WEEKDAY_BLOCKS, { ...DEFAULT_ROUTINE, dinner: { on: true, title: 'Dinner', s: '19:15', min: 180 } });
+  assert.equal(late.ok, false);
+  assert.match((late as any).error, /23:59/);
+  const late2 = placeDay(WEEKDAY_BLOCKS, { wake: { s: '08:00' } });
+  assert.equal(late2.ok, false, 'wake 08:00 pushes the day past midnight');
+  // invalid input is refused too
+  assert.equal(placeDay(WEEKDAY_BLOCKS, { lunch: { on: true, title: 'Lunch', s: '17:30', min: 60 } }).ok, false);
+}
 
-// 6. validateRoutine
+// 6. breakfast off
+{
+  const nb = must(placeDay(WEEKDAY_BLOCKS, { ...DEFAULT_ROUTINE, breakfast: { ...DEFAULT_ROUTINE.breakfast, on: false } })).blocks;
+  assert.ok(!find(nb, 'breakfast'));
+  for (const b of nb) { const t = WEEKDAY_BLOCKS.find((x) => x.k === b.k)!; assert.ok(mins(b.s) >= mins(t.s), b.k); }
+  assert.equal(find(nb, 'fe').s, '08:00');
+}
+
+// 7. extra renamed Yoga
+{
+  const yg = must(placeDay(WEEKDAY_BLOCKS, { ...DEFAULT_ROUTINE, extra: { on: true, title: 'Yoga', s: '17:00', min: 30 } })).blocks;
+  const y = yg.find((b) => b.title === 'Yoga');
+  assert.ok(y && y.kind === 'health' && y.s === '17:00' && y.e === '17:30' && y.remind === true);
+  assert.ok(!yg.some((b) => b.title === 'Gym'));
+}
+
+// 8. validateRoutine
 assert.deepEqual(validateRoutine(DEFAULT_ROUTINE), { ok: true });
-const bad = (r: any) => { const v = validateRoutine({ ...DEFAULT_ROUTINE, ...r }); assert.equal(v.ok, false); return (v as any).error as string; };
+assert.deepEqual(validateRoutine({}), { ok: true });
+const bad = (r: any) => { const v = validateRoutine({ ...DEFAULT_ROUTINE, ...r }); assert.equal(v.ok, false, JSON.stringify(r)); return (v as any).error as string; };
 assert.match(bad({ lunch: { on: true, title: 'Lunch', s: '17:30', min: 60 } }), /overlaps/);
 assert.equal(bad({ lunch: { on: true, title: 'Lunch', s: '17:30', min: 60 }, extra: { on: true, title: 'Yoga', s: '18:00', min: 60 } }), 'Lunch overlaps Yoga.');
 assert.equal(bad({ lunch: { on: true, title: 'Lunch', s: '12:00', min: 0 } }).length > 0, true);
 bad({ lunch: { on: true, title: 'Lunch', s: '25:00', min: 60 } });
-bad({ breakfast: { on: true, title: 'B', s: '05:00', min: 15 } });
-bad({ dinner: { on: true, title: 'D', s: '21:00', min: 45 } });
+assert.equal(bad({ breakfast: { on: true, title: 'B', s: '05:00', min: 15 } }), 'B starts before 05:15, when wake-up ends.');
+assert.equal(bad({ wake: { s: '06:00' }, breakfast: { on: true, title: 'B', s: '06:00', min: 15 } }), 'B starts before 06:15, when wake-up ends.');
 bad({ lunch: { on: true, title: '   ', s: '12:00', min: 60 } });
 bad({ lunch: { on: true, title: 'x'.repeat(41), s: '12:00', min: 60 } });
 bad({ lunch: { on: true, title: 'L', s: '12:00', min: 181 } });
+// wake-up
+assert.equal(bad({ wake: { s: '5:00' } }), 'Wake up needs a valid time.');
+assert.equal(bad({ wake: { s: '24:00' } }), 'Wake up needs a valid time.');
+// a late dinner no longer fails validation: bedtime moves instead
+assert.deepEqual(validateRoutine({ ...DEFAULT_ROUTINE, dinner: { on: true, title: 'D', s: '21:00', min: 45 } }), { ok: true });
 // a disabled overlapping slot is fine
 assert.deepEqual(validateRoutine({ ...DEFAULT_ROUTINE, lunch: { on: false, title: 'Lunch', s: '18:00', min: 60 } }), { ok: true });
 
-// 7. resolveRoutine overrides only what is stored
-const rr = resolveRoutine({ lunch: { on: false, title: 'Lunch', s: '12:00', min: 60 } });
-assert.equal(rr.lunch.on, false);
-assert.deepEqual(rr.dinner, DEFAULT_ROUTINE.dinner);
-assert.deepEqual(resolveRoutine({}), DEFAULT_ROUTINE);
+// 9. resolveRoutine overrides only what is stored
+{
+  const rr = resolveRoutine({ lunch: { on: false, title: 'Lunch', s: '12:00', min: 60 }, wake: { s: '04:45' } });
+  assert.equal(rr.lunch.on, false);
+  assert.deepEqual(rr.dinner, DEFAULT_ROUTINE.dinner);
+  assert.deepEqual(rr.wake, { s: '04:45' });
+  assert.deepEqual(resolveRoutine({ lunch: rr.lunch }).wake, { s: '05:00' });
+  assert.deepEqual(resolveRoutine({}), DEFAULT_ROUTINE);
+  assert.deepEqual(resolveRoutine(null), DEFAULT_ROUTINE);
+}
 
-// 8. buildICS uses the routine (reminders at the new gym time) and defaults unchanged
-const ics = buildICS('2026-11-16', 91, { ...DEFAULT_ROUTINE, extra: { on: true, title: 'Yoga', s: '17:00', min: 30 } });
-assert.ok(ics.includes('SUMMARY:Yoga') && !ics.includes('SUMMARY:Gym'));
-assert.ok(buildICS('2026-11-16').includes('SUMMARY:Gym'));
-// unplaceable routine falls back to the template
-assert.ok(buildICS('2026-11-16', 91, { ...DEFAULT_ROUTINE, dinner: { on: true, title: 'Dinner', s: '19:15', min: 180 } }).includes('SUMMARY:Gym'));
+// 10. buildICS uses the placed blocks (moved bedtime included) and defaults unchanged
+{
+  const ics = buildICS('2026-11-16', 91, { ...DEFAULT_ROUTINE, extra: { on: true, title: 'Yoga', s: '17:00', min: 30 } });
+  assert.ok(ics.includes('SUMMARY:Yoga') && !ics.includes('SUMMARY:Gym'));
+  assert.ok(buildICS('2026-11-16').includes('SUMMARY:Gym'));
+  const moved = buildICS('2026-11-16', 91, { ...DEFAULT_ROUTINE, lunch: { on: true, title: 'Lunch', s: '12:30', min: 60 } });
+  assert.ok(moved.includes('SUMMARY:Wind down, no screens · sleep at 23:15'));
+  assert.ok(moved.includes('DTSTART:20261116T224500'), 'wind-down event at the moved time');
+  // a day past 23:59 cannot be placed: falls back to the template
+  assert.ok(buildICS('2026-11-16', 91, { ...DEFAULT_ROUTINE, dinner: { on: true, title: 'Dinner', s: '19:15', min: 180 } }).includes('SUMMARY:Gym'));
+}
 
 console.log('routine: all scenarios pass');

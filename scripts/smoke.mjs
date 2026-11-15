@@ -1007,19 +1007,30 @@ try {
     await page.getByRole('radio', { name: 'Steady' }).click(); await page.waitForTimeout(300);
     if (await modeToday() === 'steady') ok(`${W}: switch back to Steady`); else fail(`${W}: Steady switch failed`);
 
-    // routine: a change that fits saves, one that does not is refused with a line
-    const lunchStart = page.getByLabel('Lunch start');
+    // routine: a change that fits saves; one that overruns saves too and moves bedtime (with one line); a day past
+    // 23:59 is refused; wake-up saves (there is no bedtime field)
     const lunchMin = page.getByLabel('Lunch minutes');
-    await lunchMin.fill('60'); await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(300);
-    if ((await saved()).routine?.lunch?.min === 60) ok(`${W}: shorter lunch saves`); else fail(`${W}: shorter lunch not saved`);
-    await lunchMin.fill('120'); await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(300);
+    const saveRoutine = async () => { await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(300); };
+    await lunchMin.fill('60'); await saveRoutine();
+    if ((await saved()).routine?.lunch?.min === 60 && !(await page.locator('[data-routine-bedtime]').count())) ok(`${W}: shorter lunch saves`); else fail(`${W}: shorter lunch not saved`);
+    await lunchMin.fill('120'); await saveRoutine();
+    const bedLine = await page.locator('[data-routine-bedtime]').innerText().catch(() => '');
+    if ((await saved()).routine?.lunch?.min === 120 && bedLine === 'Bedtime moves to 23:15 on study days to fit everything.' && !(await page.locator('[data-routine-error]').count())) ok(`${W}: overflowing routine saves and bedtime moves`); else fail(`${W}: bedtime did not move (${bedLine})`);
+    await page.getByLabel('Dinner minutes').fill('180'); await saveRoutine();
     const refusal = await page.locator('[data-routine-error]').innerText().catch(() => '');
-    if (/^Doesn't fit: '.+' would run \d+ min past 21:30\. Move a slot or shorten it\.$/.test(refusal) && (await saved()).routine?.lunch?.min === 60) ok(`${W}: overflowing routine refused with a line`); else fail(`${W}: no refusal (${refusal})`);
+    if (/past 23:59/.test(refusal) && (await saved()).routine?.dinner === undefined) ok(`${W}: a day past 23:59 is refused with a line`); else fail(`${W}: no refusal (${refusal})`);
+    await page.getByRole('button', { name: 'Reset to defaults' }).click(); await page.waitForTimeout(300);
+    if (!(await page.getByLabel('Bedtime', { exact: true }).count())) ok(`${W}: no bedtime field`); else fail(`${W}: bedtime field present`);
+    await page.getByLabel('Wake up time').fill('04:30'); await saveRoutine();
+    { const r = (await saved()).routine || {}; if (r.wake?.s === '04:30' && !('bed' in r) && !r.lunch) ok(`${W}: wake-up saves`); else fail(`${W}: wake not saved (${JSON.stringify(r)})`); }
+    await page.getByLabel('Wake up time').fill('06:00'); await saveRoutine();
+    if (/past 23:59/.test(await page.locator('[data-routine-error]').innerText().catch(() => '')) && (await saved()).routine?.wake?.s === '04:30') ok(`${W}: a wake-up that pushes the day past 23:59 is refused`); else fail(`${W}: late wake-up not refused`);
     await page.getByRole('button', { name: 'Reset to defaults' }).click(); await page.waitForTimeout(300);
     await lunchMin.fill('99');
     await page.getByRole('button', { name: 'Reset to defaults' }).click(); await page.waitForTimeout(300);
     if (await lunchMin.inputValue() === '75') ok(`${W}: reset clears unsaved edits`); else fail(`${W}: reset kept unsaved edit`);
     if (!Object.keys((await saved()).routine || {}).length) ok(`${W}: routine reset clears the map`); else fail(`${W}: routine reset left entries`);
+    if (await page.getByLabel('Wake up time').inputValue() === '05:00') ok(`${W}: reset restores wake-up`); else fail(`${W}: reset kept wake-up`);
 
     // start date picker saves immediately
     const s0 = (await saved()).start;

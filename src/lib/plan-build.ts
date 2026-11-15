@@ -9,12 +9,12 @@
 import type { Block, CustomTask, Day, Task, UpdateItem, Cat } from './engine';
 import type { LayoutDay, LayoutInput, LayoutSlot } from './layout';
 import type { Slot, SlotItem, TrackContent } from './tracks';
-import type { ModeEntry, RoutineKey, RoutineSlot, TrackId } from './state-types';
-import type { Block as RoutineBlock, PlaceResult } from './routine';
+import type { ModeEntry, RoutineMap, TrackId } from './state-types';
+import type { Block as RoutineBlock, PlaceResult, ResolvedRoutine } from './routine';
 
 export type PlanState = {
   start: string; kickoff: boolean; modes: Record<string, ModeEntry>; done: Record<string, number>;
-  sundayMode: Record<string, 'rest' | 'revision'>; routine: Partial<Record<RoutineKey, RoutineSlot>>;
+  sundayMode: Record<string, 'rest' | 'revision'>; routine: RoutineMap;
 };
 type TemplateBlock = { s?: string; e?: string; k: string; title: string; kind: string; remind?: boolean };
 export type PlanLib = {
@@ -23,8 +23,8 @@ export type PlanLib = {
   tracks: Record<TrackId, Slot[]>;
   layoutDays: (input: LayoutInput) => LayoutDay[];
   cursorsAt: (days: LayoutDay[], date: string, done: Record<string, number>) => Record<TrackId, number>;
-  placeDay: (template: RoutineBlock[], routine: Partial<Record<RoutineKey, RoutineSlot>>) => PlaceResult;
-  resolveRoutine: (stored?: Partial<Record<RoutineKey, RoutineSlot>> | null) => Record<RoutineKey, RoutineSlot>;
+  placeDay: (template: RoutineBlock[], routine: RoutineMap) => PlaceResult;
+  resolveRoutine: (stored?: RoutineMap | null) => ResolvedRoutine;
   WEEKDAY_BLOCKS: readonly TemplateBlock[]; BUFFER_BLOCK: TemplateBlock; SUNDAY_BLOCKS: readonly TemplateBlock[];
 };
 
