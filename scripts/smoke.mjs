@@ -1015,6 +1015,9 @@ try {
     const refusal = await page.locator('[data-routine-error]').innerText().catch(() => '');
     if (/^Doesn't fit: '.+' would run \d+ min past 21:30\. Move a slot or shorten it\.$/.test(refusal) && (await saved()).routine?.lunch?.min === 60) ok(`${W}: overflowing routine refused with a line`); else fail(`${W}: no refusal (${refusal})`);
     await page.getByRole('button', { name: 'Reset to defaults' }).click(); await page.waitForTimeout(300);
+    await lunchMin.fill('99');
+    await page.getByRole('button', { name: 'Reset to defaults' }).click(); await page.waitForTimeout(300);
+    if (await lunchMin.inputValue() === '75') ok(`${W}: reset clears unsaved edits`); else fail(`${W}: reset kept unsaved edit`);
     if (!Object.keys((await saved()).routine || {}).length) ok(`${W}: routine reset clears the map`); else fail(`${W}: routine reset left entries`);
 
     // start date picker saves immediately

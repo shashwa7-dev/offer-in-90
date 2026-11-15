@@ -62,10 +62,11 @@ const ROUTINE_ROW: Record<RoutineKey, string> = { breakfast: 'Breakfast', lunch:
 function RoutineForm() {
   const { state, update } = useStore();
   const { toast } = useUI();
-  const [form, setForm] = useState<Record<RoutineKey, RoutineDraft>>(() => {
-    const r = resolveRoutine(state.routine);
+  const draftsOf = (stored: typeof state.routine): Record<RoutineKey, RoutineDraft> => {
+    const r = resolveRoutine(stored);
     return { breakfast: toDraft(r.breakfast), lunch: toDraft(r.lunch), extra: toDraft(r.extra), dinner: toDraft(r.dinner) };
-  });
+  };
+  const [form, setForm] = useState(() => draftsOf(state.routine));
   const [error, setError] = useState('');
   const edit = (k: RoutineKey, patch: Partial<RoutineDraft>) => { setError(''); setForm(f => ({ ...f, [k]: { ...f[k], ...patch } })); };
 
@@ -78,10 +79,11 @@ function RoutineForm() {
     // Only slots that differ from the defaults are stored; the rest are removed so sync records the deletion.
     const next: Partial<Record<RoutineKey, (typeof slots)[RoutineKey]>> = {};
     for (const k of ROUTINE_KEYS) if (JSON.stringify(slots[k]) !== JSON.stringify(DEFAULT_ROUTINE[k])) next[k] = slots[k];
+    if (JSON.stringify(next) === JSON.stringify(state.routine)) { setError(''); toast('No changes'); return; }
     update(s => ({ ...s, routine: next }));
     toast('Routine saved. Download the calendar again.');
   };
-  const reset = () => { update(s => ({ ...s, routine: {} })); setError(''); toast('Routine reset to defaults. Download the calendar again.'); };
+  const reset = () => { update(s => ({ ...s, routine: {} })); setForm(draftsOf({})); setError(''); toast('Routine reset to defaults. Download the calendar again.'); };
 
   return (
     <div data-routine>
@@ -89,6 +91,7 @@ function RoutineForm() {
         const x = form[k];
         return (
           <div key={k} className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-2.5 first:border-t-0">
+            <span className="w-20 shrink-0 text-[13px] text-muted-foreground">{ROUTINE_ROW[k]}</span>
             <Switch aria-label={`${ROUTINE_ROW[k]} on`} checked={x.on} onCheckedChange={v => edit(k, { on: v })} />
             <Input aria-label={`${ROUTINE_ROW[k]} name`} value={x.title} onChange={e => edit(k, { title: e.target.value })} className="h-8 min-w-40 flex-1 text-[13px]" />
             <Input type="time" aria-label={`${ROUTINE_ROW[k]} start`} value={x.s} onChange={e => edit(k, { s: e.target.value })} className="h-8 w-28 text-[13px] tabular-nums" />
