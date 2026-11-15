@@ -1,6 +1,7 @@
 // Content assertions (roadmap v2 Task 4). Run: node --experimental-strip-types scripts/test-content.ts
 import assert from 'node:assert/strict';
 import { FE, FE_DEPTH_READS } from '../src/lib/content/fe.js';
+import { FOUNDATIONS } from '../src/lib/content/dsa.js';
 import { UX } from '../src/lib/content/ux.js';
 import { BEH, FDE, COMPANY_MAP, TEARDOWNS } from '../src/lib/content/career.js';
 import { AIB_MOVED, AIB, AI_EVENING, AI_REVIEW, AI_NEWS } from '../src/lib/content/ai.js';
@@ -14,7 +15,7 @@ import { EXPLORE_LATER, FOCUS_RULES } from '../src/lib/content/reference.js';
 
 // AIB contains the AIB_MOVED items, so AIB_MOVED itself is not listed again.
 // TAKE_HOMES briefs and their parts are listed alongside so their ids are checked too.
-const ALL_ID_LISTS: any[][] = [FE, FE_DEPTH_READS, UX, BEH, FDE, TEARDOWNS, AIB, AI_EVENING, AI_REVIEW, AI_NEWS,
+const ALL_ID_LISTS: any[][] = [FOUNDATIONS, FE, FE_DEPTH_READS, UX, BEH, FDE, TEARDOWNS, AIB, AI_EVENING, AI_REVIEW, AI_NEWS,
   MC, MC_SCREENSHOT, TAKE_HOMES, TAKE_HOMES.flatMap((b: any) => b.parts), PROJECT, PROJECT_DEPTH_READS, LLD, SD, SD_MOCKS,
   // JT_DEPTH_READS[0] is the Stripe item of HOW_IT_WORKS (the same object), so only the SRE read is listed again.
   HOW_IT_WORKS, MEMOS, PRACTICAL, DECOMP, OSS_REPOS, OSS_FIXES, CODE_REVIEWS, JT_DEPTH_READS.slice(1), INTERVIEW_ENV,

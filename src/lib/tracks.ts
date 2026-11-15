@@ -13,6 +13,8 @@ export type SlotItem = {
   slug?: string; diff?: string; mins?: number; practice?: string; summary?: string;
   /** The take-home brief, on part 1 of each take-home. */
   brief?: string;
+  /** Carried to that week's Sunday (a Saturday jt slot is capped at 75 min, Ruling R9); Task 8 places it. */
+  sundayCarry?: boolean;
   /** A generated filler (revision tail or "Revisit" slot), not a content item. */
   filler?: true;
 };
@@ -62,18 +64,6 @@ function toSlots(track: string, slots: SlotItem[][]): Slot[] {
 }
 
 // ---------- dsa (§2, §3, §18): foundations, 24 patterns, ADV_DSA, Phase 3 timed sets ----------
-const FOUNDATIONS: SlotItem[] = [
-  { id: 'dsa:foundations-big-o', cat: 'dsa', url: 'https://www.bigocheatsheet.com/',
-    text: 'Foundations · Big-O as reasoning: from the input size to the complexity you need ("n = 10⁵ means I need n log n"). Set up a TypeScript scratch project with tests for the week.' },
-  { id: 'dsa:foundations-recursion', cat: 'dsa', url: 'https://javascript.info/recursion',
-    text: 'Foundations · Recursion and the call stack: base case, the stack frames, depth limits. Trace 3 recursive functions by hand.' },
-  { id: 'dsa:foundations-build-1', cat: 'dsa', url: 'https://github.com/trekhleb/javascript-algorithms',
-    text: 'Foundations · Build it yourself in TypeScript, with tests: dynamic array, hash map, linked list.' },
-  { id: 'dsa:foundations-build-2', cat: 'dsa', url: 'https://github.com/trekhleb/javascript-algorithms',
-    text: 'Foundations · Build it yourself in TypeScript, with tests: stack/queue, binary heap, BST.' },
-  { id: 'dsa:foundations-build-3', cat: 'dsa', url: 'https://github.com/trekhleb/javascript-algorithms',
-    text: 'Foundations · Build it yourself in TypeScript, with tests: trie, graph adjacency list, union-find.' },
-];
 const AI_DRILL = 'AI-enabled coding drill (Meta-style, 60 min): read a small multi-file repo for 5 min, fix one bug without AI, add a feature using AI chat only (no autocomplete), then optimize for a 10× input. Narrate everything.';
 const AI_DRILL_URL = 'https://www.hellointerview.com/blog/meta-ai-enabled-coding';
 const PROBLEMS_PER_SLOT = 2;
@@ -81,12 +71,12 @@ const PATTERNS_END = 53; // last slot of week 9
 
 const slugify = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 const problemItem = (p: Row): SlotItem => ({
-  id: `p-${p.slug}`, text: p.name, url: p.url, cat: 'dsa', pattern: p.pattern, tier: p.tier, flags: p.flags, slug: p.slug, diff: p.d,
+  id: `p-${p.slug}`, text: p.name, url: p.url, cat: 'dsa', pattern: p.pattern, tier: p.tier, flags: [...p.flags], slug: p.slug, diff: p.d,
   ...(p.role ? { role: p.role } : {}), ...(p.role === 'unseen' ? { hiddenUntilStart: true } : {}),
 });
 
 function dsaTrack(c: TrackContent): Slot[] {
-  const slots: SlotItem[][] = FOUNDATIONS.map((f) => [f]);
+  const slots: SlotItem[][] = (c.FOUNDATIONS as Row[]).map((f) => [item(f, 'dsa')]);
   // Patterns: the must-solve problems in pattern order, 2 per morning block. The pattern card rides on the pattern's
   // first slot (before its first problem) and the explain-back on its last slot (after its last problem).
   const pats: Row[] = c.PATTERNS;
@@ -169,6 +159,7 @@ function mcTrack(c: TrackContent): Slot[] {
   const blocks = queue(MC.filter((x) => !x.pair || x.pair[0] === x.id).map((x) => (x.pair ? x.pair.map(byId) : [x])));
   const screenshots = queue(c.MC_SCREENSHOT as Row[]);
   const flagship: Row[] = [];
+  // 18 steps + the local-first read = 19 items in 18 Tue/Thu slots of weeks 2–11, so the case study lands on week 12 Tue (Ruling R10).
   for (const p of c.PROJECT as Row[]) flagship.push(p, ...(c.PROJECT_DEPTH_READS as Row[]).filter((d) => d.after === p.id));
   const proj = queue(flagship);
   const lld = queue(c.LLD as Row[]);
@@ -223,28 +214,39 @@ function sdTrack(c: TrackContent): Slot[] {
 // ---------- jt (§4): the judgment thread, Mon–Sat ----------
 const PEER_URL = 'https://www.tryexponent.com/practice';
 const PEER_ROUNDS: [string, Cat][] = [['coding', 'dsa'], ['frontend system design', 'sd'], ['behavioral', 'beh'], ['decomposition', 'fde']];
-const LOOPS = [
-  'Full mock loop 1 of 4 (forward-deployed), with a peer on Pramp/Exponent: decomposition + practical coding + system design, 45 min each.',
-  'Full mock loop 2 of 4 (frontend SDE-2): DSA + frontend coding + frontend system design, 45 min each, with a peer or recorded solo.',
-  'Full mock loop 3 of 4 (product engineer), with a peer on Pramp/Exponent: coding (DSA) + machine coding + product/system design, 45 min each.',
-  'Full mock loop 4 of 4 (your top target company\'s loop, from the company map): every round it has, 45 min each, with a peer or recorded solo.',
+// Full mock loops (Phase 3): 3 rounds of 45 min each. Round 1 runs in the Saturday slot; rounds 2–3 carry to Sunday (R9).
+const LOOPS: { name: string; peer: boolean; rounds: string[] }[] = [
+  { name: 'forward-deployed', peer: true, rounds: ['decomposition', 'practical coding', 'system design'] },
+  { name: 'frontend SDE-2', peer: false, rounds: ['DSA coding', 'frontend coding', 'frontend system design'] },
+  { name: 'product engineer', peer: true, rounds: ['coding (DSA)', 'machine coding', 'product/system design'] },
+  { name: "your top target company's loop, from the company map", peer: false, rounds: ['coding', 'system design', 'behavioral'] },
 ];
-const MOCK_TAIL = ' Uses the whole revision + judgment slot (75 min); finish any remaining rounds on Sunday.';
+const SAT_CAP = 75; // revision + judgment merged (min)
 
 function jtSaturday(w: number): SlotItem[] {
-  if (w % 2 === 1 && w <= 9) return [{ id: `jt:ai-drill-${(w + 1) / 2}`, cat: 'dsa', url: AI_DRILL_URL, text: AI_DRILL }];
-  const mock = (x: Omit<SlotItem, 'takesRevision'>): SlotItem => ({ ...x, takesRevision: true });
-  if (w >= 10) return [mock({ id: `jt:mock-loop-${w - 9}`, cat: 'dsa', url: PEER_URL, text: LOOPS[w - 10] + MOCK_TAIL })];
+  const rev = (x: Omit<SlotItem, 'takesRevision'>): SlotItem => ({ ...x, takesRevision: true });
+  const carry = (x: SlotItem): SlotItem => ({ ...x, sundayCarry: true });
+  // Odd weeks 1–9: the 60-min AI drill, which also takes the revision time (Ruling R8).
+  if (w % 2 === 1 && w <= 9) return [rev({ id: `jt:ai-drill-${(w + 1) / 2}`, cat: 'dsa', url: AI_DRILL_URL, text: AI_DRILL, mins: 60 })];
+  if (w >= 10) {
+    const n = w - 9, loop = LOOPS[n - 1];
+    return loop.rounds.map((round, k) => {
+      const it: SlotItem = { id: `jt:mock-loop-${n}-round-${k + 1}`, cat: 'dsa', url: PEER_URL, mins: 45,
+        text: `Full mock loop ${n} of 4 (${loop.name}), round ${k + 1} of ${loop.rounds.length}: ${round}, 45 min, ${loop.peer ? 'with a peer on Pramp/Exponent' : 'with a peer or recorded solo'}, timed and out loud.` };
+      return k === 0 ? rev(it) : carry(it);
+    });
+  }
   const items: SlotItem[] = [];
   if (w >= 4) {
     const n = (w - 4) / 2, [round, cat] = PEER_ROUNDS[n % PEER_ROUNDS.length];
-    items.push(mock({ id: `jt:peer-mock-${n + 1}`, cat, url: PEER_URL,
+    items.push(rev({ id: `jt:peer-mock-${n + 1}`, cat, url: PEER_URL, mins: SAT_CAP,
       text: `Peer mock with a real person (Pramp or Exponent, 45 min): ${round} round. This is the week's timed mock; use the rest of the 75-min slot to write down the feedback and redo what you missed.` }));
   } else {
-    items.push(mock({ id: `jt:mock-${w / 2}`, cat: 'dsa',
+    items.push(rev({ id: `jt:mock-${w / 2}`, cat: 'dsa', mins: SAT_CAP,
       text: 'Weekly timed mock (75 min, out loud; uses the whole revision + judgment slot): 2 problems you haven\'t seen, from the optional pools of patterns you\'ve covered. Log each as unseen with your minutes.' }));
   }
-  if (w >= 5) items.push(mock({ id: `jt:speed-pair-${(w - 4) / 2}`, cat: 'dsa', text: 'Speed pair (35 min): re-solve 2 must-solve problems you\'ve already done, from a blank file, talking out loud.' }));
+  // From week 5: the speed pair. The mock fills the 75-min slot, so it carries to Sunday (R9).
+  if (w >= 5) items.push(carry({ id: `jt:speed-pair-${(w - 4) / 2}`, cat: 'dsa', mins: 35, text: 'Speed pair (35 min): re-solve 2 must-solve problems you\'ve already done, from a blank file, talking out loud.' }));
   return items;
 }
 
@@ -314,15 +316,30 @@ function behTrack(c: TrackContent): Slot[] {
   return toSlots('beh', slots);
 }
 
-// ---------- ai (§7): the evening hour, then the explain-it-back review tail ----------
+// ---------- ai (§7): the evening hour at its old days, depth reads after their targets, review in the gaps ----------
 function aiTrack(c: TrackContent): Slot[] {
-  const slots: SlotItem[][] = (c.AI_EVENING as Row[]).map((x) => [item(x, 'ai')]);
-  const R: Row[] = c.AI_REVIEW;
-  for (let k = 0; slots.length < SLOTS; k++) {
-    const r = R[k % R.length], round = Math.floor(k / R.length);
-    slots.push([round ? filler(`${r.id}:${round + 1}`, r.text, 'ai') : item(r, 'ai')]);
+  const slots: (SlotItem[] | undefined)[] = Array.from({ length: SLOTS }, () => undefined);
+  const E: Row[] = c.AI_EVENING;
+  for (const x of E.filter((x) => typeof x.day === 'number')) {
+    if (slots[x.day]) throw new Error(`track ai: two items on day ${x.day}`);
+    slots[x.day] = [item(x, 'ai')];
   }
-  return toSlots('ai', slots);
+  // Depth reads (no day) take the first free slot after the item they follow (`after`), in list order so chains hold.
+  for (const x of E.filter((x) => typeof x.day !== 'number')) {
+    const from = slots.findIndex((s) => s?.some((y) => y.id === x.after));
+    const free = slots.findIndex((s, i) => i > from && !s);
+    if (from < 0 || free < 0) mustFit('ai', 1);
+    slots[free] = [item(x, 'ai')];
+  }
+  // The gaps (old build days that moved to AIB) and the tail: the explain-it-back rotation.
+  const R: Row[] = c.AI_REVIEW;
+  let k = 0;
+  const out = slots.map((s) => {
+    if (s) return s;
+    const r = R[k % R.length], round = Math.floor(k++ / R.length);
+    return [round ? filler(`${r.id}:${round + 1}`, r.text, 'ai') : item(r, 'ai')];
+  });
+  return toSlots('ai', out);
 }
 
 /** The 8 track sequences, 78 slots each. `content` is the merged exports of src/lib/content/*.js. */

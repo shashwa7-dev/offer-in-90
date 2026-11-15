@@ -54,6 +54,7 @@ const PRIMARY = (judgment.JT_DEPTH_READS as Any[]).slice(1); // [0] is the Strip
 const SKIP_FDE = new Set([...(judgment.DECOMP as Any[]).filter((x) => x.from).map((x) => x.from), 'fde:practical-coding-log', 'fde:reengineering-round']);
 const expected: string[] = [
   ...(dsa.PROBLEMS as Any[]).filter((p) => p.tier === 'must').map((p) => `p-${p.slug}`),
+  ...(dsa.FOUNDATIONS as Any[]),
   ...(fe.FE as Any[]), ...(fe.FE_DEPTH_READS as Any[]), ...(ux.UX as Any[]), ...(career.BEH as Any[]),
   ...(career.FDE as Any[]).filter((x) => !SKIP_FDE.has(x.id)), ...(career.TEARDOWNS as Any[]),
   ...(ai.AIB as Any[]).flatMap((x) => (x.slots === 2 ? [{ id: `${x.id}#1` }, { id: `${x.id}#2` }] : [x])),
@@ -72,14 +73,16 @@ assert.equal(all.filter((x) => x.id.startsWith('adv:')).length, 8, 'ADV_DSA x8')
 const known = new Set([...expected, ...(mc.MC_TIMED as string[]).map((id) => `${id}:timed`)]);
 const extras = all.filter((x) => !x.filler && !known.has(x.part ? `${x.id.replace(/:part-\d$/, '')}#${x.part[0]}` : x.id));
 // Non-content items the builder adds on purpose: pattern cards, explain-backs, foundations, ADV_DSA, Phase 3 sets, FE revision, SD mocks, jt Saturdays.
-for (const x of extras) assert.match(x.id, /^(dsa:(card|explain-back|foundations|timed|oa|ai-drill)-|adv:|fe:revise-|fe:bfe-|sdm:|jt:(ai-drill|mock|peer-mock|speed-pair|mock-loop)-)/, `unexpected item ${x.id}`);
+for (const x of extras) assert.match(x.id, /^(dsa:(card|explain-back|timed|oa|ai-drill)-|adv:|fe:revise-|fe:bfe-|sdm:|jt:(ai-drill|mock|peer-mock|speed-pair|mock-loop)-)/, `unexpected item ${x.id}`);
 // The SD_MOCKS rotation is used in order from its first item.
 const sdm = T.sd.flatMap((s: Any) => s.items).filter((x: Any) => x.id.startsWith('sdm:')).map((x: Any) => x.id);
 assert.deepEqual(sdm, (sd.SD_MOCKS as Any[]).slice(0, sdm.length).map((x) => x.id));
 
 // ---------- dsa ----------
 const PATS = (dsa.PATTERNS as Any[]).map((p) => p.id);
-for (let i = 0; i < 5; i++) assert.ok(T.dsa[i].items.every((x: Any) => x.id.startsWith('dsa:foundations-')), `dsa[${i}] foundations`);
+assert.deepEqual(T.dsa.slice(0, 5).map((s: Any) => s.items.map((x: Any) => x.id)), (dsa.FOUNDATIONS as Any[]).map((x) => [x.id]), 'foundations from content in slots 0–4');
+assert.notEqual(T.dsa[0].items[0], (dsa.FOUNDATIONS as Any[])[0], 'slot items are copies');
+assert.notEqual(all.find((x) => x.flags)?.flags, (dsa.PROBLEMS as Any[]).find((p) => all.find((x) => x.flags)?.slug === p.slug).flags, 'flags copied');
 const dsaProblems = T.dsa.slice(0, 54).flatMap((s: Any) => s.items).filter((x: Any) => x.id.startsWith('p-')).map((x: Any) => x.id);
 assert.deepEqual(dsaProblems, (dsa.PROBLEMS as Any[]).filter((p) => p.tier === 'must').map((p) => `p-${p.slug}`), '24 patterns in order, must-solve only');
 const lastPatternSlot = Math.max(...T.dsa.map((s: Any, i: number) => (s.items.some((x: Any) => x.id.startsWith('p-') || x.id.startsWith('dsa:card-')) ? i : -1)));
@@ -157,13 +160,24 @@ assert.deepEqual(T.sd.slice(0, 61).map((s: Any) => s.items[0].id), (sd.SD as Any
 for (let i = 61; i < 78; i++) assert.ok(has('sd', i, /^sdm:/), `sd[${i}] mock`);
 
 // ---------- ai ----------
-assert.deepEqual(T.ai.slice(0, 50).map((s: Any) => s.items[0].id), (ai.AI_EVENING as Any[]).map((x) => x.id), 'AI_EVENING in order');
-const reviews = (ai.AI_REVIEW as Any[]).map((x) => x.id);
-for (let i = 50; i < 78; i++) {
-  const x = T.ai[i].items[0], base = reviews[(i - 50) % reviews.length];
-  assert.ok(x.id === base || x.id.startsWith(`${base}:`), `ai[${i}] review tail ${x.id}`);
-  if (i - 50 >= reviews.length) assert.equal(x.filler, true);
+// AI_EVENING items at their old `day`; depth reads (no day) in the first free slot after their `after`; AI_REVIEW
+// rotation (in order, repeats are fillers) in every other slot.
+const evening: Any[] = ai.AI_EVENING as Any[];
+for (const x of evening.filter((x) => typeof x.day === 'number')) assert.equal(slotOf('ai', x.id), x.day, `${x.id} on day ${x.day}`);
+for (const x of evening.filter((x) => typeof x.day !== 'number')) {
+  const from = slotOf('ai', x.after), i = slotOf('ai', x.id);
+  assert.ok(from >= 0 && i > from, `${x.id} after ${x.after}`);
+  for (let j = from + 1; j < i; j++) assert.ok(!T.ai[j].items.some((y: Any) => y.id.startsWith('ai:review-')), `${x.id} takes the first free slot after ${x.after}`);
 }
+const reviews = (ai.AI_REVIEW as Any[]).map((x) => x.id);
+const gaps = T.ai.map((s: Any, i: number) => i).filter((i: number) => !evening.some((x) => slotOf('ai', x.id) === i));
+assert.equal(gaps.length, 78 - evening.length);
+gaps.forEach((i: number, k: number) => {
+  const x = T.ai[i].items[0], base = reviews[k % reviews.length];
+  assert.equal(T.ai[i].items.length, 1);
+  assert.ok(x.id === base || x.id === `${base}:${Math.floor(k / reviews.length) + 1}`, `ai[${i}] review ${x.id}`);
+  assert.equal(!!x.filler, k >= reviews.length, `ai[${i}] filler flag`);
+});
 
 // ---------- mc ----------
 const MCI: Any[] = mc.MC as Any[];
@@ -225,12 +239,20 @@ for (let w = 1; w <= 13; w++) {
   if (w <= 12) assert.equal(ids('jt', idx(w, 3))[0], (judgment.PRACTICAL as Any[])[w - 1].id, `Wed wk${w}`);
   if (w >= 2) assert.equal(ids('jt', idx(w, 4))[0], (judgment.DECOMP as Any[])[w - 2].id, `Thu wk${w}`);
   const sat = T.jt[idx(w, 6)].items;
-  if (w % 2 === 1 && w <= 9) {
-    assert.ok(sat.every((x: Any) => x.id.startsWith('jt:ai-drill-')), `Sat wk${w} AI drill`);
-    assert.ok(!sat.some((x: Any) => x.takesRevision), `Sat wk${w} drill keeps revision`);
-  } else {
-    assert.ok(sat.length && sat.every((x: Any) => x.takesRevision === true), `Sat wk${w} mock takesRevision`);
+  if (w % 2 === 1 && w <= 9) assert.ok(sat.every((x: Any) => x.id.startsWith('jt:ai-drill-')), `Sat wk${w} AI drill`);
+  // R8: every Saturday (drill or mock) takes the revision time; R9: the slot holds ≤ 75 min, the rest carries to Sunday.
+  const kept = sat.filter((x: Any) => !x.sundayCarry);
+  assert.ok(kept.length && kept.every((x: Any) => x.takesRevision === true), `Sat wk${w} takesRevision`);
+  assert.ok(sat.every((x: Any) => typeof x.mins === 'number' && x.mins > 0), `Sat wk${w} every item has mins`);
+  const cap = kept.every((x: Any) => x.takesRevision) ? 75 : 45;
+  assert.ok(kept.reduce((m: number, x: Any) => m + x.mins, 0) <= cap, `Sat wk${w} ≤ ${cap} min in the slot`);
+  for (const x of sat.filter((x: Any) => x.sundayCarry)) assert.ok(!x.takesRevision, `${x.id} carried, not in the slot`);
+  if (w >= 10) {
+    const rounds = sat.filter((x: Any) => x.id.startsWith('jt:mock-loop-'));
+    assert.equal(rounds.length, 3, `Sat wk${w} loop has 3 rounds`);
+    assert.ok(rounds.every((x: Any) => x.mins === 45), 'no round shortened');
   }
+  if ([6, 8].includes(w)) assert.ok(sat.find((x: Any) => x.id.startsWith('jt:speed-pair-')).sundayCarry, `wk${w} speed pair carried`);
   if (w >= 10) assert.ok(sat.some((x: Any) => x.id.startsWith('jt:mock-loop-')), `Sat wk${w} full mock loop`);
   const speed = sat.some((x: Any) => x.id.startsWith('jt:speed-pair-'));
   assert.equal(speed, [6, 8].includes(w), `speed pair wk${w}`);

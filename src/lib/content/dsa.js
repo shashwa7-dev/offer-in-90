@@ -313,3 +313,17 @@ export const ADV_DSA = [
   ['Advanced DSA: Digit DP', 'https://www.youtube.com/watch?v=KaU-AM8wo4Q'],
   ['DP roadmap: map the DP patterns you know vs the ones you don\'t', 'https://www.reddit.com/r/leetcode/comments/14o10jd/the_ultimate_dynamic_programming_roadmap/'],
 ];
+
+// Week 1 foundations (§2): about 5 morning DSA blocks before the patterns start. URLs checked 2026-11-15 (curl, 200).
+export const FOUNDATIONS = [
+  { id: 'dsa:foundations-big-o', url: 'https://www.bigocheatsheet.com/',
+    text: 'Foundations · Big-O as reasoning: from the input size to the complexity you need ("n = 10⁵ means I need n log n").' },
+  { id: 'dsa:foundations-recursion', url: 'https://javascript.info/recursion',
+    text: 'Foundations · Recursion and the call stack: base case, the stack frames, depth limits. Trace 3 recursive functions by hand.' },
+  { id: 'dsa:foundations-build-1', url: 'https://github.com/trekhleb/javascript-algorithms',
+    text: 'Foundations · Build it yourself in TypeScript, with tests: dynamic array, hash map, linked list.' },
+  { id: 'dsa:foundations-build-2', url: 'https://github.com/trekhleb/javascript-algorithms',
+    text: 'Foundations · Build it yourself in TypeScript, with tests: stack/queue, binary heap, BST.' },
+  { id: 'dsa:foundations-build-3', url: 'https://github.com/trekhleb/javascript-algorithms',
+    text: 'Foundations · Build it yourself in TypeScript, with tests: trie, graph adjacency list, union-find.' },
+];
