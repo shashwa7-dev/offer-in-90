@@ -22,9 +22,9 @@ sub-items, carry-over; no clock/routine) on a **real backend** (Next.js on Verce
 Better Auth), with a Plane-style schema (workspaces, members/roles/invites ready but off, tracks, cycles, modules,
 work items with shared state, versioned roadmap snapshots seeded like Plane's workspace seed).
 - Design: `docs/superpowers/specs/2026-11-16-idt-learning-workspace-design.md` (draft, not yet approved).
-- **Next step: keep brainstorming** (superpowers:brainstorming) through the doc's "Open for the next
-  brainstorming session" list, starting with the 3 AI agents (Explainer/"teacher", Coach, Interviewer; BYOK),
-  then get the doc approved, then writing-plans.
+- **Design is complete (rounds 1–3).** Next session: have the owner confirm it, then superpowers:writing-plans for
+  **Phase 1** in a NEW turborepo named `IDT` (private GitHub repo, owner's account), then build. Ask the owner for
+  the env values listed in the design's "Environment variables" table when they are needed.
 - PR #2 will **not** be merged: the redesign ships as one fresh PR built on `roadmap-v2`; close #2 then.
 - Plane clone for reference was in a scratch dir; re-clone shallow if needed (`git clone --depth 1
   https://github.com/makeplane/plane.git`). Relevant: `apps/api/plane/db/models/{workspace,project,issue,cycle,
