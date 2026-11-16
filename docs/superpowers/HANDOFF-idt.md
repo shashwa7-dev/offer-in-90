@@ -11,6 +11,12 @@ renamed **IDT**. Its content (roadmap v3: 7 tracks × 78 slots) is done and live
 routine, on a **real backend** (Next.js on Vercel + Neon Postgres + Drizzle + Better Auth + Trigger.dev), in a
 **new private turborepo named `IDT`**, borrowing Plane's model and UI ideas (never its code: AGPL).
 
+## Visual overview
+
+- `docs/superpowers/idt-overview.html`: a one-page visual summary of the whole plan (stack, database, roadmap
+  releases, phases, env vars). Open it in a browser, or online at https://claude.ai/artifact/P5BNzvnWzjwxp6kJCxsDKQ
+  (private to the owner). The design doc stays the binding source if the two ever differ.
+
 ## Read these, in order
 
 1. **The design (binding):** `docs/superpowers/specs/2026-11-16-idt-learning-workspace-design.md`.
