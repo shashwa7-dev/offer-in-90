@@ -1,6 +1,6 @@
 // Run: node --experimental-strip-types scripts/test-task-status.ts
 import assert from 'node:assert/strict';
-import { STATUS_LABEL, applyStatus, goodStreak, isSkipped, rate, statusOf, studyCounts } from '../src/lib/task-status.ts';
+import { STATUS_LABEL, applyStatus, counts, goodStreak, isSkipped, owes, rate, settled, statusOf, studyCounts, unseenHidden } from '../src/lib/task-status.ts';
 
 assert.deepEqual(STATUS_LABEL, { todo: 'Not started', progress: 'In progress', done: 'Done', skipped: 'Skipped' });
 
@@ -55,4 +55,23 @@ assert.equal(goodStreak([0.2, 1, null, 0.9]), 2);
 assert.equal(goodStreak([1, 0.5, null]), 0);
 assert.equal(goodStreak([null, null]), 0);
 
+// owes / settled: superseded copies, optional and health tasks are never missed
+{
+  const st = { s: 'skipped' } as const;
+  assert.equal(owes({ id: 'a', cat: 'dsa' }, {}, {}), true);
+  assert.equal(owes({ id: 'a', cat: 'dsa' }, { a: 1 }, {}), false);
+  assert.equal(owes({ id: 's', cat: 'dsa' }, {}, st), false);
+  assert.equal(owes({ id: 'a', cat: 'dsa', superseded: true }, {}, {}), false);
+  assert.equal(owes({ id: 'a', cat: 'review', optional: true }, {}, {}), false);
+  assert.equal(owes({ id: 'a', cat: 'health' }, {}, {}), false);
+  assert.equal(counts({ cat: 'fe' }), true);
+  assert.equal(settled({ id: 'a', superseded: true }, {}, {}), true);
+  assert.equal(settled({ id: 'a' }, {}, {}), false);
+  assert.equal(settled({ id: 's' }, {}, st), true);
+}
+
+// an unseen check stays hidden while not started or skipped; Start, progress or done reveals it
+assert.equal(unseenHidden(true, 'todo'), true); assert.equal(unseenHidden(true, 'skipped'), true);
+assert.equal(unseenHidden(true, 'progress'), false); assert.equal(unseenHidden(true, 'done'), false);
+assert.equal(unseenHidden(undefined, 'todo'), false); assert.equal(unseenHidden(false, 'skipped'), false);
 console.log('task-status: all checks pass');

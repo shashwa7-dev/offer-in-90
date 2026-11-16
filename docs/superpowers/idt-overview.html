@@ -1,0 +1,387 @@
+<title>IDT Rebuild Blueprint</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a single reading column with a sticky section index on wide screens; diagrams and tables scroll inside their own frames. */
+:root {
+  --bg: #f6f7f9; --surface: #ffffff; --ink: #14171c; --muted: #5b6370; --faint: #8a919c;
+  --line: #e1e4e9; --accent: #3b5bdb; --accent-soft: #e8edfd; --ok: #2b8a3e; --ok-soft: #e6f4ea;
+  --warn: #b35c00; --warn-soft: #fdf0e1; --later: #6b4fbb; --later-soft: #efeafb;
+  --font-display: "Space Grotesk", "Inter", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #111318; --surface: #181b22; --ink: #e8eaef; --muted: #a0a7b3; --faint: #737b88;
+  --line: #2a2f39; --accent: #8ea4ff; --accent-soft: #1f2640; --ok: #6cc785; --ok-soft: #17291d;
+  --warn: #f0a457; --warn-soft: #2e2214; --later: #b9a5f2; --later-soft: #251f38; color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #111318; --surface: #181b22; --ink: #e8eaef; --muted: #a0a7b3; --faint: #737b88;
+  --line: #2a2f39; --accent: #8ea4ff; --accent-soft: #1f2640; --ok: #6cc785; --ok-soft: #17291d;
+  --warn: #f0a457; --warn-soft: #2e2214; --later: #b9a5f2; --later-soft: #251f38; color-scheme: dark; }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 64px; }
+.wrap { max-width: 1120px; margin: 0 auto; display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 48px; }
+@media (max-width: 860px) { .wrap { grid-template-columns: minmax(0, 1fr); gap: 0; } nav.toc { display: none; } }
+nav.toc { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 24px); align-self: start; padding-top: 40px; font-size: 13px; }
+nav.toc a { display: block; color: var(--muted); text-decoration: none; padding: 4px 0 4px 10px; border-left: 2px solid var(--line); }
+nav.toc a:hover, nav.toc a:focus-visible { color: var(--ink); border-left-color: var(--accent); outline: none; }
+main { min-width: 0; }
+header.hero { padding-block: 40px 24px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .04em; color: var(--accent); }
+h1 { font-family: var(--font-display); font-size: clamp(30px, 4vw, 42px); line-height: 1.1; margin: 8px 0 12px; text-wrap: balance; }
+h2 { font-family: var(--font-display); font-size: 24px; margin: 0 0 6px; text-wrap: balance; }
+h3 { font-family: var(--font-display); font-size: 17px; margin: 22px 0 6px; }
+p { max-width: 68ch; margin: 0 0 12px; }
+.lede { font-size: 17px; color: var(--muted); max-width: 64ch; }
+section { padding-block: 36px 8px; border-bottom: 1px solid var(--line); scroll-margin-top: 16px; }
+section:last-of-type { border-bottom: 0; }
+.sub { color: var(--muted); margin-bottom: 18px; }
+code, .mono { font-family: var(--font-mono); font-size: .88em; }
+code { background: var(--accent-soft); color: var(--ink); padding: 1px 5px; border-radius: 4px; }
+.grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); }
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; min-width: 0; }
+.card h4 { font-family: var(--font-display); font-size: 15px; margin: 0 0 6px; }
+.card p, .card li { font-size: 14px; color: var(--muted); }
+.card ul { margin: 0; padding-left: 18px; }
+.pill { display: inline-block; font-family: var(--font-mono); font-size: 11px; letter-spacing: .03em; padding: 2px 8px; border-radius: 999px; vertical-align: middle; }
+.p-now { background: var(--ok-soft); color: var(--ok); }
+.p-off { background: var(--warn-soft); color: var(--warn); }
+.p-later { background: var(--later-soft); color: var(--later); }
+.p-gone { background: var(--line); color: var(--muted); text-decoration: line-through; }
+.compare { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.compare .card h4 .pill { margin-left: 6px; }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 14px; }
+th, td { text-align: left; padding: 9px 14px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; background: var(--bg); }
+tr:last-child td { border-bottom: 0; }
+td.k { font-family: var(--font-mono); font-size: 13px; white-space: nowrap; }
+.diagram { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin: 8px 0 14px; }
+.diagram pre.mermaid { margin: 0; background: transparent; }
+.week { display: grid; grid-template-columns: repeat(7, minmax(92px, 1fr)); gap: 6px; overflow-x: auto; padding-bottom: 4px; }
+.day { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 10px; font-size: 12px; min-width: 92px; }
+.day b { display: block; font-family: var(--font-display); font-size: 13px; margin-bottom: 6px; }
+.item { font-family: var(--font-mono); font-size: 11px; padding: 3px 6px; border-radius: 5px; margin-bottom: 4px; background: var(--bg); color: var(--muted); }
+.item.done { background: var(--ok-soft); color: var(--ok); }
+.item.carry { background: var(--warn-soft); color: var(--warn); }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 13px; color: var(--muted); margin-top: 10px; }
+.legend span::before { content: ""; display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; background: var(--sw); }
+ol.steps { padding-left: 20px; margin: 0; }
+ol.steps li { margin-bottom: 8px; max-width: 70ch; }
+.phase { border-left: 3px solid var(--accent); }
+.phase.p2 { border-left-color: var(--later); }
+.phase.p3 { border-left-color: var(--warn); }
+.note { font-size: 13px; color: var(--faint); }
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto !important; } }
+</style>
+
+<div class="wrap">
+  <nav class="toc" aria-label="Sections">
+    <a href="#what">What changes</a>
+    <a href="#concepts">Concepts</a>
+    <a href="#week">A week in IDT</a>
+    <a href="#stack">Stack</a>
+    <a href="#repo">Repo layout</a>
+    <a href="#data">Database</a>
+    <a href="#roadmap">Roadmap releases</a>
+    <a href="#jobs">Jobs &amp; time</a>
+    <a href="#security">Security &amp; AI keys</a>
+    <a href="#phases">Phases</a>
+    <a href="#later">Later releases</a>
+    <a href="#rules">Rules from the audit</a>
+    <a href="#env">Env variables</a>
+    <a href="#next">What happens next</a>
+  </nav>
+
+  <main>
+    <header class="hero">
+      <div class="eyebrow">offer-in-90 → IDT · design of 16 Nov 2026</div>
+      <h1>IDT: from a daily timetable to a learning workspace</h1>
+      <p class="lede">The same roadmap v3 content (7 tracks × 78 slots), delivered as weekly cycles of work items with estimates, on a real backend, in a new turborepo. Plane's ideas and UI, never its code, and every feature about learning.</p>
+    </header>
+
+    <section id="what">
+      <h2>What changes</h2>
+      <p class="sub">The content stays. The way it's scheduled, stored and run changes.</p>
+      <div class="compare">
+        <div class="card">
+          <h4>Today: offer-in-90 <span class="pill p-gone">retiring</span></h4>
+          <ul>
+            <li>Every task pinned to a clock time (05:15 DSA, 13:00 Systems…)</li>
+            <li>Routine form: wake-up, meals, gym, bedtime</li>
+            <li>Static site on GitHub Pages, data in the browser, Gist sync</li>
+            <li>News written by GitHub Actions into JSON files</li>
+            <li>One person, one plan, no login</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>New: IDT <span class="pill p-now">phase 1</span></h4>
+          <ul>
+            <li>Weekly cycles; items in recommended order, any order allowed</li>
+            <li>Every item has an estimate; unfinished work carries over</li>
+            <li>Next.js on Vercel, Neon Postgres, Google sign-in</li>
+            <li>News engine on Trigger.dev, stored in the database</li>
+            <li>Workspaces, members and roles ready (switched off for now)</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <section id="concepts">
+      <h2>Concepts, borrowed from Plane</h2>
+      <p class="sub">Plane's names so it feels familiar; trimmed to what a study plan needs.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Plane</th><th>IDT</th><th>Example</th></tr></thead>
+          <tbody>
+            <tr><td>(template)</td><td><b>Roadmap</b>: versioned content</td><td class="k">interview-2026 v14</td></tr>
+            <tr><td>Workspace</td><td><b>Workspace</b>: your plan built from a roadmap</td><td class="k">shashwat/interview-2026</td></tr>
+            <tr><td>Project</td><td><b>Track</b></td><td class="k">DSA · AI · SYS · PRD · PLT · CAR · FE</td></tr>
+            <tr><td>Work item</td><td><b>Work item</b></td><td class="k">DSA-12 Two pointers: teach problem</td></tr>
+            <tr><td>Sub-work item</td><td><b>Sub-item</b></td><td class="k">AI-28#understand · #do · #explain</td></tr>
+            <tr><td>Cycle</td><td><b>Cycle</b>: one week, Mon–Sun</td><td class="k">Cycle 3 · Nov 30 – Dec 6</td></tr>
+            <tr><td>Module</td><td><b>Module</b>: topic group</td><td class="k">Sliding window · RAG · DDIA ch. 5</td></tr>
+            <tr><td>Estimate</td><td><b>Estimate</b> in minutes</td><td class="k">15m · 45m · 2h</td></tr>
+            <tr><td>State</td><td><b>State</b></td><td class="k">Backlog · Todo · In progress · Done · Cancelled</td></tr>
+            <tr><td>Blocked by</td><td><b>Needs</b> (shows order; never blocks)</td><td class="k">needs DSA-11</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="week">
+      <h2>A week in IDT</h2>
+      <p class="sub">No clock. Each day has its daily items; the week's lessons sit in recommended order. Miss a few days, catch up later in the week. What's left on Sunday night moves to the next cycle and shows up in the chart.</p>
+      <div class="week" role="img" aria-label="Example cycle: daily items each day, lessons through the week, two items carried over">
+        <div class="day"><b>Mon</b><div class="item done">DSA problem</div><div class="item done">Recall</div><div class="item done">AI-13 lesson</div><div class="item done">DSA-12</div></div>
+        <div class="day"><b>Tue</b><div class="item done">DSA problem</div><div class="item done">Recall</div><div class="item done">SYS-7</div></div>
+        <div class="day"><b>Wed</b><div class="item">DSA problem</div><div class="item">Recall</div><div class="item">Daily log</div></div>
+        <div class="day"><b>Thu</b><div class="item">DSA problem</div><div class="item">Recall</div><div class="item">Daily log</div></div>
+        <div class="day"><b>Fri</b><div class="item done">DSA problem ×3</div><div class="item done">AI-14 lesson</div><div class="item done">PRD-9</div></div>
+        <div class="day"><b>Sat</b><div class="item done">DSA problem</div><div class="item done">LLD session</div><div class="item done">Mock day</div></div>
+        <div class="day"><b>Sun</b><div class="item done">DSA problem</div><div class="item done">End of cycle review</div><div class="item carry">2 items → Cycle 4</div></div>
+      </div>
+      <div class="legend"><span style="--sw: var(--ok-soft)">done</span><span style="--sw: var(--bg)">pending</span><span style="--sw: var(--warn-soft)">carried over</span></div>
+      <h3>How carry-over works</h3>
+      <ol class="steps">
+        <li>On your first visit after a cycle ends (in your time zone), the app snapshots that cycle's stats, as Plane does on "transfer".</li>
+        <li>Unfinished items move to the current cycle, marked "carried from Cycle 3". Cancelled items never move.</li>
+        <li>Days you didn't open the app still get their daily items, so missed days pile up honestly.</li>
+        <li>If work remains after the last planned week, "overtime" cycles are added until it's done.</li>
+      </ol>
+    </section>
+
+    <section id="stack">
+      <h2>Stack</h2>
+      <p class="sub">Everything on free tiers for one person. No Redis, no queues of our own.</p>
+      <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  U([You, in the browser]) -->|Google sign-in| W[apps/web<br/>Next.js on Vercel]
+  A([You, as admin]) --> AD[apps/admin<br/>Next.js on Vercel]
+  W --> DB[(Neon Postgres<br/>Drizzle)]
+  AD --> DB
+  W --- BA[Better Auth<br/>sessions in Postgres]
+  J[apps/jobs<br/>Trigger.dev free] -->|Bearer service token| W
+  W -->|daily reminder| R[Resend email]
+  W -->|your own key| P[AI providers<br/>later: agents]
+  J -->|owner's key| P2[Engine model]
+</pre>
+      </div>
+      <div class="grid">
+        <div class="card"><h4>Next.js + Vercel</h4><p>Pages and server code in one app. Hobby plan is free for personal use; a public product later means Pro.</p></div>
+        <div class="card"><h4>Neon + Drizzle</h4><p>Postgres with a free tier, typed schema and migrations. Each preview deploy gets its own database branch.</p></div>
+        <div class="card"><h4>Better Auth</h4><p>Google only for now. Database sessions in an HTTP-only cookie, as Plane does. Sign-up limited to an allowlist.</p></div>
+        <div class="card"><h4>Trigger.dev</h4><p>Free plan ($5 of credit a month, 10 schedules). Set up like shopos's pro-backend-triggers. Vercel Cron is the fallback.</p></div>
+        <div class="card"><h4>Docker for local</h4><p>Postgres in Docker Compose for development and tests. No cloud account needed to run it.</p></div>
+        <div class="card"><h4>Offline, as Plane</h4><p>Show the last loaded data with an "Offline" banner, block edits, refetch on reconnect.</p></div>
+      </div>
+    </section>
+
+    <section id="repo">
+      <h2>Repo layout</h2>
+      <p class="sub">A new private turborepo named <code>IDT</code>, public later. offer-in-90 becomes the archive.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Folder</th><th>What lives there</th></tr></thead>
+          <tbody>
+            <tr><td class="k">apps/web</td><td>The app: Today, Cycle, Tracks, Progress, Roadmap, DSA, Notes, News, Setup</td></tr>
+            <tr><td class="k">apps/admin</td><td>Owner only: publish roadmap versions, preview the diff, apply, roll back; news engine runs; allowlist</td></tr>
+            <tr><td class="k">apps/jobs</td><td>Trigger.dev tasks: weekly news refresh, daily reminder email</td></tr>
+            <tr><td class="k">packages/db</td><td>Drizzle schema, migrations, seed</td></tr>
+            <tr><td class="k">packages/roadmap</td><td>Roadmap v3 content and track builders (moved with their tests), validation, JSON build</td></tr>
+            <tr><td class="k">packages/ui</td><td>Shared components</td></tr>
+            <tr><td class="k">packages/config</td><td>Shared TypeScript, lint and test config</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">README for strangers: clone → <code>docker compose up -d</code> → <code>pnpm install</code> → <code>cp .env.example .env</code> → <code>pnpm db:migrate</code> → <code>pnpm db:seed</code> → <code>pnpm dev</code>. GitHub Actions run CI only.</p>
+    </section>
+
+    <section id="data">
+      <h2>Database</h2>
+      <p class="sub">Plane's relationships, trimmed. Every table has created/updated by and at, plus soft delete.</p>
+      <div class="diagram">
+<pre class="mermaid">
+erDiagram
+  USER ||--o{ WORKSPACE_MEMBER : "belongs to"
+  WORKSPACE ||--o{ WORKSPACE_MEMBER : has
+  WORKSPACE ||--o{ WORKSPACE_INVITE : "invites (off)"
+  WORKSPACE ||--o{ TRACK : has
+  WORKSPACE ||--o{ CYCLE : has
+  TRACK ||--o{ MODULE : groups
+  TRACK ||--o{ WORK_ITEM : holds
+  CYCLE ||--o{ WORK_ITEM : schedules
+  WORK_ITEM ||--o{ WORK_ITEM : "sub-items"
+  WORK_ITEM ||--o{ WORK_ITEM_ACTIVITY : "history"
+  WORK_ITEM ||--o{ WORK_ITEM_ASSIGNEE : "assignees (off)"
+  WORK_ITEM }o--o{ LABEL : tagged
+  ROADMAP_VERSION ||--o{ WORKSPACE : "seeds / updates"
+  USER ||--o{ USER_AI_KEY : "own keys"
+</pre>
+      </div>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Table</th><th>Key columns</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td class="k">workspace</td><td>slug, owner, roadmap + version, start Monday, mode (steady/grind)</td><td><span class="pill p-now">phase 1</span></td></tr>
+            <tr><td class="k">workspace_member</td><td>role: admin · member · guest (mentor later)</td><td><span class="pill p-off">ready, off</span></td></tr>
+            <tr><td class="k">workspace_invite</td><td>email, role, single-use token, expiry</td><td><span class="pill p-off">ready, off</span></td></tr>
+            <tr><td class="k">cycle</td><td>number, start/end dates, overtime flag, progress snapshot</td><td><span class="pill p-now">phase 1</span></td></tr>
+            <tr><td class="k">work_item</td><td>track, parent, template id, sequence (DSA-12), state, estimate, actual time, cycle, carried from, module, order, edited fields</td><td><span class="pill p-now">phase 1</span></td></tr>
+            <tr><td class="k">work_item_activity</td><td>append-only log of every change (feeds workspace memory later)</td><td><span class="pill p-now">phase 1</span></td></tr>
+            <tr><td class="k">work_item_assignee</td><td>work item, user</td><td><span class="pill p-off">ready, off</span></td></tr>
+            <tr><td class="k">roadmap_version</td><td>roadmap, version, JSON snapshot, release notes</td><td><span class="pill p-now">phase 1</span></td></tr>
+            <tr><td class="k">user_ai_key</td><td>provider, encrypted key, key version, last 4</td><td><span class="pill p-now">phase 1</span></td></tr>
+            <tr><td class="k">news_* · pulse_week · engine_run</td><td>global, not per workspace</td><td><span class="pill p-later">phase 2</span></td></tr>
+            <tr><td class="k">notification · preference</td><td>in-app inbox, daily email setting</td><td><span class="pill p-later">phase 3</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">State lives on the work item and is shared, as in Plane. If two people ever follow one roadmap together, a per-person progress table is added then.</p>
+    </section>
+
+    <section id="roadmap">
+      <h2>Roadmap releases</h2>
+      <p class="sub">Plane seeds new workspaces from JSON files once. IDT adds stable ids and versions, so updates reach everyone without per-user work.</p>
+      <div class="diagram">
+<pre class="mermaid">
+flowchart LR
+  TS[TypeScript content<br/>packages/roadmap] --> B[Build + zod validation]
+  B --> JSON["roadmaps/interview-2026/v15/*.json<br/>committed to git"]
+  JSON --> RV[(roadmap_version)]
+  RV -->|new workspace| SEED[Seed rows,<br/>keep template ids]
+  RV -->|admin: apply v15| DIFF[Diff v14 → v15 by id]
+  DIFF --> WS[Workspace rows]
+  RV -->|admin: roll back| DIFF
+</pre>
+      </div>
+      <ul>
+        <li>Ids never change and are never reused. Removed items are marked retired.</li>
+        <li>An update adds new items, refreshes text and links, and skips any field you edited yourself. A deleted item never comes back.</li>
+        <li>Rollback uses the same rules in reverse. You see a one-time "What changed" note.</li>
+      </ul>
+    </section>
+
+    <section id="jobs">
+      <h2>Jobs and time</h2>
+      <div class="grid">
+        <div class="card"><h4>Weekly news refresh</h4><p>A Trigger.dev task calls a protected route; the engine fetches sources, uses the owner's model key, writes news, pulse and interview threads, and logs the run.</p></div>
+        <div class="card"><h4>Daily reminder</h4><p>"Today: 6 items · this cycle: 9 h left", in-app and by email through Resend for those who opt in. Phase 3.</p></div>
+        <div class="card"><h4>Carry-over</h4><p>No job at all. Runs on your first visit after the cycle ends, and is safe to run twice.</p></div>
+        <div class="card"><h4>Time zones</h4><p>Your IANA time zone, detected on first sign-in. "Today" and the Monday-to-Sunday cycle follow it, as Plane's user time zone does.</p></div>
+      </div>
+      <h3>Progress, by estimate</h3>
+      <p>Plane's burn-down counts completed items (or estimate points) per day over the cycle against an ideal line. IDT does the same in estimate minutes, adds the scope that carry-over brought in, and keeps the pace and forecast from today's app.</p>
+    </section>
+
+    <section id="security">
+      <h2>Security and AI keys</h2>
+      <div class="grid">
+        <div class="card"><h4>Checked on the server</h4><ul><li>Every read and write checks workspace membership and role</li><li>Allowlist enforced server-side</li><li>Admin app needs an <code>instance_admin</code> row</li><li>Job routes need the service token</li></ul></div>
+        <div class="card"><h4>Bring your own key, day 1</h4><ul><li>Setup › AI keys: provider + key, tested on save</li><li>Encrypted (AES-256-GCM), never sent back to the browser</li><li>Only the last 4 characters shown</li><li>The news engine alone uses the owner's key</li></ul></div>
+        <div class="card"><h4>Licence and data</h4><ul><li>Plane is AGPL: copy ideas, never code</li><li>Soft delete everywhere; account delete after 30 days</li><li>Neon point-in-time restore + JSON export</li></ul></div>
+      </div>
+    </section>
+
+    <section id="phases">
+      <h2>Phases</h2>
+      <p class="sub">Phase 1 is everything needed to study in IDT. Nothing is imported; IDT starts fresh.</p>
+      <div class="grid">
+        <div class="card phase"><h4>Phase 1 · switch over</h4><ul><li>Google sign-in, allowlist</li><li>Workspace seeded from the roadmap</li><li>Today, Cycle, Tracks, work item peek</li><li>Carry-over and overtime cycles</li><li>Progress by estimate</li><li>AI-key settings</li><li>Activity log and time spent</li><li>Feature-parity checklist</li></ul></div>
+        <div class="card phase p2"><h4>Phase 2 · releases and news</h4><ul><li>Admin app: publish, diff, apply, roll back</li><li>News engine on the database via Trigger.dev</li></ul></div>
+        <div class="card phase p3"><h4>Phase 3 · reach and care</h4><ul><li>In-app notifications</li><li>Daily reminder email</li><li>Export my data, delete account</li></ul></div>
+      </div>
+    </section>
+
+    <section id="later">
+      <h2>Later releases</h2>
+      <div class="grid">
+        <div class="card"><h4>AI agents <span class="pill p-later">later</span></h4><p>Explainer (your "teacher"), Coach (solve it yourself), Interviewer (realistic timed round). On your own key.</p></div>
+        <div class="card"><h4>Workspace memory <span class="pill p-later">later</span></h4><p>Facts from your history plus an AI summary each cycle: strengths, weak spots, habits. Yours to edit. Modelled on shopos brand memory.</p></div>
+        <div class="card"><h4>Practice runner <span class="pill p-later">later</span></h4><p>A TypeScript editor on DSA items; code runs in a locked-down Web Worker in your browser. No server sandbox.</p></div>
+        <div class="card"><h4>Quizzes <span class="pill p-later">later</span></h4><p>Daily quiz and weekly test.</p></div>
+        <div class="card"><h4>Together <span class="pill p-later">later</span></h4><p>Invite a study partner, assign items, a mentor role. The tables are already there.</p></div>
+      </div>
+    </section>
+
+    <section id="rules">
+      <h2>Rules from the audit</h2>
+      <p class="sub">Gaps found while reviewing the design, each closed with a rule.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Risk</th><th>Rule</th></tr></thead>
+          <tbody>
+            <tr><td>Missed days create no daily items</td><td>Back-fill every day since your last visit</td></tr>
+            <tr><td>Estimates counted twice</td><td>Estimates live on the smallest items only; parents show the sum</td></tr>
+            <tr><td>Parent and sub-item states disagree</td><td>Done when all sub-items are done; ticking a parent ticks its sub-items</td></tr>
+            <tr><td>Your items and roadmap items share an id</td><td>Your items start at DSA-1000</td></tr>
+            <tr><td>Updates overwrite your edits</td><td>Each item records the fields you changed; updates skip them</td></tr>
+            <tr><td>Work left after the last week</td><td>Overtime cycles until done</td></tr>
+            <tr><td>Time zone change shifts history</td><td>Only "today" moves; past dates stay put</td></tr>
+            <tr><td>Production migrations</td><td>Run in the Vercel build; CI checks schema and migrations match</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="env">
+      <h2>Env variables</h2>
+      <p class="sub">You provide the values when a step needs them. Local development needs none of the cloud ones.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Variable</th><th>For</th><th>From</th></tr></thead>
+          <tbody>
+            <tr><td class="k">DATABASE_URL</td><td>Database</td><td>Neon (Docker locally)</td></tr>
+            <tr><td class="k">BETTER_AUTH_SECRET · BETTER_AUTH_URL</td><td>Sessions and callbacks</td><td>Generated · your app URL</td></tr>
+            <tr><td class="k">GOOGLE_CLIENT_ID · GOOGLE_CLIENT_SECRET</td><td>Google sign-in</td><td>Google Cloud console</td></tr>
+            <tr><td class="k">ALLOWED_EMAILS · ADMIN_EMAILS</td><td>Allowlist, admin access</td><td>Your email</td></tr>
+            <tr><td class="k">AI_KEYS_ENCRYPTION_KEY</td><td>Encrypting users' AI keys</td><td>Generated (32 bytes, base64)</td></tr>
+            <tr><td class="k">SERVICE_TOKEN</td><td>Jobs → app routes</td><td>Generated</td></tr>
+            <tr><td class="k">TRIGGER_PROJECT_ID · TRIGGER_SECRET_KEY</td><td>Trigger.dev</td><td>Trigger.dev dashboard</td></tr>
+            <tr><td class="k">ENGINE_AI_PROVIDER · ENGINE_AI_API_KEY</td><td>News engine model</td><td>Your model account</td></tr>
+            <tr><td class="k">RESEND_API_KEY · EMAIL_FROM</td><td>Reminder email (phase 3)</td><td>Resend</td></tr>
+            <tr><td class="k">APP_URL · ADMIN_URL</td><td>Links in emails, admin cross-links</td><td>Your deploy URLs</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="next">
+      <h2>What happens next</h2>
+      <ol class="steps">
+        <li>New session: "Read <code>docs/superpowers/HANDOFF-idt.md</code> in offer-in-90 and start from step 1."</li>
+        <li>You confirm the design once.</li>
+        <li>Phase 1 implementation plan, with the feature-parity checklist.</li>
+        <li>Create the <code>IDT</code> repo (checking with you before the GitHub repo is made).</li>
+        <li>Build Phase 1 task by task, with reviews; you add env values as they're needed.</li>
+        <li>Close PR #2 with a link to the new repo, and retire the old site when you're ready.</li>
+      </ol>
+      <p class="note">Source: <code>docs/superpowers/specs/2026-11-16-idt-learning-workspace-design.md</code> and <code>docs/superpowers/HANDOFF-idt.md</code> in offer-in-90, branch roadmap-v2.</p>
+    </section>
+  </main>
+</div>

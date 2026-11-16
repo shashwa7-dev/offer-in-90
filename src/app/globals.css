@@ -2,7 +2,8 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
-@custom-variant dark (@media (prefers-color-scheme: dark));
+/* Dark mode follows the theme picked in Setup (next-themes puts .dark on <html>; "System" follows the OS). */
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
   --color-background: var(--background);
@@ -61,22 +62,20 @@
   --chart-1: #1d1d20; --chart-2: #3d3f41; --chart-3: #5c6063; --chart-4: #8b8f93; --chart-5: #dcdde0;
   --sidebar: #ffffff; --sidebar-foreground: #1d1d20; --sidebar-primary: #1d1d20; --sidebar-primary-foreground: #ffffff; --sidebar-accent: #f4f4f5; --sidebar-accent-foreground: #1d1d20; --sidebar-border: #ebebed; --sidebar-ring: #8b8f93;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #111113; --foreground: #ececee;
-    --card: #18181b; --card-foreground: #ececee;
-    --popover: #18181b; --popover-foreground: #ececee;
-    --band: #1d1d20; --hover: #212125;
-    --primary: #ececee; --primary-foreground: #111113;
-    --secondary: #212125; --secondary-foreground: #ececee;
-    --muted: #212125; --muted-foreground: #9a9aa0; --faint: #74747a;
-    --accent: #212125; --accent-foreground: #ececee;
-    --destructive: #ececee; --border: #2a2a2e; --input: #3a3a3f; --ring: #74747a;
-    --stone: #26231f; --stone-foreground: #aaa29b; --stone-border: #3d3834;
-    --chart-1: #ececee; --chart-2: #c4c4c8; --chart-3: #9a9aa0; --chart-4: #74747a; --chart-5: #3a3a3f;
-    --sidebar: #18181b; --sidebar-foreground: #ececee; --sidebar-primary: #ececee; --sidebar-primary-foreground: #111113; --sidebar-accent: #212125; --sidebar-accent-foreground: #ececee; --sidebar-border: #2a2a2e; --sidebar-ring: #74747a;
-    color-scheme: dark;
-  }
+.dark {
+  --background: #111113; --foreground: #ececee;
+  --card: #18181b; --card-foreground: #ececee;
+  --popover: #18181b; --popover-foreground: #ececee;
+  --band: #1d1d20; --hover: #212125;
+  --primary: #ececee; --primary-foreground: #111113;
+  --secondary: #212125; --secondary-foreground: #ececee;
+  --muted: #212125; --muted-foreground: #9a9aa0; --faint: #74747a;
+  --accent: #212125; --accent-foreground: #ececee;
+  --destructive: #ececee; --border: #2a2a2e; --input: #3a3a3f; --ring: #74747a;
+  --stone: #26231f; --stone-foreground: #aaa29b; --stone-border: #3d3834;
+  --chart-1: #ececee; --chart-2: #c4c4c8; --chart-3: #9a9aa0; --chart-4: #74747a; --chart-5: #3a3a3f;
+  --sidebar: #18181b; --sidebar-foreground: #ececee; --sidebar-primary: #ececee; --sidebar-primary-foreground: #111113; --sidebar-accent: #212125; --sidebar-accent-foreground: #ececee; --sidebar-border: #2a2a2e; --sidebar-ring: #74747a;
+  color-scheme: dark;
 }
 
 @layer base {

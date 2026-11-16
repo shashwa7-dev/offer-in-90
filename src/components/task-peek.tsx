@@ -1,12 +1,14 @@
 'use client';
 /* Plane-style side peek for one task: status, title, properties, note. Only the user's own tasks can be edited or deleted. */
 import { useEffect, useRef, useState } from 'react';
-import { AlertTriangle, CalendarDays, Clock, Flag, Gauge, Link2, Maximize2, Minimize2, MoreHorizontal, Newspaper, Trash2, User, X } from 'lucide-react';
+import { AlertTriangle, CalendarDays, Play, Clock, Flag, Gauge, Link2, Maximize2, Minimize2, MoreHorizontal, Newspaper, Tag, Trash2, User, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import { defaultBlock } from '@/lib/own-tasks';
+import { unseenHidden } from '@/lib/task-status';
 import { domainOf } from '@/lib/interview-feed';
 import { fmtDate, iso, type Day, type Task } from '@/lib/engine';
+import { applyLabel, removeLabel } from '@/lib/labels';
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from '@/components/ui/sheet';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Chip } from './shell/page';
@@ -16,6 +18,10 @@ import { StatusControl, statusKey, useTaskStatus } from './status-control';
 import { deleteOwn } from './own-task';
 import { BlockPick, DayPick, dayLabel } from './task-pickers';
 import { newsTabFor, useUI } from './ui-state';
+import { LabelChip, LabelPicker, taskLabelViews } from './label-picker';
+import { SolveFields } from './solve-fields';
+import { parseScore, scoreFields, withScore } from '@/lib/sundays';
+import { ROUND_SCRIPT, namePrompt, solveKeyOf } from '@/lib/dsa-page';
 
 export type PeekTarget = { taskId: string; dayIdx: number };
 const DIFF = { E: 'Easy', M: 'Medium', H: 'Hard' } as const;
@@ -70,12 +76,21 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
     return () => window.removeEventListener('keydown', onKey);
   }, [setStatus]);
   const flagged = !!(t.slug && state.flags[t.slug]);
-  const title = t.text.replace(/^Re-solve without looking: /, '');
+  // Recognition drill: patterns stay hidden until the owner has named them.
+  const [reveal, setReveal] = useState(false);
+  useEffect(() => { setReveal(false); }, [t.id]);
+  // An unseen check stays anonymous until Start (spec §2); skipping keeps it hidden.
+  const hidden = unseenHidden(t.hiddenUntilStart, st);
+  const solveKey = solveKeyOf(t.id);
+  const isProblem = !!solveKey?.startsWith('p-') && !!t.slug;
+  const title = hidden ? 'Unseen problem' : t.text.replace(/^Re-solve without looking: /, '');
   const [name, setName] = useState(t.text);
   const [link, setLink] = useState(t.url || '');
   useEffect(() => { setName(t.text); }, [t.text]);
   useEffect(() => { setLink(t.url || ''); }, [t.url]);
 
+  const lbls = taskLabelViews(t, state, st);
+  const toggleLabel = (id: string, on: boolean) => update(s => { const r = (on ? applyLabel : removeLabel)({ labels: s.labels, itemLabels: s.itemLabels }, t.id, id); return r.itemLabels === s.itemLabels ? s : { ...s, itemLabels: r.itemLabels }; });
   const flag = () => update(s => { const f = { ...s.flags }; if (f[t.slug!]) delete f[t.slug!]; else f[t.slug!] = 1; return { ...s, flags: f }; });
   const edit = (fn: (c: NonNullable<typeof own>) => NonNullable<typeof own>) => update(s => { const c = s.custom[t.own!]; return c ? { ...s, custom: { ...s.custom, [t.own!]: fn(c) } } : s; });
   const saveName = () => { const v = name.replace(/\s+/g, ' ').trim(); if (!v) { setName(t.text); return; } if (v !== t.text) edit(c => ({ ...c, text: v })); };
@@ -133,24 +148,28 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
                   aria-label="Task title" className={cn('-mx-1 min-w-0 flex-1 rounded-[5px] border border-transparent bg-transparent px-1 text-[18px] leading-7 font-semibold text-foreground outline-none hover:border-input focus-visible:border-ring', dim && 'text-muted-foreground')} />
               </SheetTitle>
             ) : (
-              <SheetTitle className={cn('min-w-0 flex-1 text-[18px] leading-7 font-semibold break-words', dim && 'text-muted-foreground')}>{t.text}</SheetTitle>
+              <SheetTitle className={cn('min-w-0 flex-1 text-[18px] leading-7 font-semibold break-words', dim && 'text-muted-foreground')}>{hidden ? namePrompt : t.text}</SheetTitle>
             )}
           </div>
           <SheetDescription className="sr-only">Task details and note</SheetDescription>
           {!t.own && <p className="-mt-2 text-[13px] text-muted-foreground">Part of the plan. You can tick it, flag it and write notes, but not edit or remove it.</p>}
-          {t.outdated && (
+          {t.outdated && !hidden && (
             <p className="flex items-start gap-1.5 rounded-md border border-stone-border bg-stone px-3 py-2 text-[13px] text-stone-foreground"><AlertTriangle className="mt-0.5 size-3.5 shrink-0" />{t.outdated.kind === 'outdated' ? 'Outdated' : 'Changed'}: {t.outdated.why}{t.outdated.replacementUrl ? ' Link updated.' : ''}</p>
           )}
 
           <div className="flex flex-col">
             {prop(<CalendarDays />, 'Day', own ? <DayPick value={own.date} onChange={moveTo} className="border-transparent text-[13px]" /> : readonly(`${dayLabel(d)} · ${fmtDate(d.date)}`))}
             {prop(<Clock />, 'Block', own ? <BlockPick day={d} value={b.k} onChange={k => edit(c => ({ ...c, block: k }))} className="border-transparent text-[13px]" /> : readonly(<><span className="tabular-nums">{b.s}</span> {b.title}</>))}
-            {prop(<Link2 />, 'Link', own ? (
+            {!hidden && prop(<Link2 />, 'Link', own ? (
               <input value={link} onChange={e => setLink(e.target.value)} onBlur={saveLink} onKeyDown={enterBlur} placeholder="Paste a link" aria-label="Link" className={fieldInput} />
             ) : t.url ? (
-              <a href={t.url} target="_blank" rel="noopener noreferrer" className="flex min-w-0 items-center gap-1 rounded-[5px] px-2 py-1 text-foreground hover:bg-hover visited:text-muted-foreground">
-                <span className="truncate">{domainOf(t.url)}</span><span aria-hidden="true">↗</span><span className="sr-only">(opens in a new tab)</span>
-              </a>
+              <div className="flex min-w-0 flex-wrap items-center">
+                {[t.url, t.url2].filter((u): u is string => !!u).map(u => (
+                  <a key={u} href={u} target="_blank" rel="noopener noreferrer" className="flex min-w-0 items-center gap-1 rounded-[5px] px-2 py-1 text-foreground hover:bg-hover visited:text-muted-foreground">
+                    <span className="truncate">{domainOf(u)}</span><span aria-hidden="true">↗</span><span className="sr-only">(opens in a new tab)</span>
+                  </a>
+                ))}
+              </div>
             ) : readonly(<span className="text-faint">None</span>))}
             {own?.url && link === own.url && (
               <div className="grid grid-cols-[112px_minmax(0,1fr)] gap-2 text-[13px]"><span />
@@ -159,22 +178,93 @@ function PeekBody({ d, b, t, wide, setWide, onClose }: { d: Day; b: Day['blocks'
                 </a>
               </div>
             )}
-            {t.diff && prop(<Gauge />, 'Difficulty', <Chip className="ml-2">{DIFF[t.diff]}</Chip>)}
-            {t.slug && prop(<Flag />, 'Flag', (
+            {!hidden && t.diff && prop(<Gauge />, 'Difficulty', <Chip className="ml-2">{DIFF[t.diff]}</Chip>)}
+            {!hidden && t.slug && prop(<Flag />, 'Flag', (
               <button type="button" onClick={flag} aria-pressed={flagged} title="Flag to re-solve on Sunday"
                 className={cn('inline-flex h-7 items-center gap-1.5 rounded-[5px] px-2 text-[13px] outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring/40', flagged ? 'text-foreground' : 'text-muted-foreground')}>
                 <Flag className={cn('size-3.5', flagged && 'fill-current')} />{flagged ? 'Flagged to re-solve' : 'Not flagged'}
               </button>
             ))}
+            {prop(<Tag />, 'Labels', (
+              <div className="flex min-w-0 flex-wrap items-center gap-1" data-peek-labels>
+                {lbls.map(v => <LabelChip key={v.id} v={v} />)}
+                <LabelPicker selected={state.itemLabels[t.id] || []} onToggle={toggleLabel} />
+              </div>
+            ))}
             {own && prop(<User />, 'Added', readonly(`Added by You · ${new Date(own.at).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`))}
           </div>
 
-          <div className="border-t border-border pt-4">
+          {hidden && (
+            <button type="button" data-start onClick={() => setStatus('progress')} className="inline-flex h-8 w-fit items-center gap-1.5 rounded-[6px] border border-input px-3 text-[13px] font-medium outline-none hover:bg-hover focus-visible:ring-2 focus-visible:ring-ring/40"><Play className="size-3.5" />Start</button>
+          )}
+
+          {isProblem && !hidden && solveKey && (
+            <div className="flex flex-col gap-3 border-t border-border pt-4" data-solve>
+              <SolveFields solveKey={solveKey} enabled={done} />
+              <div data-round-script>
+                <h3 className="mb-1.5 text-[13px] font-medium text-foreground">Round script</h3>
+                <ol className="list-decimal pl-5 text-[13px] text-muted-foreground">{ROUND_SCRIPT.map(x => <li key={x}>{x}</li>)}</ol>
+              </div>
+            </div>
+          )}
+
+          {t.scoreKey && !hidden && (
+            <div className="flex flex-col gap-2 border-t border-border pt-4" data-scores>
+              <h3 className="text-[13px] font-medium text-foreground">Score (0–100)</h3>
+              {scoreFields(t.scoreKey).map(f => <ScoreField key={f.key} k={f.key} label={f.label} />)}
+            </div>
+          )}
+
+          {t.drill && t.drill.length > 0 && (
+            <div className="border-t border-border pt-4" data-drill>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <h3 className="text-[13px] font-medium text-foreground">Name the pattern</h3>
+                <button type="button" onClick={() => setReveal(v => !v)} aria-pressed={reveal} data-reveal
+                  className="inline-flex h-7 items-center rounded-[5px] px-2 text-[13px] text-muted-foreground outline-none hover:bg-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/40">
+                  {reveal ? 'Hide patterns' : 'Reveal patterns'}
+                </button>
+              </div>
+              <ol className="flex flex-col gap-1 text-[13px]">
+                {t.drill.map((p, j) => (
+                  <li key={p.slug} className="flex min-w-0 items-baseline gap-2">
+                    <span className="w-4 shrink-0 text-faint tabular-nums">{j + 1}</span>
+                    <a href={p.url} target="_blank" rel="noopener noreferrer" className="min-w-0 truncate text-foreground hover:underline">{p.name}<span className="sr-only"> (opens in a new tab)</span></a>
+                    {reveal && <Chip className="ml-auto shrink-0">{p.pattern}</Chip>}
+                  </li>
+                ))}
+              </ol>
+            </div>
+          )}
+
+          {!hidden && <div className="border-t border-border pt-4">
             <h3 className="mb-2 text-[13px] font-medium text-foreground">Note</h3>
-            <NoteEditor key={noteKey(t)} target={{ kind: 'task', key: noteKey(t), title, url: t.url }} compact />
-          </div>
+            <NoteEditor key={noteKey(t)} target={{ kind: 'task', key: noteKey(t), title: t.text.replace(/^Re-solve without looking: /, ''), url: t.url }} compact />
+          </div>}
         </div>
       </div>
     </div>
+  );
+}
+
+/** One hand-scored 0–100 field, saved on blur (empty clears it, anything else reverts). */
+function ScoreField({ k, label }: { k: string; label: string }) {
+  const { state, update } = useStore();
+  const saved = state.scores[k];
+  const [v, setV] = useState(saved === undefined ? '' : String(saved));
+  useEffect(() => { setV(saved === undefined ? '' : String(saved)); }, [saved]);
+  const save = () => {
+    const raw = v.trim();
+    if (raw === '') { if (saved !== undefined) update(s => ({ ...s, scores: withScore(s.scores, k, null) })); return; }
+    const n = parseScore(raw);
+    if (n === null) { setV(saved === undefined ? '' : String(saved)); return; }
+    if (n !== saved) update(s => ({ ...s, scores: withScore(s.scores, k, n) }));
+    setV(String(n));
+  };
+  return (
+    <label className="grid grid-cols-[112px_minmax(0,1fr)] items-center gap-2 text-[13px]">
+      <span className="text-muted-foreground">{label}</span>
+      <input value={v} onChange={e => setV(e.target.value)} onBlur={save} onKeyDown={e => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+        inputMode="numeric" maxLength={3} placeholder="0–100" aria-label={`${label} score`} data-score-input={k} className={cn(fieldInput, 'w-24 tabular-nums')} />
+    </label>
   );
 }

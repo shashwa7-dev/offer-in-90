@@ -7,19 +7,24 @@ export type Hit =
   | { kind: 'note'; key: string; noteKind: 'page' | 'task'; title: string; meta: string }
   | { kind: 'post'; url: string; title: string; meta: string }
   | { kind: 'read'; id: string; url: string; title: string; meta: string }
+  | { kind: 'pattern'; id: string; title: string; meta: string }
+  | { kind: 'label'; id: string; title: string; meta: string }
   | { kind: 'day'; dayIdx: number; title: string; meta: string };
 
-export interface SearchIndex { tasks: Hit[]; notes: Hit[]; posts: Hit[]; reads: Hit[]; dayCount: number; dayIdxOfNo: Record<number, number> }
+export interface SearchIndex { tasks: Hit[]; notes: Hit[]; posts: Hit[]; reads: Hit[]; patterns: Hit[]; labels: Hit[]; dayCount: number; dayIdxOfNo: Record<number, number> }
 
-export type SearchGroup = 'Tasks' | 'Notes' | 'Interviews' | 'Reads' | 'Go to';
+export type SearchGroup = 'Tasks' | 'Notes' | 'Interviews' | 'Reads' | 'Patterns' | 'Labels' | 'Go to';
 
 export interface SearchInput {
   /** Plan days; `track` is the task's track name (omitted when it has none). */
-  days: { i: number; no: number; date?: Date; tasks: { id: string; text: string; cat: string; own?: string; track?: string }[] }[];
+  days: { i: number; no: number; date?: Date; tasks: { id: string; text: string; cat: string; own?: string; track?: string; superseded?: true; /** An unstarted unseen check: indexed under the anonymous prompt, never its real name. */ hidden?: true }[] }[];
   pages: Record<string, { title: string; body: string; upd?: number }>;
   tnotes: Record<string, { title: string; body: string; upd?: number }>;
   posts: { company: string; title: string; url: string }[];
   reads: { id: string; title: string; url: string; source: string; category?: string }[];
+  /** DSA patterns (open the DSA page) and owner labels (apply the label filter in Today). */
+  patterns?: { id: string; name: string }[];
+  labels?: { id: string; name: string; color?: string }[];
   /** Clock for the "Page · 3 h ago" meta (default Date.now()). */
   now?: number;
 }
@@ -33,6 +38,9 @@ const ago = (ts: number, now: number) => { const m = Math.round((now - ts) / 6e4
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+/** Same text as namePrompt in dsa-page.ts (this module takes no runtime imports). */
+const HIDDEN_TITLE = 'Unseen problem · press Start';
+
 export function buildIndex(input: SearchInput): SearchIndex {
   const now = input.now ?? Date.now();
   const tasks: Hit[] = [];
@@ -41,8 +49,9 @@ export function buildIndex(input: SearchInput): SearchIndex {
   for (const d of input.days) {
     dayIdxOfNo[d.no] = d.i;
     for (const t of d.tasks) {
+      if (t.superseded) continue; // a past copy of a re-laid slot (R12): search finds the live one
       const meta = `Day ${d.no}${d.no === 0 ? ' · prep' : ''}${t.track ? ` · ${t.track}` : ''}`;
-      tasks.push(put({ kind: 'task', id: t.id, dayIdx: d.i, title: t.text, meta }, '', n++));
+      tasks.push(put({ kind: 'task', id: t.id, dayIdx: d.i, title: t.hidden ? HIDDEN_TITLE : t.text, meta }, '', n++));
     }
   }
   const notes: Hit[] = [];
@@ -56,7 +65,9 @@ export function buildIndex(input: SearchInput): SearchIndex {
   }
   const posts = input.posts.map((p, i) => put({ kind: 'post', url: p.url, title: p.title.trim(), meta: `#${p.company} · ${domain(p.url)}` }, '', i));
   const reads = input.reads.map((r, i) => put({ kind: 'read', id: r.id, url: r.url, title: r.title.trim(), meta: `${r.source} · ${domain(r.url)}` }, r.category ?? '', i));
-  const ix: SearchIndex = { tasks, notes, posts, reads, dayCount: input.days.length, dayIdxOfNo };
+  const patterns = (input.patterns ?? []).map((p, i) => put({ kind: 'pattern', id: p.id, title: p.name, meta: 'DSA pattern' }, p.id.replace(/-/g, ' '), i));
+  const labels = (input.labels ?? []).map((l, i) => put({ kind: 'label', id: l.id, title: l.name, meta: 'Label · filter Today' }, '', i));
+  const ix: SearchIndex = { tasks, notes, posts, reads, patterns, labels, dayCount: input.days.length, dayIdxOfNo };
   // Date labels for "Go to Day N" (e.g. "Sat 14 Nov").
   const dates: Record<number, string> = {};
   for (const d of input.days) if (d.date) dates[d.i] = `${DOW[d.date.getDay()]} ${d.date.getDate()} ${MON[d.date.getMonth()]}`;
@@ -84,9 +95,9 @@ export function search(ix: SearchIndex, q: string, limitPerGroup = 6): { group: 
   if (/^\d+$/.test(t)) {
     const no = Number(t);
     const i = ix.dayIdxOfNo[no];
-    if (no <= 91 && i !== undefined && i < ix.dayCount) out.push({ group: 'Go to', hits: [{ kind: 'day', dayIdx: i, title: `Go to Day ${no}`, meta: DATES.get(ix)?.[i] ?? '' }] });
+    if (i !== undefined && i < ix.dayCount) out.push({ group: 'Go to', hits: [{ kind: 'day', dayIdx: i, title: `Go to Day ${no}`, meta: DATES.get(ix)?.[i] ?? '' }] });
   }
-  const groups: [SearchGroup, Hit[]][] = [['Tasks', ix.tasks], ['Notes', ix.notes], ['Interviews', ix.posts], ['Reads', ix.reads]];
+  const groups: [SearchGroup, Hit[]][] = [['Patterns', ix.patterns], ['Labels', ix.labels], ['Tasks', ix.tasks], ['Notes', ix.notes], ['Interviews', ix.posts], ['Reads', ix.reads]];
   for (const [group, list] of groups) {
     const hits = rank(list, words, limitPerGroup);
     if (hits.length) out.push({ group, hits });

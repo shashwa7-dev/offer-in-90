@@ -96,10 +96,10 @@ for (const u of ['tasks', 'hours'] as const) {
 }
 assert.deepEqual(allSk.tracks, []);
 
-// tracks: omit empty; proj -> Machine coding; skipped excluded
+// tracks: omit empty; proj -> Product; skipped excluded; v3 order (same as TRACKS in timeline.ts)
 s = cycleOf(days, 1, { a: 5 }, {}, {}, 3, now)!;
-assert.deepEqual(s.tracks.map((t) => t.name), ['DSA', 'Frontend & CS', 'Machine coding']);
-assert.deepEqual(s.tracks.map((t) => t.track), ['dsa', 'fe', 'mc']);
+assert.deepEqual(s.tracks.map((t) => t.name), ['DSA', 'Product', 'Frontend']);
+assert.deepEqual(s.tracks.map((t) => t.track), ['dsa', 'mc', 'fe']);
 assert.deepEqual(s.tracks[0], { track: 'dsa', name: 'DSA', done: 1, progress: 0, total: 6 });
 s = cycleOf(days, 1, { a: 5 }, { b: 'progress', f: 'progress', g: 'skipped', k: 'progress', a2: 'progress' } as never, {}, 3, now)!;
 assert.deepEqual(s.tracks[0], { track: 'dsa', name: 'DSA', done: 1, progress: 3 / 5, total: 5 }); // b,f,k in progress; g skipped leaves; done a never counts as in progress

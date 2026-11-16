@@ -96,4 +96,42 @@ assert.deepEqual(search(many, 'graph')[0].hits.map(h => h.kind === 'task' && h.d
 // "Go to" comes first so Enter on a number goes to the day
 assert.equal(search(ix, '3')[0].group, 'Go to');
 
+// a superseded copy (R12) is not indexed; the live copy is
+{
+  const sx = buildIndex({ days: [
+    { i: 1, no: 1, tasks: [{ id: 'fe:closures', text: 'Closures quokka', cat: 'fe', superseded: true }] },
+    { i: 5, no: 5, tasks: [{ id: 'fe:closures', text: 'Closures quokka', cat: 'fe' }] },
+  ], pages: {}, tnotes: {}, posts: [], reads: [] });
+  const hits = search(sx, 'quokka').find((g) => g.group === 'Tasks')!.hits;
+  assert.deepEqual(hits.map((h) => h.kind === 'task' && h.dayIdx), [5]);
+}
+
+// a hidden unseen check is indexed as the anonymous prompt, never its real name
+{
+  const hx = buildIndex({ days: [{ i: 0, no: 1, tasks: [{ id: 'p-secret-problem', text: 'Secret Problem', cat: 'dsa', hidden: true }, { id: 'p-open-one', text: 'Open One', cat: 'dsa' }] }], pages: {}, tnotes: {}, posts: [], reads: [] });
+  assert.equal(search(hx, 'secret').find((g) => g.group === 'Tasks'), undefined);
+  assert.equal(search(hx, 'open').find((g) => g.group === 'Tasks')!.hits.length, 1);
+  const anon = search(hx, 'unseen problem').find((g) => g.group === 'Tasks')!.hits;
+  assert.deepEqual(anon.map((h) => h.kind === 'task' && h.id), ['p-secret-problem']);
+  assert.equal(anon[0].title, 'Unseen problem · press Start');
+}
+
+// patterns and owner labels are indexed; "sliding" finds the pattern first
+{
+  const px = buildIndex({
+    days: [{ i: 0, no: 1, tasks: [{ id: 'p-max-window', text: 'Sliding window maximum', cat: 'dsa' }] }],
+    pages: {}, tnotes: {}, posts: [], reads: [],
+    patterns: [{ id: 'sliding-window', name: 'Sliding window' }, { id: 'dp', name: 'Dynamic programming' }],
+    labels: [{ id: 'lb-1', name: 'Slidey review', color: '#2563eb' }],
+  });
+  const all = search(px, 'sliding');
+  assert.equal(all[0].group, 'Patterns');
+  assert.deepEqual(all[0].hits.map((h) => h.kind === 'pattern' && [h.id, h.title]), [['sliding-window', 'Sliding window']]);
+  assert.equal(search(px, 'dynamic')[0].hits[0].kind, 'pattern');
+  const lb = search(px, 'slidey').find((g) => g.group === 'Labels')!.hits;
+  assert.deepEqual(lb.map((h) => h.kind === 'label' && [h.id, h.title]), [['lb-1', 'Slidey review']]);
+  // no patterns/labels supplied: groups simply absent
+  assert.equal(search(bare, 'sliding').find((g) => g.group === 'Patterns'), undefined);
+}
+
 console.log('search: all tests passed');

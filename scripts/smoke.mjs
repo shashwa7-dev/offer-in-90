@@ -13,13 +13,20 @@ mkdirSync(shots, { recursive: true });
 
 const pad = n => String(n).padStart(2, '0');
 const isoDay = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-const start = new Date(); start.setDate(start.getDate() - 9);
+// The plan starts on a Monday (the prep day is the Sunday before): the Monday on or before 9 days ago.
+const start = new Date(); start.setDate(start.getDate() - 9); start.setDate(start.getDate() - ((start.getDay() + 6) % 7));
+const nextMondayOf = d => { const x = new Date(d); x.setDate(x.getDate() + ((8 - x.getDay()) % 7)); return isoDay(x); };
 const now = Date.now();
 const fixture = {
-  v: 5, start: isoDay(start), kickoff: true, targets: ['Google', 'Meta'],
-  done: { 'k-wo': now, 'k-pos': now, 'k-ai': now, 's1-wo': now, 'fe-1': now },
-  flags: {}, notes: { 0: 'Set up the plan.' }, tnotes: {}, seenUpdates: {}, bookmarks: {}, custom: {}, meta: {}, updatedAt: now,
+  v: 6, start: isoDay(start), kickoff: true, targets: ['Google', 'Meta'],
+  done: { 'k-wo': now, 'k-pos': now, 'k-news': now, [`d:${isoDay(start)}:wo`]: now, 'ai:math-intuition': now },
+  status: {}, flags: {}, notes: { 0: 'Set up the plan.' }, tnotes: {}, seenUpdates: {}, bookmarks: {}, custom: {},
+  modes: {}, labels: {}, itemLabels: {}, own: {}, solves: {}, sundayMode: {}, scores: {}, routine: {}, meta: {}, updatedAt: now,
 };
+
+// Fixed-clock checks run in Grind (every track every study day, as the v1 plan did); the render checks use the
+// default (Steady) fixture.
+const GRIND = { '2000-01-01': { mode: 'grind', cursors: {} } };
 
 const failures = [];
 const fail = m => { failures.push(m); console.log(`FAIL ${m}`); };
@@ -48,7 +55,7 @@ try {
     const sidebar = page.locator('[data-slot="sidebar"]:visible').first();
     if (await sidebar.count() && await sidebar.isVisible()) ok('1100: sidebar visible'); else fail('1100: sidebar not visible');
     if (await page.locator('[data-shell="bottom-bar"]').isVisible().catch(() => false)) fail('1100: bottom bar visible on desktop'); else ok('1100: bottom bar hidden');
-    for (const v of ['today', 'progress', 'roadmap', 'notes', 'news', 'setup']) {
+    for (const v of ['today', 'progress', 'roadmap', 'notes', 'dsa', 'news', 'setup']) {
       const item = page.locator(`[data-slot="sidebar"] [data-nav="${v}"]`).first();
       if (!(await item.count())) { fail(`1100: no sidebar nav item for ${v}`); continue; }
       await item.click();
@@ -91,7 +98,7 @@ try {
       await inSheet.click();
       return true;
     };
-    for (const v of ['today', 'progress', 'notes', 'roadmap', 'news', 'setup']) {
+    for (const v of ['today', 'progress', 'notes', 'roadmap', 'dsa', 'news', 'setup']) {
       if (!(await go(v))) { fail(`390: cannot reach ${v}`); continue; }
       await page.waitForTimeout(400);
       const sw = await page.evaluate(() => document.documentElement.scrollWidth);
@@ -156,11 +163,11 @@ try {
     checkErrors(errors, W);
     await ctx.close();
   }
-  // ---------- Today (clock fixed at 14:10 on a weekday, day 9 of the plan) ----------
+  // ---------- Today (clock fixed at 14:10 on a weekday, day 11 of the plan) ----------
   for (const [width, height] of [[1100, 900], [390, 844]]) {
     const at = new Date(2026, 10, 12, 14, 10); // Thu 12 Nov 2026, 14:10 local
-    const st = new Date(at); st.setDate(st.getDate() - 9);
-    const fx = { ...fixture, start: isoDay(st), done: { 'k-wo': +at, 'k-pos': +at, 'k-ai': +at }, notes: {}, updatedAt: +at };
+    const st = new Date(2026, 10, 2); // Mon 2 Nov: Thu 12 Nov is day 11, week 2
+    const fx = { ...fixture, modes: GRIND, start: isoDay(st), done: { 'k-wo': +at, 'k-pos': +at, 'k-news': +at }, notes: {}, updatedAt: +at };
     const ctx = await browser.newContext({ viewport: { width, height } });
     await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
     const page = await ctx.newPage();
@@ -211,8 +218,8 @@ try {
       const id = await page.locator('[data-now] ~ [data-task]').first().getAttribute('data-task');
       await box.click(); await page.waitForTimeout(200);
       if ((await saved()).done?.[id]) ok(`${W}: ticking saves (${id})`); else fail(`${W}: tick not saved (${id})`);
-      // open the missed DSA block and flag a problem
-      await page.locator('[data-missed]').filter({ hasText: '05:15' }).click();
+      // open the DSA revision block (the 05:15 pattern block is a concept day with no problem) and flag a re-solve
+      await page.locator('[data-block="rev"]').click();
       await page.waitForTimeout(200);
       const flagBtn = page.getByRole('button', { name: /^Flag / }).first();
       await flagBtn.click(); await page.waitForTimeout(200);
@@ -222,7 +229,7 @@ try {
       await page.waitForTimeout(200);
       await page.getByPlaceholder('One line: how did today go?').fill('Smoke log line');
       await page.waitForTimeout(200);
-      if ((await saved()).notes?.[9] === 'Smoke log line') ok(`${W}: daily log saves`); else fail(`${W}: daily log not saved`);
+      if ((await saved()).notes?.[11] === 'Smoke log line') ok(`${W}: daily log saves`); else fail(`${W}: daily log not saved`);
       // notice: missed tasks link opens the Missed earlier band
       const link = page.getByRole('button', { name: /^\d+ missed earlier$/ });
       if (await link.count()) {
@@ -239,9 +246,9 @@ try {
   }
   // ---------- Today filter bar, Display and full width (same fixed clock) ----------
   for (const [width, height] of [[1100, 900], [390, 844]]) {
-    const at = new Date(2026, 10, 12, 14, 10);
-    const st = new Date(at); st.setDate(st.getDate() - 9);
-    const fx = { ...fixture, start: isoDay(st), done: { 'k-wo': +at }, notes: {}, updatedAt: +at };
+    const at = new Date(2026, 10, 12, 16, 10); // the career block (2 tasks) is current
+    const st = new Date(2026, 10, 2); // Mon 2 Nov: Thu 12 Nov is day 11, week 2
+    const fx = { ...fixture, modes: GRIND, start: isoDay(st), done: { 'k-wo': +at }, notes: {}, updatedAt: +at };
     const ctx = await browser.newContext({ viewport: { width, height } });
     await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
     const page = await ctx.newPage();
@@ -264,7 +271,7 @@ try {
     const bar = page.locator('[data-filter-bar]');
     if (await bar.isVisible().catch(() => false)) ok(`${W}: filter bar visible`); else fail(`${W}: no filter bar`);
     const hdrText = (await page.locator('header').first().innerText().catch(() => '')).replace(/\s+/g, ' ');
-    if (width === 1100 ? /Week 2 Day 9 of 91 Thu/.test(hdrText) : /^Day 9 Thu/.test(hdrText) && await page.locator('header').getByText('Week 2').count()) ok(`${W}: header crumbs ${hdrText}`); else fail(`${W}: header crumbs "${hdrText}"`);
+    if (width === 1100 ? /Week 2 Day 11 of 91 Thu/.test(hdrText) : /^Day 11 Thu/.test(hdrText) && await page.locator('header').getByText('Week 2').count()) ok(`${W}: header crumbs ${hdrText}`); else fail(`${W}: header crumbs "${hdrText}"`);
     const taskIds = () => page.locator('[data-task]').evaluateAll(els => els.filter(e => e.offsetParent).map(e => e.getAttribute('data-task')));
     const pill = k => bar.locator(`[data-pill="${k}"]`);
     if (width === 1100) await page.screenshot({ path: join(shots, `filters-${width}-none.png`), fullPage: true });
@@ -345,8 +352,8 @@ try {
   // ---------- New task dialog and task peek (same fixed clock) ----------
   for (const [width, height] of [[1100, 900], [390, 844]]) {
     const at = new Date(2026, 10, 12, 14, 10);
-    const st = new Date(at); st.setDate(st.getDate() - 9);
-    const fx = { ...fixture, start: isoDay(st), done: {}, notes: {}, updatedAt: +at };
+    const st = new Date(2026, 10, 2); // Mon 2 Nov: Thu 12 Nov is day 11, week 2
+    const fx = { ...fixture, modes: GRIND, start: isoDay(st), done: {}, notes: {}, updatedAt: +at };
     const ctx = await browser.newContext({ viewport: { width, height } });
     await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
     const page = await ctx.newPage();
@@ -389,12 +396,10 @@ try {
     const ownRow = page.locator('[data-band="evening"] [data-task][data-own]').filter({ hasText: 'Smoke dialog task' });
     if (await ownRow.count() && /Yours/.test(await ownRow.first().innerText())) ok(`${W}: row appears in Evening with Yours`); else fail(`${W}: own row missing in Evening`);
 
-    // a plan task (a problem in the missed 05:15 block): read-only, no Delete
-    await page.locator('[data-missed]').filter({ hasText: '05:15' }).click();
+    // a plan task (a re-solve problem in the 14:45 revision block): read-only, no Delete
+    await page.locator('[data-block="rev"]').click();
     await page.waitForTimeout(200);
-    await page.locator('[data-block="dsa"] ~ [data-task]:not([data-own]) [data-title]').first().click().catch(async () => {
-      await page.locator('[data-task]:not([data-own]) [data-title]').first().click();
-    });
+    await page.locator('[data-task^="rs:"]:not([data-own]) [data-title]').first().click();
     await page.waitForTimeout(500);
     const peek = page.locator('[data-peek]');
     if (await peek.isVisible().catch(() => false)) ok(`${W}: plan task opens the peek`); else fail(`${W}: peek did not open for a plan task`);
@@ -458,9 +463,9 @@ try {
   }
   // ---------- Task statuses: icon, menu, right-click, keys, peek (same fixed clock) ----------
   for (const [width, height] of [[1100, 900], [390, 844]]) {
-    const at = new Date(2026, 10, 12, 14, 10);
-    const st = new Date(at); st.setDate(st.getDate() - 9);
-    const fx = { ...fixture, start: isoDay(st), done: {}, status: {}, notes: {}, updatedAt: +at };
+    const at = new Date(2026, 10, 12, 16, 10); // the career block (2 tasks) is current
+    const st = new Date(2026, 10, 2); // Mon 2 Nov: Thu 12 Nov is day 11, week 2
+    const fx = { ...fixture, modes: GRIND, start: isoDay(st), done: {}, status: {}, notes: {}, updatedAt: +at };
     const ctx = await browser.newContext({ viewport: { width, height }, hasTouch: width === 390 });
     await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
     const page = await ctx.newPage();
@@ -505,7 +510,8 @@ try {
     // 4. key 4 on a focused missed row: skipped, missed count drops
     const before = await missedCount();
     await page.locator('[data-missed]').filter({ hasText: '05:15' }).click(); await page.waitForTimeout(250);
-    const dsa = page.locator('[data-block="dsa"] + [data-task]');
+    // the first row is the unseen problem (hidden until Start), so use the second: the pattern's explain-back
+    const dsa = page.locator('[data-block="dsa"] ~ [data-task]').nth(1);
     const idS = await dsa.getAttribute('data-task');
     await dsa.focus(); await page.keyboard.press('4'); await page.waitForTimeout(250);
     if ((await saved()).status?.[idS] === 'skipped') ok(`${W}: key 4 sets Skipped (${idS})`); else fail(`${W}: key 4 did not skip (${idS})`);
@@ -540,8 +546,8 @@ try {
   // ---------- Today rail (cycle column) and sidebar Cycles (same fixed clock) ----------
   for (const [width, height, scheme] of [[1100, 900, 'light'], [1440, 900, 'light'], [1440, 900, 'dark'], [390, 844, 'light'], [390, 844, 'dark']]) {
     const at = new Date(2026, 10, 12, 14, 10);
-    const st = new Date(at); st.setDate(st.getDate() - 9);
-    const fx = { ...fixture, start: isoDay(st), done: { 'k-wo': +at }, status: {}, notes: {}, updatedAt: +at };
+    const st = new Date(2026, 10, 2); // Mon 2 Nov: Thu 12 Nov is day 11, week 2
+    const fx = { ...fixture, modes: GRIND, start: isoDay(st), done: { 'k-wo': +at }, status: {}, notes: {}, updatedAt: +at };
     const ctx = await browser.newContext({ viewport: { width, height }, colorScheme: scheme });
     await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
     const page = await ctx.newPage();
@@ -571,9 +577,14 @@ try {
     if (width === 1100) {
       // Trailing counts only what is due by 14:10: with yesterday and today's ended blocks done, it's on track.
       const before = (await cyc.locator('[data-trailing]').innerText().catch(() => '')).trim();
-      await cyc.locator('[data-cycle-day]').first().click(); await page.waitForTimeout(300); // Wed, the first day of this cycle
+      // The cycle is the plan week (Mon–Sun): tick Mon, Tue and Wed in full, then today's ended blocks.
+      await cyc.locator('[data-cycle-day]').first().click(); await page.waitForTimeout(300); // Mon, the first day of this cycle
       await page.getByRole('button', { name: 'Display' }).click(); await page.getByRole('menuitemradio', { name: 'Status' }).click(); await page.waitForTimeout(300);
-      const wedIds = await page.locator('[data-task]').evaluateAll(els => els.map(e => e.getAttribute('data-task')));
+      const wedIds = [];
+      for (let k = 0; k < 3; k++) {
+        if (k) { await page.getByRole('button', { name: 'Next day' }).click(); await page.waitForTimeout(300); }
+        wedIds.push(...await page.locator('[data-task]').evaluateAll(els => els.map(e => e.getAttribute('data-task'))));
+      }
       await page.getByRole('button', { name: 'Display' }).click(); await page.getByRole('menuitemradio', { name: 'Time of day' }).click(); await page.waitForTimeout(200);
       await page.getByRole('button', { name: 'Next day' }).click(); await page.waitForTimeout(300);
       for (const m of await page.locator('[data-missed]').all()) if ((await m.getAttribute('aria-expanded')) !== 'true') { await m.click(); await page.waitForTimeout(100); }
@@ -655,7 +666,8 @@ try {
   for (const [width, height] of [[1100, 900], [390, 844]]) {
     for (const future of [false, true]) {
       const st = new Date(); st.setDate(st.getDate() + (future ? 5 : -9));
-      const fx = { ...fixture, start: isoDay(st) };
+      if (!future) st.setDate(st.getDate() - ((st.getDay() + 6) % 7)); // the Monday on or before (a start is always a Monday)
+      const fx = { ...fixture, modes: GRIND, start: isoDay(st) };
       const ctx = await browser.newContext({ viewport: { width, height } });
       await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
       const page = await ctx.newPage();
@@ -705,10 +717,10 @@ try {
     const noScroll = async label => { if (width !== 390) return; const sw = await page.evaluate(() => document.documentElement.scrollWidth); if (sw > 390) fail(`${W} ${label}: horizontal scroll (${sw})`); else ok(`${W} ${label}: scrollWidth ${sw}`); };
     const tl = page.locator('[data-timeline]');
     if (await tl.count()) ok(`${W}: Timeline is the default tab`); else fail(`${W}: no [data-timeline] on load`);
-    const tracks = ['DSA', 'Frontend & CS', 'System design', 'Machine coding', 'AI', 'Career'];
+    const tracks = ['DSA', 'AI engineering', 'Systems', 'Product', 'Platform', 'Career', 'Frontend'];
     const missing = [];
     for (const t of tracks) if (!(await tl.locator('[data-track-name]').filter({ hasText: new RegExp(`^${t.replace(/[&]/g, '\\$&')}$`) }).count())) missing.push(t);
-    if (!missing.length) ok(`${W}: 6 track names`); else fail(`${W}: missing tracks ${missing.join(', ')}`);
+    if (!missing.length) ok(`${W}: 7 track names`); else fail(`${W}: missing tracks ${missing.join(', ')}`);
     if (await tl.getByText(/W\d+ · now/).count()) ok(`${W}: "W n · now" marker`); else fail(`${W}: no "W n · now" marker`);
     await noScroll('timeline');
     await page.screenshot({ path: join(shots, `roadmap-${width}-timeline.png`), fullPage: true });
@@ -804,9 +816,9 @@ try {
   }
   // ---------- "Open News" on the daily reads task lands on Reading and leaves the interviews visit alone ----------
   {
-    const at = new Date(2026, 10, 12, 20, 10); // Thu 12 Nov 2026, 20:10: the AI block (news + papers) is current
-    const st = new Date(at); st.setDate(st.getDate() - 9);
-    const fx = { ...fixture, start: isoDay(st), done: {}, notes: {}, seenUpdates: { 'interviews-visit': 12345 }, updatedAt: +at };
+    const at = new Date(2026, 10, 12, 6, 30); // Thu 12 Nov 2026, 06:30: the Recall + AI news block is current
+    const st = new Date(2026, 10, 2); // Mon 2 Nov: Thu 12 Nov is day 11, week 2
+    const fx = { ...fixture, modes: GRIND, start: isoDay(st), done: {}, notes: {}, seenUpdates: { 'interviews-visit': 12345 }, updatedAt: +at };
     const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
     await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
     const page = await ctx.newPage();
@@ -987,6 +999,56 @@ try {
     if ((await saved()).kickoff === !k0) ok(`${W}: prep-day switch toggles kickoff`); else fail(`${W}: prep-day switch did nothing`);
     await sw.click(); await page.waitForTimeout(200);
 
+    // mode switch, twice
+    const modeToday = async () => { const m = (await saved()).modes || {}; const k = Object.keys(m).sort().at(-1); return k ? m[k].mode : 'steady'; };
+    await page.getByRole('radio', { name: 'Grind' }).click(); await page.waitForTimeout(300);
+    if (await modeToday() === 'grind' && await toastSeen(/Switched to Grind from today/)) ok(`${W}: switch to Grind saved and toasted`); else fail(`${W}: Grind switch failed`);
+    await page.getByRole('radio', { name: 'Steady' }).click(); await page.waitForTimeout(300);
+    if (await modeToday() === 'steady') ok(`${W}: switch back to Steady`); else fail(`${W}: Steady switch failed`);
+
+    // routine: a change that fits saves; one that overruns saves too and moves bedtime (with one line); a day past
+    // 23:59 is refused; wake-up saves (there is no bedtime field)
+    const lunchMin = page.getByLabel('Lunch minutes');
+    const saveRoutine = async () => { await page.getByRole('button', { name: 'Save', exact: true }).click(); await page.waitForTimeout(300); };
+    await lunchMin.fill('60'); await saveRoutine();
+    if ((await saved()).routine?.lunch?.min === 60 && !(await page.locator('[data-routine-bedtime]').count())) ok(`${W}: shorter lunch saves`); else fail(`${W}: shorter lunch not saved`);
+    await lunchMin.fill('120'); await saveRoutine();
+    const bedLine = await page.locator('[data-routine-bedtime]').innerText().catch(() => '');
+    if ((await saved()).routine?.lunch?.min === 120 && bedLine === 'Bedtime moves to 23:15 on study days to fit everything.' && !(await page.locator('[data-routine-error]').count())) ok(`${W}: overflowing routine saves and bedtime moves`); else fail(`${W}: bedtime did not move (${bedLine})`);
+    await page.getByLabel('Dinner minutes').fill('180'); await saveRoutine();
+    const refusal = await page.locator('[data-routine-error]').innerText().catch(() => '');
+    if (/past 23:59/.test(refusal) && (await saved()).routine?.dinner === undefined) ok(`${W}: a day past 23:59 is refused with a line`); else fail(`${W}: no refusal (${refusal})`);
+    await page.getByRole('button', { name: 'Reset to defaults' }).click(); await page.waitForTimeout(300);
+    if (!(await page.getByLabel('Bedtime', { exact: true }).count())) ok(`${W}: no bedtime field`); else fail(`${W}: bedtime field present`);
+    await page.getByLabel('Wake up time').fill('04:30'); await saveRoutine();
+    { const r = (await saved()).routine || {}; if (r.wake?.s === '04:30' && !('bed' in r) && !r.lunch) ok(`${W}: wake-up saves`); else fail(`${W}: wake not saved (${JSON.stringify(r)})`); }
+    // R15: untouched slots move with wake-up (shown shifted, not stored); a slot the owner sets keeps its time
+    await page.getByLabel('Wake up time').fill('06:00');
+    if (await page.getByLabel('Breakfast start').inputValue() === '08:15' && await page.getByLabel('Dinner start').inputValue() === '20:15') ok(`${W}: untouched slots follow the wake-up field`); else fail(`${W}: untouched slots did not shift`);
+    await saveRoutine();
+    { const r = (await saved()).routine || {}; if (JSON.stringify(r) === JSON.stringify({ wake: { s: '06:00' } }) && !(await page.locator('[data-routine-bedtime]').count())) ok(`${W}: wake 06:00 stores only wake-up, day fits`); else fail(`${W}: wake 06:00 stored ${JSON.stringify(r)}`); }
+    await page.getByLabel('Lunch start').fill('11:45'); await saveRoutine();
+    if (/16 min past 23:59/.test(await page.locator('[data-routine-error]').innerText().catch(() => '')) && !(await saved()).routine?.lunch) ok(`${W}: a set lunch that pushes the day past 23:59 is refused`); else fail(`${W}: set lunch not refused`);
+    await page.getByLabel('Wake up time').fill('05:30'); await saveRoutine();
+    { const r = (await saved()).routine || {}; const line = await page.locator('[data-routine-bedtime]').innerText().catch(() => '');
+      if (r.wake?.s === '05:30' && r.lunch?.s === '11:45' && !r.breakfast && line === 'Bedtime moves to 23:45 on study days to fit everything.') ok(`${W}: set lunch kept absolute, bedtime moves`); else fail(`${W}: set lunch / bedtime wrong (${JSON.stringify(r)} ${line})`); }
+    await page.getByRole('button', { name: 'Reset to defaults' }).click(); await page.waitForTimeout(300);
+    await lunchMin.fill('99');
+    await page.getByRole('button', { name: 'Reset to defaults' }).click(); await page.waitForTimeout(300);
+    if (await lunchMin.inputValue() === '75') ok(`${W}: reset clears unsaved edits`); else fail(`${W}: reset kept unsaved edit`);
+    if (!Object.keys((await saved()).routine || {}).length) ok(`${W}: routine reset clears the map`); else fail(`${W}: routine reset left entries`);
+    if (await page.getByLabel('Wake up time').inputValue() === '05:00') ok(`${W}: reset restores wake-up`); else fail(`${W}: reset kept wake-up`);
+    // a saved slot stays absolute even when it equals its wake-relative default at a new wake-up
+    await page.getByLabel('Lunch start').fill('12:45'); await saveRoutine();
+    await page.getByLabel('Wake up time').fill('06:00'); await saveRoutine();
+    // (wake 05:30: a relative lunch would move to 12:15; a later wake with lunch held at 12:45 runs past 23:59)
+    await page.getByLabel('Wake up time').fill('05:30'); await saveRoutine();
+    { const r = (await saved()).routine || {}; if (r.lunch?.s === '12:45' && r.wake?.s === '05:30' && await page.getByLabel('Lunch start').inputValue() === '12:45' && await page.getByLabel('Breakfast start').inputValue() === '07:45') ok(`${W}: a saved slot stays absolute across wake-up changes`); else fail(`${W}: saved slot went relative (${JSON.stringify(r)})`); }
+    await page.getByRole('button', { name: 'Reset to defaults' }).click(); await page.waitForTimeout(300);
+    await page.getByLabel('Wake up time').fill('06:00');
+    if (await page.getByLabel('Lunch start').inputValue() === '12:45') ok(`${W}: after reset, slots are wake-relative again`); else fail(`${W}: after reset lunch not relative`);
+    await page.getByRole('button', { name: 'Reset to defaults' }).click(); await page.waitForTimeout(300);
+
     // start date picker saves immediately
     const s0 = (await saved()).start;
     await page.locator('[data-start-date]').click();
@@ -994,7 +1056,7 @@ try {
     const day = page.locator('[data-slot="popover-content"] button[data-day]:not([disabled])').filter({ hasNotText: /^$/ });
     const pickN = await day.count();
     let picked = null;
-    for (let i = 0; i < pickN; i++) { const d = day.nth(i); const v = await d.getAttribute('data-day'); if (v && !(await d.getAttribute('aria-selected'))) { picked = d; break; } }
+    for (let i = pickN - 1; i >= 0; i--) { const d = day.nth(i); const v = await d.getAttribute('data-day'); if (v && !(await d.getAttribute('aria-selected'))) { picked = d; break; } }
     if (picked) { await picked.click(); await page.waitForTimeout(300); }
     const s1 = (await saved()).start;
     if (s1 && s1 !== s0 && /^\d{4}-\d{2}-\d{2}$/.test(s1)) ok(`${W}: picking a date saves start (${s0} → ${s1})`); else fail(`${W}: start date not saved (${s0} → ${s1})`);
@@ -1009,7 +1071,8 @@ try {
     await page.getByRole('button', { name: 'View timetable' }).click();
     await page.waitForTimeout(400);
     const sheet = page.getByRole('dialog', { name: 'Daily timetable' });
-    if (await sheet.isVisible().catch(() => false) && await sheet.getByText('Mon–Sat').count() && await sheet.getByText('Sunday').count() && await sheet.getByText('05:15–07:15').count()) ok(`${W}: timetable sheet shows both tables`); else fail(`${W}: timetable sheet missing`);
+    if (await sheet.isVisible().catch(() => false) && await sheet.getByText('Mon–Sat', { exact: true }).count() && await sheet.getByText('Sunday', { exact: true }).count() && /Deep work 1 · DSA pattern[\s\S]{0,40}05:15–06:15|05:15–06:15[\s\S]{0,40}Deep work 1 · DSA pattern/.test(await sheet.innerText())) ok(`${W}: timetable sheet shows both tables`); else fail(`${W}: timetable sheet missing`);
+    if (await sheet.getByText('Mon–Sat: wake 05:00, sleep 22:00. Gym at 18:00. About 10.75 h of study blocks.', { exact: false }).count()) ok(`${W}: timetable line uses the routine`); else fail(`${W}: timetable line wrong`);
     await page.screenshot({ path: join(shots, 'setup-1100-timetable.png') });
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
 
@@ -1061,7 +1124,7 @@ try {
     const exported = JSON.parse(readFileSync(await dl.path(), 'utf8'));
     if (exported.start && exported.pages?.pgkeep && /^offer90-backup-\d{4}-\d{2}-\d{2}\.json$/.test(dl.suggestedFilename())) ok(`${W}: export downloads the state (${dl.suggestedFilename()})`); else fail(`${W}: export wrong (${dl.suggestedFilename()})`);
     const imp = join(shots, '..', 'smoke-import.json');
-    writeFileSync(imp, JSON.stringify({ ...exported, notes: { 0: 'Imported by smoke' } }));
+    writeFileSync(imp, JSON.stringify({ ...exported, notes: { 0: 'Imported by smoke' }, solves: { 'p-two-sum': { unseen: false, minutes: 12, at: 1 } }, scores: { 'w1/dsa': 55 }, sundayMode: { '2026-11-08': 'revision' }, labels: { 'lb-keep': { id: 'lb-keep', name: 'Keep me', color: '#2563eb', kind: 'label' } } }));
     await page.locator('input[type="file"]').setInputFiles(imp);
     await page.waitForTimeout(400);
     if ((await saved()).notes?.[0] === 'Imported by smoke' && await toastSeen(/Backup imported/)) ok(`${W}: import replaces the state`); else fail(`${W}: import did not apply`);
@@ -1075,13 +1138,14 @@ try {
     const icsText = readFileSync(await ical.path(), 'utf8');
     if (ical.suggestedFilename() === 'reminders.ics' && icsText.startsWith('BEGIN:VCALENDAR') && /BEGIN:VEVENT/.test(icsText)) ok(`${W}: reminders.ics downloads`); else fail(`${W}: reminders.ics wrong`);
 
-    // Start over → confirm: today is the start; ticks, flags and logs cleared; pages, bookmarks and own tasks kept
+    // Start over → confirm: the next Monday (today, if Monday) is the start; ticks, flags and logs cleared; pages, bookmarks and own tasks kept
     await page.getByRole('button', { name: 'Start over…' }).click();
     await page.waitForTimeout(300);
     await alert.getByRole('button', { name: 'Start over' }).click();
     await page.waitForTimeout(400);
     let st = await saved();
-    if (st.start === isoDay(new Date()) && !Object.keys(st.done).length && !Object.keys(st.flags).length && !Object.keys(st.notes).length && st.pages?.pgkeep && st.bookmarks?.['n-keep'] && st.custom?.ckeep) ok(`${W}: Start over resets the plan and keeps pages, bookmarks, own tasks`); else fail(`${W}: Start over wrong (${JSON.stringify({ start: st.start, done: Object.keys(st.done).length, flags: Object.keys(st.flags).length, notes: Object.keys(st.notes).length })})`);
+    const cleared = ['done', 'status', 'flags', 'notes', 'solves', 'scores', 'sundayMode'].filter(k => Object.keys(st[k] || {}).length);
+    if (st.start === nextMondayOf(new Date()) && !cleared.length && st.pages?.pgkeep && st.bookmarks?.['n-keep'] && st.custom?.ckeep && st.labels?.['lb-keep']) ok(`${W}: Start over resets the plan (ticks, logs, solves, scores, Sunday modes) and keeps pages, bookmarks, own tasks, labels`); else fail(`${W}: Start over wrong (${JSON.stringify({ start: st.start, notCleared: cleared, labels: !!st.labels?.['lb-keep'] })})`);
     // Erase → confirm
     await page.getByRole('button', { name: 'Erase…' }).click();
     await page.waitForTimeout(300);
@@ -1149,8 +1213,8 @@ try {
   // ---------- ⌘K search: open anywhere, task → day + peek, number → day, note → Notes, Esc closes ----------
   for (const [width, height] of [[1100, 800], [390, 844]]) {
     const at = new Date(2026, 10, 12, 14, 10);
-    const st = new Date(at); st.setDate(st.getDate() - 9);
-    const fx = { ...fixture, start: isoDay(st), updatedAt: +at, tnotes: { 'p-two-sum': { title: 'Two Sum', body: 'Use a quokkahash map of value to index.', upd: +at - 3600e3 } } };
+    const st = new Date(2026, 10, 2); // Mon 2 Nov: Thu 12 Nov is day 11, week 2
+    const fx = { ...fixture, modes: GRIND, start: isoDay(st), updatedAt: +at, tnotes: { 'p-two-sum': { title: 'Two Sum', body: 'Use a quokkahash map of value to index.', upd: +at - 3600e3 } } };
     const ctx = await browser.newContext({ viewport: { width, height } });
     await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
     const page = await ctx.newPage();
@@ -1330,7 +1394,25 @@ try {
         const nw = await logo.evaluate(e => e.complete ? e.naturalWidth : 0).catch(() => 0);
         if (nw > 0) ok(`frame ${width}: sidebar logo loads (${nw}px)`); else fail(`frame ${width}: sidebar logo missing or not loaded`);
         const alt = await logo.getAttribute('alt').catch(() => null);
-        if (alt === 'Offer in 90') ok(`frame ${width}: logo alt`); else fail(`frame ${width}: logo alt "${alt}"`);
+        if (alt === 'IDT') ok(`frame ${width}: logo alt`); else fail(`frame ${width}: logo alt "${alt}"`);
+        const ttl = await page.title().catch(() => '');
+        if (ttl === 'IDT') ok(`frame ${width}: page title IDT`); else fail(`frame ${width}: page title "${ttl}"`);
+        const sbName = await page.locator('[data-slot="sidebar"] img[data-logo] + div').first().innerText().catch(() => '');
+        if (sbName.split('\n')[0].trim() === 'IDT') ok(`frame ${width}: sidebar name IDT`); else fail(`frame ${width}: sidebar name "${sbName}"`);
+        const lw = await logo.evaluate(e => e.getBoundingClientRect().width).catch(() => 0);
+        if (lw >= 40) ok(`frame ${width}: sidebar logo is large (${Math.round(lw)}px)`); else fail(`frame ${width}: sidebar logo ${lw}px`);
+        const mark = page.locator('[data-slot="sidebar"] img[data-sidebar-mark]').first();
+        const mk = await mark.evaluate(e => ({ nw: e.complete ? e.naturalWidth : 0, op: Number(getComputedStyle(e).opacity), pe: getComputedStyle(e).pointerEvents, alt: e.getAttribute('alt') })).catch(() => null);
+        if (mk && mk.nw > 0 && mk.op > 0 && mk.op <= 0.15 && mk.pe === 'none' && mk.alt === '') ok(`frame ${width}: faint sidebar mark (opacity ${mk.op})`); else fail(`frame ${width}: sidebar mark ${JSON.stringify(mk)}`);
+        const setupClick = await page.locator('[data-slot="sidebar"] [data-shell] , [data-slot="sidebar"] a, [data-slot="sidebar"] button').filter({ hasText: 'Setup' }).first().boundingBox().catch(() => null);
+        if (setupClick) {
+          const hit = await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.closest('[data-sidebar-mark]') ? 'mark' : 'ok', { x: setupClick.x + setupClick.width / 2, y: setupClick.y + setupClick.height / 2 });
+          if (hit === 'ok') ok(`frame ${width}: the mark never blocks Setup`); else fail(`frame ${width}: the sidebar mark covers Setup`);
+        }
+        const html = await page.request.get(`${URL}/`).then(r => r.text()).catch(() => '');
+        if (html.includes('data-loader') && html.includes('logo-256.png')) ok('the first paint is the IDT logo loader'); else fail('loader missing from the first HTML');
+        const big = await page.request.get(`${URL}/logo-256.png`).then(r => r.status()).catch(() => 0);
+        if (big === 200) ok('/logo-256.png returns 200'); else fail(`/logo-256.png returns ${big}`);
         const icon = await page.request.get(`${URL}/icon.png`).then(r => r.status()).catch(() => 0);
         if (icon === 200) ok('/icon.png returns 200'); else fail(`/icon.png returns ${icon}`);
         await page.locator('[data-slot="sidebar"] [data-sidebar="trigger"], [data-sidebar="trigger"]').first().click().catch(() => {});
@@ -1404,11 +1486,523 @@ try {
     }
     await ctx.close();
   }
+  // ---------- Start snaps to a Monday; one-time Roadmap v2 line for a pre-v6 state ----------
+  {
+    const run = async (fx, label) => {
+      const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
+      await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
+      const page = await ctx.newPage();
+      const errors = [];
+      page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+      page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+      await page.goto(URL, { waitUntil: 'networkidle' });
+      await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+      await page.waitForTimeout(400);
+      return { ctx, page, errors, W: `v2 notice ${label}` };
+    };
+    {
+      const { ctx, page, errors, W } = await run({ ...fixture, v: 5, start: '2026-11-04' }, 'v5'); // a Wednesday
+      const hdr = (await page.locator('header').first().innerText().catch(() => '')).replace(/\s+/g, ' ');
+      const line = page.locator('[data-v2-notice]');
+      if (await line.count() === 1 && /Roadmap v2 is here\. Ticks from the old plan don.t carry over — use Setup → Start over to begin fresh\./.test(await line.innerText())) ok(`${W}: the one-time line shows for a v5 state`); else fail(`${W}: no Roadmap v2 line for a v5 state`);
+      await page.locator('[data-v2-dismiss]').click();
+      await page.waitForTimeout(300);
+      if (!(await line.count())) ok(`${W}: dismiss hides it`); else fail(`${W}: dismiss did not hide it`);
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForTimeout(400);
+      if (!(await page.locator('[data-v2-notice]').count())) ok(`${W}: stays dismissed after reload`); else fail(`${W}: shown again after reload`);
+      // the saved Wednesday start reads as the next Monday (9 Nov): today's day number counts from Mon 9 Nov, not Wed 4 Nov
+      const t0 = new Date(); t0.setHours(0, 0, 0, 0);
+      const dayNo = Math.round((+t0 - +new Date(2026, 10, 9)) / 864e5) + 1;
+      if (new RegExp(`Day ${dayNo} of `).test(hdr)) ok(`${W}: a Wednesday start snaps to Monday 9 Nov (today is day ${dayNo})`); else fail(`${W}: start not snapped (expected Day ${dayNo}: ${hdr})`);
+      checkErrors(errors, W);
+      await ctx.close();
+    }
+    {
+      const { ctx, page, errors, W } = await run(fixture, 'v6');
+      if (!(await page.locator('[data-v2-notice]').count())) ok(`${W}: no line for a v6 state`); else fail(`${W}: line shown to a v6 state`);
+      checkErrors(errors, W);
+      await ctx.close();
+    }
+  }
+  // ---------- v3 plan: Recall + AI news block, news only there, Steady DSA revisit ----------
+  for (const [label, at, modes] of [['grind study day', new Date(2026, 10, 12, 6, 30), GRIND], ['steady DSA rest day', new Date(2026, 10, 11, 5, 30), {}]]) {
+    const st = new Date(2026, 10, 2); // Mon 2 Nov
+    const fx = { ...fixture, modes, start: isoDay(st), done: {}, status: {}, notes: {}, updatedAt: +at };
+    const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
+    await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
+    const page = await ctx.newPage();
+    await page.clock.install({ time: at });
+    const errors = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+    page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+    await page.goto(URL, { waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+    await page.waitForTimeout(500);
+    // open every closed block (a click toggles, and the current block is already open)
+    for (const b of await page.locator('[data-block]').all()) if (!(await b.evaluate(e => e.nextElementSibling?.hasAttribute('data-task')))) await b.click().catch(() => {});
+    await page.waitForTimeout(300);
+    const W = `v3 ${label}`;
+    // the task rows between a block row and the next block row
+    const rowsOf = k => page.evaluate(k => {
+      const head = document.querySelector(`[data-block="${k}"]`);
+      const out = [];
+      for (let e = head?.nextElementSibling; e && !e.hasAttribute('data-block'); e = e.nextElementSibling) if (e.hasAttribute('data-task')) out.push(e.innerText);
+      return { head: head ? head.innerText : null, rows: out };
+    }, k);
+    const dsaB = await rowsOf('dsa');
+    if (dsaB.head && /05:15/.test(dsaB.head) && /Deep work 1 · DSA pattern/.test(dsaB.head)) ok(`${W}: DSA block is 05:15 Deep work 1`); else fail(`${W}: DSA block head ${JSON.stringify(dsaB.head)}`);
+    if (label === 'grind study day') {
+      const aib = await rowsOf('aib');
+      if (aib.head && /06:15/.test(aib.head) && /Recall \+ AI news/.test(aib.head)) ok(`${W}: "Recall + AI news" block at 06:15`); else fail(`${W}: aib block head ${JSON.stringify(aib.head)}`);
+      if (aib.rows.length === 3) ok(`${W}: Recall + AI news has 3 tasks`); else fail(`${W}: Recall + AI news has ${aib.rows.length} tasks`);
+      if (/AI recall/.test(aib.rows[0] || '') && /Systems recall/.test(aib.rows[1] || '') && /Skim today's News/.test(aib.rows[2] || '')) ok(`${W}: tasks are AI recall, Systems recall, news`); else fail(`${W}: aib task text ${JSON.stringify(aib.rows.map(r => r.slice(0, 40)))}`);
+      const fe = await rowsOf('ai');
+      if (fe.head && /20:00/.test(fe.head) && /Frontend \(senior\)/.test(fe.head)) ok(`${W}: evening block is Frontend (senior)`); else fail(`${W}: evening block head ${JSON.stringify(fe.head)}`);
+      if (fe.rows.length >= 2 && !fe.rows.some(r => /news/i.test(r))) ok(`${W}: Frontend evening block has no news task`); else fail(`${W}: Frontend evening block rows ${fe.rows.length}, news present ${fe.rows.some(r => /news/i.test(r))}`);
+      const newsRows = await page.locator('[data-task]').filter({ hasText: "Skim today's News" }).count();
+      if (newsRows === 1) ok(`${W}: exactly one news task on the day`); else fail(`${W}: ${newsRows} news tasks on the day`);
+    } else {
+      if (dsaB.rows.length >= 1 && dsaB.rows.every(r => /Pattern revisit/.test(r))) ok(`${W}: DSA rest day shows the pattern revisit (${dsaB.rows.length} tasks)`); else fail(`${W}: rest day DSA rows ${JSON.stringify(dsaB.rows.map(r => r.slice(0, 50)))}`);
+      if (await page.locator('[data-block="buffer-dsa"]').count()) fail(`${W}: DSA buffer shown on a revisit day`); else ok(`${W}: no DSA buffer on the revisit day`);
+    }
+    checkErrors(errors, W);
+    await ctx.close();
+  }
   // ---------- No old design tokens left outside src/components/ui ----------
   {
     let hits = '';
-    try { hits = execSync(`grep -rnE "c-(dsa|fe|mc|sd|beh|ai|fde|proj|ux|review|update|health)|text-(good|warn|bad)|bg-(good|warn|bad)|font-display|font-mono|catColor" src --exclude-dir=ui`, { encoding: 'utf8' }); } catch { hits = ''; }
+    try { hits = execSync(`grep -rnE "\\bc-(dsa|fe|mc|sd|beh|ai|fde|proj|ux|review|update|health)|text-(good|warn|bad)|bg-(good|warn|bad)|font-display|font-mono|catColor" src --exclude-dir=ui`, { encoding: 'utf8' }); } catch { hits = ''; }
     if (!hits.trim()) ok('grep: no old design tokens'); else fail(`grep: old design tokens left:\n${hits}`);
+  }
+  // ---------- a mode switch: superseded copies on past days are history, never "missed" ----------
+  {
+    const at = new Date(2026, 10, 12, 16, 10); // Thu 12 Nov; switched to Steady on Wed 11 Nov with every cursor at 0
+    const Z = { dsa: 0, aib: 0, fe: 0, mc: 0, sd: 0, jt: 0, beh: 0, ai: 0 };
+    const fx = { ...fixture, start: '2026-11-02', done: {}, status: {}, notes: {}, updatedAt: +at,
+      modes: { '2000-01-01': { mode: 'grind', cursors: Z }, '2026-11-11': { mode: 'steady', cursors: Z, basis: '2026-11-02' } } };
+    const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
+    await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
+    const page = await ctx.newPage();
+    await page.clock.install({ time: at });
+    const errors = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+    page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+    await page.goto(URL, { waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+    await page.waitForTimeout(500);
+    const W = 'switch 1100';
+    // Missed earlier lists no superseded copy
+    const link = page.getByRole('button', { name: /missed earlier/ });
+    if (await link.count()) { await link.first().click(); await page.waitForTimeout(400); }
+    const band = page.locator('[data-band="missed-earlier"]');
+    const movedInBand = await band.locator('[data-moved]').count();
+    if (movedInBand === 0) ok(`${W}: Missed earlier has no superseded copies`); else fail(`${W}: ${movedInBand} superseded copies in Missed earlier`);
+    // Tue 10 Nov (two days back): its track blocks are history, shown "moved to", never missed
+    for (let k = 0; k < 2; k++) { await page.getByRole('button', { name: 'Previous day' }).click(); await page.waitForTimeout(300); }
+    const dsaRow = page.locator('[data-block="dsa"]');
+    if (await dsaRow.count() && !(await dsaRow.getAttribute('data-missed'))) ok(`${W}: past DSA block of superseded copies not missed`); else fail(`${W}: past DSA block marked missed`);
+    await dsaRow.click(); await page.waitForTimeout(200);
+    const moved = page.locator('[data-task]:has([data-moved])');
+    const nMoved = await moved.count();
+    const stone = await moved.evaluateAll(els => els.filter(e => e.className.includes('bg-stone')).length);
+    if (nMoved > 0 && stone === 0 && /moved to/.test(await moved.first().innerText())) ok(`${W}: ${nMoved} "moved to" rows, none missed`); else fail(`${W}: moved rows ${nMoved}, ${stone} styled missed`);
+    await page.screenshot({ path: join(shots, 'switch-1100.png'), fullPage: true });
+    checkErrors(errors, W);
+    await ctx.close();
+  }
+
+  // Labels (Task 10): make a group and a label in Setup, put it on a task from the peek, filter Today by it, delete it.
+  {
+    const { ctx, page, errors } = await open(1100, 900);
+    const W = 'labels';
+    const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem('offer90.v1')));
+    await page.locator('[data-slot="sidebar"] [data-nav="setup"]').first().click();
+    await page.waitForTimeout(300);
+    // Theme switcher: Dark and Light set the class on <html>; System hands back to the OS.
+    {
+      const theme = page.locator('[data-setting="theme"]');
+      await theme.getByRole('radio', { name: 'Dark' }).click(); await page.waitForTimeout(200);
+      const dark = await page.evaluate(() => document.documentElement.classList.contains('dark'));
+      await theme.getByRole('radio', { name: 'Light' }).click(); await page.waitForTimeout(200);
+      const light = await page.evaluate(() => !document.documentElement.classList.contains('dark') && localStorage.getItem('theme') === 'light');
+      await theme.getByRole('radio', { name: 'System' }).click(); await page.waitForTimeout(200);
+      if (dark && light && await page.evaluate(() => localStorage.getItem('theme')) === 'system') ok(`${W}: theme switcher sets dark, light and system`); else fail(`${W}: theme switcher (dark ${dark}, light ${light})`);
+    }
+    // Progress › Tracks: one row per plan track with "due so far" and "in the plan".
+    {
+      await page.locator('[data-slot="sidebar"] [data-nav="progress"]').first().click(); await page.waitForTimeout(300);
+      const keys = await page.locator('[data-track-row]').evaluateAll(els => els.map(e => e.getAttribute('data-track-row')));
+      const plan = await page.locator('[data-track-plan]').first().innerText().catch(() => '');
+      if (keys.join(',') === 'dsa,ai,sd,mc,platform,career,fe' && /^\d+ of \d+ in the plan · \d+%$/.test(plan)) ok(`${W}: Progress tracks are the 7 plan tracks in order`); else fail(`${W}: Progress tracks ${keys.join(',')} / "${plan}"`);
+      await page.locator('[data-slot="sidebar"] [data-nav="setup"]').first().click(); await page.waitForTimeout(300);
+    }
+    const band = page.locator('#labels');
+    await band.getByRole('button', { name: /Labels/ }).first().click().catch(() => {});
+    await page.waitForTimeout(200);
+    await page.locator('[data-new-group]').fill('Smoke group');
+    await page.getByRole('button', { name: 'Add group' }).click();
+    await page.waitForTimeout(200);
+    await page.locator('[data-new-label]').fill('Smoke weak');
+    await page.locator('select[aria-label="Group"]').selectOption({ label: 'Smoke group' });
+    await page.getByRole('button', { name: 'Add label' }).click();
+    await page.waitForTimeout(300);
+    let st = await saved();
+    const lb = Object.values(st.labels || {}).find(l => l.name === 'Smoke weak');
+    if (lb && lb.group && Object.values(st.labels).find(l => l.kind === 'group' && l.single)) ok(`${W}: group and label created in Setup`); else fail(`${W}: label not created (${JSON.stringify(st.labels)})`);
+    await page.locator('[data-new-label]').fill('smoke WEAK');
+    await page.getByRole('button', { name: 'Add label' }).click();
+    if (await page.locator('[data-label-error]').count()) ok(`${W}: duplicate name rejected`); else fail(`${W}: duplicate name accepted`);
+
+    await page.locator('[data-slot="sidebar"] [data-nav="today"]').first().click();
+    await page.waitForTimeout(400);
+    for (const b of await page.locator('[data-block]').all()) { await b.click().catch(() => {}); }
+    await page.waitForTimeout(300);
+    const first = page.locator('[data-task]:not([data-own]) [data-title]:visible').first();
+    const tid = await first.locator('xpath=ancestor::*[@data-task][1]').getAttribute('data-task');
+    await first.click();
+    await page.waitForTimeout(500);
+    const peek = page.locator('[data-peek]');
+    await peek.locator('[data-label-picker]').click();
+    await page.locator('[data-label-option="Smoke weak"]').click();
+    await page.waitForTimeout(300);
+    st = await saved();
+    if (lb && st.itemLabels?.[tid]?.includes(lb.id)) ok(`${W}: label applied from the peek`); else fail(`${W}: label not applied to ${tid} (${JSON.stringify(st.itemLabels)})`);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(200);
+    await page.keyboard.press('Escape'); await page.waitForTimeout(500);
+    const row = page.locator(`[data-task="${tid}"]`);
+    if (await row.locator('[data-label-chip]', { hasText: 'Smoke weak' }).count()) ok(`${W}: row shows the label chip`); else fail(`${W}: row has no chip`);
+    await page.locator('[data-filter-add]').first().click();
+    await page.getByRole('option', { name: /^Label/ }).click();
+    await page.getByRole('option', { name: /Smoke weak/ }).click();
+    await page.keyboard.press('Escape'); await page.waitForTimeout(400);
+    const visible = await page.locator('[data-task]:visible').evaluateAll(els => els.map(e => e.getAttribute('data-task')));
+    if (visible.length === 1 && visible[0] === tid) ok(`${W}: Today filter keeps only the labelled task`); else fail(`${W}: filter shows ${visible.join(',')}`);
+    await page.screenshot({ path: join(shots, 'labels-1100.png') });
+
+    await page.locator('[data-slot="sidebar"] [data-nav="setup"]').first().click();
+    await page.waitForTimeout(300);
+    await page.getByRole('button', { name: 'Delete Smoke weak' }).click();
+    await page.locator('[data-confirm-delete]').click();
+    await page.waitForTimeout(300);
+    st = await saved();
+    if (!Object.values(st.labels).some(l => l.name === 'Smoke weak') && !Object.values(st.itemLabels || {}).some(a => a.includes(lb?.id))) ok(`${W}: delete removes the label from every item`); else fail(`${W}: delete left the label behind`);
+    await page.locator('[data-slot="sidebar"] [data-nav="today"]').first().click();
+    await page.waitForTimeout(400);
+    if (await page.locator('[data-label-chip]', { hasText: 'Smoke weak' }).count() === 0 && await page.locator('[data-filter-chip="labels"]').count() === 0) ok(`${W}: chip and filter are gone after delete`); else fail(`${W}: chip or filter still shown after delete`);
+    checkErrors(errors, W);
+    await ctx.close();
+  }
+  // ---------- DSA page: patterns, unseen logging, own problems ----------
+  {
+    const W = 'dsa';
+    const { ctx, page, errors } = await open(1100, 900);
+    await page.locator('[data-slot="sidebar"] [data-nav="dsa"]').first().click();
+    await page.waitForTimeout(400);
+    const n = await page.locator('[data-pattern]').count();
+    if (n === 27) ok(`${W}: 27 patterns listed`); else fail(`${W}: ${n} patterns listed`);
+    // Task 14: the page opens on the pattern the plan teaches today (else the first); topics are headings, patterns rows
+    const opened = await page.locator('[data-pattern][aria-current="true"]').getAttribute('data-pattern').catch(() => null);
+    if (opened && await page.locator(`[data-card="${opened}"]`).count()) ok(`${W}: opens on a pattern (${opened})`); else fail(`${W}: no pattern open on load`);
+    const topics = await page.locator('[data-topic]').evaluateAll(els => els.map(e => [e.getAttribute('data-topic'), !!e.querySelector('svg.lucide-layers'), /\d+ patterns?$/.test(e.textContent.trim())]));
+    if (topics.length === 15 && topics.every(([, icon, count]) => icon && count) && topics[0][0] === 'Arrays and strings') ok(`${W}: 15 topic headings with icon and pattern count`); else fail(`${W}: topics ${JSON.stringify(topics)}`);
+    if (await page.locator('[data-pattern] svg.lucide-puzzle').count() === 27 && await page.locator('[data-nav-all]').count() === 1) ok(`${W}: pattern rows carry the Puzzle icon; All problems on top`); else fail(`${W}: pattern icons or All row missing`);
+    if (!(await page.getByRole('radio', { name: 'Topic', exact: true }).count()) && !(await page.getByRole('radio', { name: 'Pattern', exact: true }).count())) ok(`${W}: no Group by switch`); else fail(`${W}: Group by switch still shown`);
+    await page.locator('[data-pattern="hash-map"]').click(); await page.waitForTimeout(200);
+    if (await page.locator('[data-pattern="hash-map"]').getAttribute('data-dot') === 'none' && await page.locator('[data-pattern="hash-map"] [data-readiness="none"] svg').count()) ok(`${W}: readiness starts at none (icon)`); else fail(`${W}: dot did not start at none`);
+    const emoji = await page.locator('main, body').first().evaluate(e => /[\u{1F525}\u{2B50}\u25CB\u25D0\u25CF]/u.test(e.innerText));
+    if (!emoji) ok(`${W}: no emoji glyphs on the page`); else fail(`${W}: emoji glyphs still on the page`);
+    if (await page.locator('[data-problem="two-sum"] [data-flag-icon="hot"][aria-label="Frequent"] svg').count()) ok(`${W}: hot flag is a Flame icon with a label`); else fail(`${W}: hot icon missing`);
+    const planLine = await page.locator('[data-problem="two-sum"] [data-plan-line]').innerText().catch(() => '');
+    if (/^Day \d+/.test(planLine) && /re-solves Day \d+(, \d+)*/.test(planLine)) ok(`${W}: row shows plan day and re-solve days ("${planLine.replace(/\s+/g, ' ')}")`); else fail(`${W}: plan line is "${planLine}"`);
+    // topic view: its problems grouped by pattern, no card; All: grouped by topic
+    await page.locator('[data-topic="Graphs"]').click(); await page.waitForTimeout(200);
+    const gp = await page.locator('[data-section-pattern]').evaluateAll(els => els.map(e => e.getAttribute('data-section-pattern')));
+    if (JSON.stringify(gp) === JSON.stringify(['graph-traversal', 'topo-sort', 'union-find', 'shortest-path-mst']) && !(await page.locator('[data-card]').count())) ok(`${W}: topic shows its problems by pattern`); else fail(`${W}: topic view groups ${gp.join(',')}`);
+    await page.locator('[data-nav-all]').click(); await page.waitForTimeout(300);
+    if (await page.locator('[data-section-topic]').count() === 15 && await page.locator('[data-section-pattern]').count() === 27) ok(`${W}: All problems grouped by topic, then pattern`); else fail(`${W}: All view sections wrong`);
+    // filters: counts, AND across facets, search never finds a hidden unseen problem, remembered on reload, one Clear
+    await page.locator('[data-dsa-facet="diff"]').click(); await page.waitForTimeout(150);
+    const hardCount = Number(await page.locator('[data-dsa-option="diff:H"]').getAttribute('data-count'));
+    await page.locator('[data-dsa-option="diff:H"]').click(); await page.keyboard.press('Escape'); await page.waitForTimeout(250);
+    const hardRows = await page.locator('[data-problems] [data-problem], [data-problems] [data-unseen-row]').count();
+    if (hardCount > 0 && hardRows === hardCount && await page.locator('[data-problems] [data-unseen-row]').count() === 0) ok(`${W}: Hard filter shows ${hardRows} (= its count), no hidden rows`); else fail(`${W}: Hard filter ${hardRows} rows vs count ${hardCount}`);
+    await page.locator('[data-dsa-search]').fill('rain'); await page.waitForTimeout(250);
+    const rain = await page.locator('[data-problems] [data-problem]').evaluateAll(els => els.map(e => e.getAttribute('data-problem')));
+    if (JSON.stringify(rain) === '["trapping-rain-water"]') ok(`${W}: name search + difficulty narrow together`); else fail(`${W}: search gave ${rain.join(',')}`);
+    await page.reload({ waitUntil: 'networkidle' }); await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' }); await page.waitForTimeout(500);
+    await page.locator('[data-nav-all]').click(); await page.waitForTimeout(250);
+    if (await page.locator('[data-dsa-search]').inputValue() === 'rain' && /Hard/.test(await page.locator('[data-dsa-facet="diff"]').innerText())) ok(`${W}: filters remembered after reload`); else fail(`${W}: filters not remembered`);
+    await page.locator('[data-dsa-clear]').click(); await page.waitForTimeout(200);
+    await page.locator('[data-dsa-search]').fill('consecutive'); await page.waitForTimeout(250);
+    if (await page.locator('[data-no-match]').count() && !(await page.locator('[data-problems] [data-unseen-row]').count())) ok(`${W}: hidden unseen problem never matches the name search`); else fail(`${W}: search found the hidden unseen problem`);
+    await page.locator('[data-dsa-clear]').click(); await page.waitForTimeout(200);
+    if (await page.evaluate(() => localStorage.getItem('offer90.dsaFilter')) === null && !(await page.locator('[data-dsa-clear]').count())) ok(`${W}: Clear empties the filters`); else fail(`${W}: Clear left filters behind`);
+    await page.locator('[data-pattern="hash-map"]').click(); await page.waitForTimeout(200);
+    // optional problems show here as Pool; the unseen check keeps its name back
+    if (await page.locator('[data-problem="contains-duplicate"] [data-plan-day]').textContent() === 'Pool') ok(`${W}: optional problem is Pool`); else fail(`${W}: optional problem not Pool`);
+    if (await page.locator('[data-unseen-row] [data-unseen-hidden]').count() === 1 && !(await page.locator('[data-problem="longest-consecutive-sequence"]').count()) && !(await page.locator('[data-patterns] ~ * [data-unseen-row]').evaluateAll(els => els.some(e => /consecutive/i.test(e.outerHTML))))) ok(`${W}: unseen check is anonymous before Start`); else fail(`${W}: unseen check shows its name`);
+    // add a problem that is already in the plan
+    await page.locator('[data-add-problem]').click();
+    await page.locator('[data-add-dialog]').getByLabel('LeetCode URL').fill('https://leetcode.com/problems/two-sum/');
+    await page.getByRole('button', { name: 'Add', exact: true }).click();
+    await page.waitForTimeout(200);
+    if (await page.locator('[data-in-plan]').count()) ok(`${W}: plan URL gives the in-plan prompt`); else fail(`${W}: no in-plan prompt`);
+    await page.getByRole('button', { name: 'Label the plan problem instead' }).click();
+    await page.waitForTimeout(300);
+    if (await page.locator('[data-problem="two-sum"]').count() && !(await page.locator('[data-add-dialog]').count())) ok(`${W}: "Label the plan problem instead" lands on the plan row`); else fail(`${W}: label-instead did not land on the row`);
+    let st = await page.evaluate(() => JSON.parse(localStorage.getItem('offer90.v1') || '{}'));
+    if (!st.own['two-sum']) ok(`${W}: a plan problem is not stored as own`); else fail(`${W}: plan problem stored as own`);
+    // add an own problem
+    await page.locator('[data-add-problem]').click();
+    await page.locator('[data-add-dialog]').getByLabel('LeetCode URL').fill('https://leetcode.com/problems/smoke-own-problem/');
+    await page.locator('[data-add-dialog]').getByLabel('Name').fill('Smoke own problem');
+    await page.locator('[data-add-dialog]').getByLabel('Difficulty').selectOption('H');
+    await page.getByRole('button', { name: 'Add', exact: true }).click();
+    await page.waitForTimeout(300);
+    const own = page.locator('[data-problem="smoke-own-problem"]');
+    if (await own.count() && (await own.locator('[data-plan-day]').textContent()) === 'Pool') ok(`${W}: own problem joins the pattern pool`); else fail(`${W}: own problem missing`);
+    st = await page.evaluate(() => JSON.parse(localStorage.getItem('offer90.v1') || '{}'));
+    if (st.own['smoke-own-problem']?.diff === 'H' && st.own['smoke-own-problem']?.pattern === 'hash-map') ok(`${W}: own problem saved with pattern and difficulty`); else fail(`${W}: own problem not saved right`);
+    // tick the unseen check with 20 minutes: the readiness icon turns half (check)
+    await page.locator('[data-unseen-row] [data-status-icon]').click();
+    await page.waitForTimeout(300);
+    const row = page.locator('[data-problem="longest-consecutive-sequence"]');
+    await row.locator('[data-solve-minutes]').fill('20');
+    await row.locator('[data-solve-minutes]').blur();
+    await page.waitForTimeout(300);
+    const dot = await page.locator('[data-pattern="hash-map"]').getAttribute('data-dot');
+    if (dot === 'check') ok(`${W}: unseen check in time turns the readiness to half (check)`); else fail(`${W}: dot is ${dot} after the unseen check`);
+    st = await page.evaluate(() => JSON.parse(localStorage.getItem('offer90.v1') || '{}'));
+    const lg = st.solves['p-longest-consecutive-sequence'];
+    if (lg && lg.unseen === true && lg.minutes === 20 && typeof lg.at === 'number') ok(`${W}: solve log {unseen, minutes, at} written`); else fail(`${W}: solve log is ${JSON.stringify(lg)}`);
+    await page.screenshot({ path: join(shots, 'dsa-1100.png') });
+    checkErrors(errors, W);
+    await ctx.close();
+  }
+  // ---------- Sundays: revision toggle, burnout guard, baseline scores (Task 12) ----------
+  {
+    const W = 'sundays 1100';
+    const mk = async (at, extra) => {
+      const fx = { ...fixture, modes: GRIND, start: isoDay(new Date(2026, 10, 2)), done: {}, notes: {}, updatedAt: +at, ...extra };
+      const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
+      await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
+      const page = await ctx.newPage();
+      await page.clock.install({ time: at });
+      const errors = [];
+      page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+      page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+      await page.goto(URL, { waitUntil: 'networkidle' });
+      await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+      await page.waitForTimeout(500);
+      return { ctx, page, errors };
+    };
+    const expandAll = async page => {
+      for (let n = 0; n < 20 && await page.locator('[data-block][aria-expanded="false"]').count(); n++) await page.locator('[data-block][aria-expanded="false"]').first().click().catch(() => {});
+      await page.waitForTimeout(200);
+    };
+    const saved = page => page.evaluate(() => JSON.parse(localStorage.getItem('offer90.v1') || '{}'));
+    // 1. Sunday 8 Nov: flip to Revision, the middle block shows revision tasks
+    {
+      const { ctx, page, errors } = await mk(new Date(2026, 10, 8, 14, 10));
+      await expandAll(page);
+      if (await page.locator('[data-task="d:2026-11-08:flagged"]').count()) fail(`${W}: revision task present in rest mode`); else ok(`${W}: rest mode has no revision tasks`);
+      if (await page.locator('[data-task="d:2026-11-08:explore"]').count()) ok(`${W}: rest mode shows the explore task`); else fail(`${W}: no explore task in rest mode`);
+      // the Sunday problem (owner rule 2026-11-15): in the Active rest block, before explore; ticking it offers the solve fields
+      {
+        const inSunday = await page.evaluate(() => {
+          const head = document.querySelector('[data-block="sunday"]'), out = [];
+          for (let e = head?.nextElementSibling; e && !e.hasAttribute('data-block'); e = e.nextElementSibling) if (e.hasAttribute('data-task')) out.push(e.getAttribute('data-task'));
+          return { head: head?.innerText ?? '', ids: out };
+        });
+        const sp = inSunday.ids.filter(id => /^sp:[a-z0-9-]+:2026-11-08$/.test(id));
+        const row = page.locator(`[data-task="${sp[0]}"]`);
+        if (sp.length === 1 && /Active rest/.test(inSunday.head) && inSunday.ids.indexOf(sp[0]) < inSunday.ids.indexOf('d:2026-11-08:explore') && /Sunday problem \(30–40 min, timed\)/.test(await row.innerText())) ok(`${W}: Sunday problem in the Active rest block`); else fail(`${W}: Sunday problem missing (${JSON.stringify(inSunday)})`);
+        if (sp.length) {
+          await row.locator('[data-status-icon]').click(); await page.waitForTimeout(300);
+          await row.locator('[data-title]').click(); await page.waitForTimeout(400);
+          const fields = page.locator('[data-peek] [data-solve-fields]');
+          const slug = sp[0].split(':')[1], log = (await saved(page)).solves?.[`p-${slug}`];
+          if (await fields.count() && await fields.locator('[data-solve-minutes]').isEnabled() && await fields.locator('[data-solve-unseen]').isEnabled() && log?.via === sp[0]) ok(`${W}: ticking the Sunday problem logs p-${slug} and offers the solve fields`); else fail(`${W}: Sunday problem solve fields (${await fields.count()}, ${JSON.stringify(log)})`);
+          await page.keyboard.press('Escape'); await page.waitForTimeout(300);
+        }
+      }
+      await page.locator('[data-sunday-mode]:visible').getByRole('radio', { name: 'Revision' }).click();
+      await page.waitForTimeout(400);
+      await expandAll(page);
+      if ((await saved(page)).sundayMode?.['2026-11-08'] === 'revision') ok(`${W}: sundayMode saved`); else fail(`${W}: sundayMode not saved`);
+      if (await page.locator('[data-task="d:2026-11-08:flagged"]').count() && await page.locator('[data-task="d:2026-11-08:catchup"]').count()) ok(`${W}: Revision shows revision tasks`); else fail(`${W}: revision tasks missing`);
+      if (await page.locator('[data-task="d:2026-11-08:explore"]').count()) fail(`${W}: explore task still shown in revision`); else ok(`${W}: explore task gone in revision`);
+      // the self-check peek takes four scores
+      await page.locator('[data-task="d:2026-11-08:check"] [data-title]').click();
+      await page.waitForTimeout(400);
+      const f = page.locator('[data-peek] [data-score-input]');
+      if ((await f.count()) === 6) ok(`${W}: self-check has 6 score fields`); else fail(`${W}: self-check score fields ${await f.count()}`);
+      await page.locator('[data-peek] [data-score-input="w1/dsa"]').fill('75'); await page.locator('[data-peek] [data-score-input="w1/dsa"]').blur();
+      await page.locator('[data-peek] [data-score-input="w1/ai"]').fill('101'); await page.locator('[data-peek] [data-score-input="w1/ai"]').blur();
+      await page.waitForTimeout(300);
+      const sc = (await saved(page)).scores || {};
+      if (sc['w1/dsa'] === 75 && !('w1/ai' in sc)) ok(`${W}: weekly score saved, 101 rejected`); else fail(`${W}: scores ${JSON.stringify(sc)}`);
+      checkErrors(errors, `${W} toggle`);
+      await ctx.close();
+    }
+    // 2. Burnout guard: Saturday 14 Nov with nothing done
+    {
+      const { ctx, page, errors } = await mk(new Date(2026, 10, 14, 14, 10));
+      const line = page.locator('[data-burnout]');
+      if (await line.count() && /more than 8 h behind\. Make this Sunday a revision Sunday\?/.test(await line.innerText())) ok(`${W}: burnout line shown on Saturday`); else fail(`${W}: no burnout line on Saturday`);
+      await page.locator('[data-burnout-yes]').click();
+      await page.waitForTimeout(300);
+      if ((await saved(page)).sundayMode?.['2026-11-15'] === 'revision' && !(await page.locator('[data-burnout]').count())) ok(`${W}: button sets the coming Sunday and the line goes`); else fail(`${W}: burnout button did not set Sunday 15 Nov`);
+      checkErrors(errors, `${W} burnout`);
+      await ctx.close();
+    }
+    {
+      const { ctx, page } = await mk(new Date(2026, 10, 12, 14, 10));
+      if (await page.locator('[data-burnout]').count()) fail(`${W}: burnout line shown on a Thursday`); else ok(`${W}: no burnout line on a weekday`);
+      await ctx.close();
+    }
+    // 3. Baseline scores on the prep day (Sun 1 Nov) reach Progress
+    {
+      const { ctx, page, errors } = await mk(new Date(2026, 10, 1, 14, 10));
+      await expandAll(page);
+      await page.locator('[data-task="baseline:dsa"] [data-title]').click();
+      await page.waitForTimeout(400);
+      await page.locator('[data-peek] [data-score-input="baseline/dsa"]').fill('62');
+      await page.locator('[data-peek] [data-score-input="baseline/dsa"]').blur();
+      await page.waitForTimeout(300);
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(300);
+      if ((await saved(page)).scores?.['baseline/dsa'] === 62) ok(`${W}: baseline score saved`); else fail(`${W}: baseline score not saved`);
+      await page.locator('[data-slot="sidebar"] [data-nav="progress"]').first().click();
+      await page.waitForTimeout(400);
+      const row = page.locator('[data-score-row="dsa"]');
+      if (await row.count() && /62/.test(await row.innerText())) ok(`${W}: baseline score shows in Progress`); else fail(`${W}: baseline score missing in Progress`);
+      await page.screenshot({ path: join(shots, 'scores-1100.png'), fullPage: true });
+      // Reference: depth areas and Sunday reads
+      await page.locator('[data-slot="sidebar"] [data-nav="roadmap"]').first().click();
+      await page.waitForTimeout(300);
+      await page.getByRole('radio', { name: 'Reference' }).click();
+      await page.waitForTimeout(300);
+      await page.locator('[data-band="depth-areas"] button').first().click().catch(() => {});
+      await page.locator('[data-band="sunday-reads"] button').first().click().catch(() => {});
+      await page.waitForTimeout(300);
+      if (await page.getByText('deep enough when').count() && await page.locator('[data-sunday-read]').count() >= 15) ok(`${W}: reference shows depth areas and Sunday reads`); else fail(`${W}: reference missing depth areas or reads`);
+      checkErrors(errors, `${W} baseline`);
+      await ctx.close();
+    }
+  }
+  // ---------- a task with a second link (url2) shows both links, in the row and in the peek ----------
+  {
+    const at = new Date(2026, 10, 2, 10, 0); // Mon 2 Nov = Grind day 1: the Frontend block's first row has url2
+    const fx = { ...fixture, modes: GRIND, start: isoDay(new Date(2026, 10, 2)), done: {}, notes: {}, updatedAt: +at };
+    const ctx = await browser.newContext({ viewport: { width: 1100, height: 900 } });
+    await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
+    const page = await ctx.newPage();
+    await page.clock.install({ time: at });
+    const errors = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+    page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+    await page.goto(URL, { waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+    await page.waitForTimeout(500);
+    const W = 'url2 1100';
+    for (const b of await page.locator('[data-block]').all()) if (!(await b.evaluate(e => e.nextElementSibling?.hasAttribute('data-task')))) await b.click().catch(() => {});
+    await page.waitForTimeout(300);
+    const want = ['https://web.dev/articles/critical-rendering-path', 'https://developer.chrome.com/docs/devtools/performance/reference'];
+    const row = page.locator('[data-task="fe:rendering-path"]');
+    const rowLinks = await row.locator('a[target="_blank"]').evaluateAll(els => els.map(e => e.getAttribute('href')));
+    if (want.every(u => rowLinks.includes(u))) ok(`${W}: row shows both links`); else fail(`${W}: row links ${JSON.stringify(rowLinks)}`);
+    await row.locator('[data-title]').first().click();
+    await page.waitForTimeout(500);
+    const peekLinks = await page.locator('[data-peek] a[target="_blank"]').evaluateAll(els => els.map(e => e.getAttribute('href')));
+    if (want.every(u => peekLinks.includes(u))) ok(`${W}: peek shows both links`); else fail(`${W}: peek links ${JSON.stringify(peekLinks)}`);
+    await page.screenshot({ path: join(shots, 'url2-1100.png') });
+    checkErrors(errors, W);
+    await ctx.close();
+  }
+  // ---------- mode indicators: Today badge, sidebar line, phone line ----------
+  for (const [width, height] of [[1100, 800], [375, 812]]) {
+    const W = `mode indicators ${width}`;
+    const { ctx, page, errors } = await open(width, height);
+    const line = page.locator('[data-mode-line]:visible');
+    if (width >= 768) {
+      const badge = page.locator('[data-mode-badge]');
+      const txt = (await badge.innerText()).trim();
+      if (/^Steady · week \d+ of 17$/.test(txt)) ok(`${W}: Today badge "${txt}"`); else fail(`${W}: Today badge "${txt}"`);
+      if ((await line.innerText()).trim() === 'Steady mode') ok(`${W}: sidebar line Steady mode`); else fail(`${W}: sidebar line "${await line.innerText()}"`);
+      const hh = await page.evaluate(() => document.querySelector('[data-slot="sidebar-inset"] [data-page-header]').getBoundingClientRect().height);
+      if (Math.abs(hh - 48) <= 1) ok(`${W}: header stays 48px with the badge`); else fail(`${W}: header ${hh}px with the badge`);
+      await badge.click(); await page.waitForTimeout(500);
+      const inView = await page.evaluate(() => { const e = document.querySelector('[data-setting="mode"]'); if (!e) return false; const r = e.getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; });
+      if ((await page.evaluate(() => location.hash)) === '#setup' && inView) ok(`${W}: badge opens Setup with the Mode setting in view`); else fail(`${W}: badge did not land on the Mode setting`);
+      await page.getByRole('radio', { name: 'Grind' }).click(); await page.waitForTimeout(300);
+      if ((await line.innerText()).trim() === 'Grind mode') ok(`${W}: sidebar line updates to Grind mode`); else fail(`${W}: sidebar line after switch "${await line.innerText()}"`);
+      await page.locator('[data-slot="sidebar"] [data-nav="today"]').first().click(); await page.waitForTimeout(300);
+      const t2 = (await page.locator('[data-mode-badge]').innerText()).trim();
+      if (/^Grind · week \d+ of \d+$/.test(t2)) ok(`${W}: Today badge after switch "${t2}"`); else fail(`${W}: Today badge after switch "${t2}"`);
+    } else {
+      if ((await line.innerText()).trim() === 'Steady mode') ok(`${W}: phone shows Steady mode`); else fail(`${W}: phone line "${await line.innerText().catch(() => '')}"`);
+      const over = await page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+      if (over <= 0) ok(`${W}: no horizontal scroll`); else fail(`${W}: horizontal overflow ${over}px`);
+      const hh = await page.evaluate(() => document.querySelector('[data-slot="sidebar-inset"] [data-page-header]').getBoundingClientRect().height);
+      if (Math.abs(hh - 44) <= 1) ok(`${W}: header stays 44px`); else fail(`${W}: header ${hh}px`);
+      await page.screenshot({ path: join(shots, 'mode-indicators-375.png') });
+    }
+    checkErrors(errors, W);
+    await ctx.close();
+  }
+  // ---------- mode indicators: header at 800 and 1024 (one indicator, no crowding) ----------
+  for (const width of [800, 1024]) {
+    const W = `mode header ${width}`;
+    const { ctx, page, errors } = await open(width, 800);
+    const m = await page.evaluate(() => {
+      const h = document.querySelector('[data-slot="sidebar-inset"] [data-page-header]');
+      const vis = e => !!e && e.getClientRects().length > 0 && getComputedStyle(e).display !== 'none';
+      const crumbs = h.querySelector('nav[aria-label="breadcrumb"]');
+      return { over: h.scrollWidth - h.clientWidth, crumbW: crumbs ? crumbs.getBoundingClientRect().width : 0, line: [...h.querySelectorAll('[data-mode-line]')].filter(vis).length, badge: [...h.querySelectorAll('[data-mode-badge]')].filter(vis).length, hh: h.getBoundingClientRect().height };
+    });
+    if (m.over <= 0) ok(`${W}: no header overflow`); else fail(`${W}: header overflows by ${m.over}px`);
+    if (m.crumbW > 0) ok(`${W}: crumbs keep ${Math.round(m.crumbW)}px`); else fail(`${W}: crumbs squeezed to ${m.crumbW}`);
+    if (m.line + m.badge === 1 && (width < 1024 ? m.line === 1 : m.badge === 1)) ok(`${W}: exactly one header indicator (${m.line ? 'line' : 'badge'})`); else fail(`${W}: header indicators line ${m.line}, badge ${m.badge}`);
+    if (Math.abs(m.hh - 48) <= 1) ok(`${W}: header 48px`); else fail(`${W}: header ${m.hh}px`);
+    checkErrors(errors, W);
+    await ctx.close();
+  }
+  // ---------- v2: day count per mode, and search finds patterns and owner labels ----------
+  for (const [mode, modes, want] of [['Grind', GRIND, /Day 1 of 91\b/], ['Steady', {}, /Day 1 of 119\b/]]) {
+    const at = new Date(2026, 10, 2, 10, 0); // Mon 2 Nov = Day 1
+    const fx = { ...fixture, modes, start: isoDay(new Date(2026, 10, 2)), done: {}, notes: {}, updatedAt: +at, labels: { 'lb-quokka': { id: 'lb-quokka', name: 'Quokka review', color: '#2563eb', kind: 'label' } } };
+    const ctx = await browser.newContext({ viewport: { width: 1100, height: 800 } });
+    await ctx.addInitScript(f => { if (!sessionStorage.getItem('smoke-seeded')) { localStorage.setItem('offer90.v1', f); sessionStorage.setItem('smoke-seeded', '1'); } }, JSON.stringify(fx));
+    const page = await ctx.newPage();
+    await page.clock.install({ time: at });
+    const errors = [];
+    page.on('pageerror', e => errors.push(`pageerror: ${e.message}`));
+    page.on('console', m => { if (m.type() === 'error') errors.push(`console: ${m.text()}`); });
+    await page.goto(URL, { waitUntil: 'networkidle' });
+    await page.addStyleTag({ content: 'nextjs-portal{display:none!important}' });
+    await page.waitForTimeout(500);
+    const W = `v2 ${mode}`;
+    const line = await page.locator('[data-shell="status"]').first().innerText().catch(() => '');
+    if (want.test(line)) ok(`${W}: status reads "${line}"`); else fail(`${W}: status reads "${line}"`);
+    if (mode === 'Grind') {
+      const dlg = page.locator('[data-search-dialog]'), input = page.locator('[data-search-input]');
+      await page.keyboard.press('ControlOrMeta+k'); await page.waitForTimeout(300);
+      await input.fill('sliding'); await page.waitForTimeout(250);
+      const firstGroup = await dlg.locator('[data-search-group]').first().getAttribute('data-search-group');
+      if (firstGroup === 'Patterns' && await dlg.locator('[data-search-hit="pattern"]').count()) ok(`${W}: "sliding" lists the pattern first`); else fail(`${W}: "sliding" first group is ${firstGroup}`);
+      await page.keyboard.press('Enter'); await page.waitForTimeout(500);
+      if ((await page.evaluate(() => location.hash)) === '#dsa') ok(`${W}: pattern hit opens the DSA page`); else fail(`${W}: pattern hit did not open the DSA page`);
+      await page.keyboard.press('ControlOrMeta+k'); await page.waitForTimeout(300);
+      await input.fill('quokka'); await page.waitForTimeout(250);
+      if (await dlg.locator('[data-search-hit="label"]').count()) ok(`${W}: owner label is searchable`); else fail(`${W}: owner label not found`);
+      await page.keyboard.press('Enter'); await page.waitForTimeout(500);
+      const stored = await page.evaluate(() => localStorage.getItem('offer90.todayFilter') || '');
+      if (/lb-quokka/.test(stored) && (await page.evaluate(() => location.hash)) === '') ok(`${W}: label hit filters Today`); else fail(`${W}: label hit did not filter Today (${stored})`);
+    }
+    checkErrors(errors, W);
+    await ctx.close();
   }
 } catch (e) {
   fail(`crashed: ${e.stack || e}`);

@@ -3,50 +3,50 @@
 import { Fragment, useEffect, useState } from 'react';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
-import { P, aiUnitOf, type Day } from '@/lib/engine';
+import { patternNameOf, phaseSpans, shortText } from '@/lib/engine';
+import { EMPTY_FILTER, matches } from '@/lib/task-filter';
+import { weekSummary } from '@/lib/timeline';
 import { cycleOf } from '@/lib/cycle';
 import { dateRange } from '@/lib/cycle-input';
 import { Band, Chip, Ring, Row } from './shell/page';
-import { PHASE_SPANS } from './roadmap-timeline';
 import { useCycleDays } from './today-rail';
 import { useUI } from './ui-state';
+import { LabelFilterBar, pruneLabels } from './today-filters';
 
 const PHASE_TEXT: Record<number, string> = {
-  1: 'How the internet works, JavaScript, browser, React basics, HLD fundamentals, frontend system design, first 60 DSA problems, machine-coding builds, LLD foundations on Saturdays. AI: neural nets, transformers, the Attention paper, building GPT from scratch. Career: resume, positioning, Amazon OA, LP story bank, a daily product & UX lesson.',
-  2: 'React depth, backend, LLD problems, HLD + AI design problems, the flagship product (real-time collaborative docs with AI, launched to real users), rest of NeetCode 150, advanced DSA, AI-enabled coding drills. AI: GPT-3, RLHF, RAG, CoT, ReAct, MCP, evals. Forward-deployed track starts. Referrals and applications.',
-  3: 'Interview mode: Meta speed sets, Google plain-doc sets, AI-enabled coding drills, Amazon OA simulations, flagship launch + case study, mock loops (frontend, HLD, LLD, AI, FDE). AI: scaling laws, LoRA, Constitutional AI, AI system design. Decomposition reps, take-home practice, daily applications.',
+  1: 'DSA foundations and patterns 1–11. AI: how neural nets and LLMs work, then using models well (APIs, prompting, tool calling, MCP). Systems: computers, networking, HLD fundamentals, the first designs and DDIA. Platform: DevOps basics, from the shell to auth and secrets. Product: pick and scaffold the flagship, design docs, real-time and offline, the first AI feature. Frontend: rendering, React internals, debugging, frontend system design concepts. Career: resume, Amazon OA, LP story bank, project deep dives.',
+  2: 'DSA patterns 12–26. AI: RAG, evals, agents, fine-tuning, inference and serving. Systems: HLD designs alternating with DDIA, case studies and building blocks. Platform: SQL, Postgres, Docker, Kubernetes, Terraform, CI/CD, AWS. Product: Ask your workspace with evals, agent actions, take-home 1, observability, integrations. Frontend: 12 frontend system designs. Career: FDE stages, decomposition reps, teardowns, applications from week 8. Saturdays: AI-enabled coding drills, OA rounds, peer mocks.',
+  3: 'Interview mode. DSA: the last pattern, then Amazon OA simulations, Google plain-doc sets, Meta speed sets, hard-pattern revisits. AI: production AI, the AI designs, teach-backs and timed mocks. Systems: timed HLD mocks and second passes. Product: take-home 2, launch to real users, iterate, case study and demo. Frontend: machine-coding rehearsal reps. Career: the FDE take-home, negotiation, 4 full mock loops.',
 };
-
-/** Main topics of a week: DSA topics, frontend lessons, AI units. */
-export function weekSummary(days: Day[], w: number): string[] {
-  const ds = days.filter(x => x.week === w && x.type === 'study'); if (!ds.length) return ['Kickoff'];
-  const topics = [...new Set(ds.flatMap(x => x.tasks.filter(t => t.topic).map(t => t.topic!)))];
-  const fe = ds.filter(x => x.s! <= 48).map(x => P.FE[x.s! - 1][0].split(/[:,(]/)[0].trim());
-  const ai = [...new Set(ds.map(x => aiUnitOf(x.s!)).filter(Boolean))];
-  return [topics.length ? `DSA: ${topics.join(', ')}` : 'DSA: timed sets + OA', fe.length ? `Frontend: ${fe.slice(0, 2).join(', ')}…` : 'Frontend: revision', ai.length ? `AI: ${ai.join('; ')}` : 'AI: explain-it-back revision'];
-}
 
 export function RoadmapWeeks() {
   const { state, days, todayIdx } = useStore();
   const { openDay, focusWeek, setFocusWeek } = useUI();
   const today = todayIdx >= 0 && todayIdx < days.length ? days[todayIdx] : undefined;
   const input = useCycleDays(days);
+  const spans = phaseSpans(days);
+  // Label filter (compact Today filter): weeks stay listed only when one of their tasks has any chosen label.
+  const [lf, setLf] = useState<string[]>([]);
+  const labelIds = pruneLabels({ filter: { ...EMPTY_FILTER, labels: lf }, groupBy: 'time' }, state.labels).filter.labels;
+  const weekHit = (w: number) => !labelIds.length || days.some(d => d.week === w && d.blocks.some(b => b.tasks.some(t => !t.superseded && matches(t.slug && state.flags[t.slug] ? { ...t, flagged: true } : t, b.k, { ...EMPTY_FILTER, labels: labelIds }, state.done, state.status, state.itemLabels))));
   // Phase bands open by default on today's phase; a focus request (sidebar Cycles) opens its band and expands its week.
   const [openPh, setOpenPh] = useState<Record<number, boolean>>({});
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
   useEffect(() => {
     if (focusWeek == null) return;
-    const w = focusWeek, ph = PHASE_SPANS.find(p => w >= p.from && w <= p.to);
+    const w = focusWeek, ph = phaseSpans(days).find(p => w >= p.from && w <= p.to);
     if (ph) setOpenPh(s => ({ ...s, [ph.p]: true }));
     setExpanded(s => ({ ...s, [w]: true }));
     setFocusWeek(null);
     // scroll once the band has opened and the row is laid out
     requestAnimationFrame(() => requestAnimationFrame(() => document.querySelector(`[data-week="${w}"]`)?.scrollIntoView({ block: 'center' })));
-  }, [focusWeek, setFocusWeek]);
+  }, [focusWeek, setFocusWeek, days]);
 
   return (
     <>
-      {PHASE_SPANS.map(ph => {
+      <LabelFilterBar labels={labelIds} onChange={setLf} />
+      {labelIds.length > 0 && !days.some(d => weekHit(d.week)) && <p className="px-4 py-3 text-[13px] text-muted-foreground" data-weeks-empty>No week has a task with these labels.</p>}
+      {spans.map(ph => {
         const weeks = Array.from({ length: ph.to - ph.from + 1 }, (_, k) => ph.from + k);
         return (
           <Band key={ph.p} id={`phase-${ph.p}`} title={`Phase ${ph.p} · ${ph.name}`} count={`W${ph.from}–${ph.to}`} open={openPh[ph.p] ?? (!today || today.phase === ph.p)} onOpenChange={v => setOpenPh(s => ({ ...s, [ph.p]: v }))}>
@@ -54,12 +54,12 @@ export function RoadmapWeeks() {
               <p className="px-4 py-2.5 text-[13px] leading-snug text-muted-foreground">{PHASE_TEXT[ph.p]}</p>
               {weeks.map(w => {
                 const ds = days.filter(d => d.week === w);
-                if (!ds.length) return null;
+                if (!ds.length || !weekHit(w)) return null;
                 // Same numbers as the Today rail's cycle card: study tasks, skipped left out, cat-based tracks.
                 const cyc = cycleOf(input, w, state.done, state.status, state.meta, todayIdx, Date.now());
                 const n = cyc?.byStatus.done ?? 0, total = cyc?.total ?? 0, share = cyc?.pct ?? 0;
                 const now = today?.week === w;
-                const [head, ...rest] = weekSummary(days, w);
+                const [head, ...rest] = weekSummary(days, w, patternNameOf, shortText);
                 const first = ds.find(d => d.type !== 'kick') ?? ds[0];
                 const open = now || !!expanded[w];
                 const tracks = open ? cyc?.tracks ?? [] : null;

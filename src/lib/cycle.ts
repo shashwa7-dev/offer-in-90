@@ -20,11 +20,11 @@ export interface CycleSummary {
 
 // Same order and names as TRACKS in timeline.ts.
 const TRACKS: { key: TrackKey; name: string }[] = [
-  { key: 'dsa', name: 'DSA' }, { key: 'fe', name: 'Frontend & CS' }, { key: 'sd', name: 'System design' },
-  { key: 'mc', name: 'Machine coding' }, { key: 'ai', name: 'AI' }, { key: 'career', name: 'Career' },
+  { key: 'dsa', name: 'DSA' }, { key: 'ai', name: 'AI engineering' }, { key: 'sd', name: 'Systems' }, { key: 'mc', name: 'Product' },
+  { key: 'platform', name: 'Platform' }, { key: 'career', name: 'Career' }, { key: 'fe', name: 'Frontend' },
 ];
 // Local copy of trackOfCat (task-filter.ts).
-const CAT_TRACK: Record<string, TrackKey> = { dsa: 'dsa', fe: 'fe', sd: 'sd', mc: 'mc', proj: 'mc', ai: 'ai', beh: 'career', ux: 'career', fde: 'career' };
+const CAT_TRACK: Record<string, TrackKey> = { dsa: 'dsa', ai: 'ai', sd: 'sd', mc: 'mc', proj: 'mc', platform: 'platform', beh: 'career', ux: 'career', fde: 'career', fe: 'fe' };
 const trackOfCat = (cat: string): TrackKey | null => (Object.prototype.hasOwnProperty.call(CAT_TRACK, cat) ? CAT_TRACK[cat] : null);
 // Local copy of statusOf (task-status.ts).
 const statusOf = (id: string, done: Record<string, number>, status: StatusMap): TaskStatus => (done[id] ? 'done' : status[id] ?? 'todo');

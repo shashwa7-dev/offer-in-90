@@ -1,32 +1,37 @@
 'use client';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { CalendarCheck, ChevronLeft, ChevronRight, Plus, Search } from 'lucide-react';
+import { CalendarCheck, ChevronLeft, ChevronRight, Plus, Search, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
+import { isTimedSolve } from '@/lib/dsa-page';
 import { useStore } from '@/lib/store';
 import { TRACKS, bandOf } from '@/lib/timeline';
-import { STATUS_LABEL, isSkipped, statusOf } from '@/lib/task-status';
+import { STATUS_LABEL, isSkipped, owes, settled, statusOf } from '@/lib/task-status';
 import { EMPTY_FILTER, isActive, matches, statusCounts, trackOfCat, type GroupBy } from '@/lib/task-filter';
-import { TOTAL, type Block, type Day, type Task, dayStats, dayTitle, fmtDate, hrs, overall, parseISO, study, toMin } from '@/lib/engine';
-import { Band, Chip, PageFrame, PageHeader, Ring, Row, Surface, SummaryRow } from './shell/page';
+import { totalDays, type Block, type Day, type Task, dayStats, dayTitle, fmtDate, hrs, iso, overall, parseISO, toMin } from '@/lib/engine';
+import { modeBadge } from '@/lib/modes';
+import { Band, Chip, PageFrame, PageHeader, Ring, Row, Seg, Surface, SummaryRow } from './shell/page';
 import { TaskRow } from './task-row';
 import { QuickAdd } from './own-task';
 import { useUI } from './ui-state';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { STATUS_ORDER, StatusIcon } from './status-control';
 import { TodayRail } from './today-rail';
+import { burnoutGuard, comingSunday, optionalLast } from '@/lib/sundays';
 import { DisplayMenu, TodayFilters, useTodayFilter } from './today-filters';
 
 type Status = 'now' | 'done' | 'missed' | 'past' | 'upcoming';
 const BANDS = [['morning', 'Morning'], ['afternoon', 'Afternoon'], ['evening', 'Evening']] as const;
 
 export function TodayView() {
-  const { state, days, todayIdx, update, updates } = useStore();
+  const { state, days, todayIdx, update, updates, v2Notice, dismissV2Notice } = useStore();
+  // Bedtime on the owner's study days (wake-up and routine placed, moved bedtime included).
+  const sleepBy = days.find(d => d.type === 'study')?.blocks.find(b => b.k === 'wind')?.e ?? '22:00';
   const { viewIdx, setViewIdx, go, newTask, setRoadmapTab, setOpenChanges, openSearch } = useUI();
   const [open, setOpen] = useState<Record<string, boolean>>({});
   const [missedOpen, setMissedOpen] = useState(false);
-  const phone = useIsMobile(); // phones: "Day 9" (the header has no room for "of 91")
+  const phone = useIsMobile(); // phones: "Day 9" (the header has no room for "of 119")
   const [fv, setFv] = useTodayFilter();
   const setGroupBy = useCallback((g: GroupBy) => setFv({ ...fv, groupBy: g }), [fv, setFv]);
   const [nm, setNm] = useState(() => { const n = new Date(); return n.getHours() * 60 + n.getMinutes(); });
@@ -38,8 +43,11 @@ export function TodayView() {
   const st = dayStats(d, state.done, state.status), o = overall(days, state.done, todayIdx, state.status);
   const cur = isToday ? d.blocks.find(b => nm >= toMin(b.s) && nm < toMin(b.e)) : undefined;
   const next = isToday ? d.blocks.find(b => toMin(b.s) > nm) : undefined;
-  const resolved = (t: { id: string }) => !!state.done[t.id] || isSkipped(t.id, state.done, state.status);
-  const overdue = days.filter(x => x.i < todayIdx).flatMap(x => x.blocks.flatMap(b => b.tasks.filter(t => study(t) && !resolved(t) && !t.log).map(t => ({ t, day: x, bk: b.k }))));
+  // resolved: nothing left to do (a superseded copy is history). owed: counts and not done or skipped; only owed
+  // tasks make a block, a row or the day "missed" (never optional, health or superseded tasks).
+  const resolved = (t: Task) => settled(t, state.done, state.status);
+  const owed = (t: Task) => owes(t, state.done, state.status);
+  const overdue = days.filter(x => x.i < todayIdx).flatMap(x => x.blocks.flatMap(b => b.tasks.filter(t => owed(t) && !t.log).map(t => ({ t, day: x, bk: b.k }))));
   const unseen = updates.filter(u => !state.seenUpdates[u.id] && u.priority !== 'fyi').length;
   const firstOpen = isToday ? (cur?.tasks.length ? cur.k : next?.k) : d.blocks.find(b => b.tasks.some(t => !resolved(t)))?.k;
   const clamp = (i: number) => Math.max(0, Math.min(days.length - 1, i));
@@ -49,17 +57,28 @@ export function TodayView() {
     if (when === 'today' && nm >= toMin(b.s) && nm < toMin(b.e)) return 'now';
     if (b.tasks.length && b.tasks.every(resolved)) return b.tasks.some(t => state.done[t.id]) ? 'done' : 'past'; // done or skipped: nothing missed
     const ended = when === 'past' || (when === 'today' && nm >= toMin(b.e));
-    return ended ? (b.tasks.length ? 'missed' : 'past') : 'upcoming';
+    return ended ? (b.tasks.some(owed) ? 'missed' : 'past') : 'upcoming';
   };
+  // Sundays: Active rest (default) or Revision, saved per date. Burnout guard (§17): over 8 h behind on a Saturday or Sunday
+  // offers a revision Sunday and sorts optional tasks last. It never adds time to a day.
+  const isSun = d.type === 'sun', dISO = iso(d.date);
+  const sunMode = state.sundayMode[dISO] ?? 'rest';
+  const setSunMode = (date: string, m: 'rest' | 'revision') => update(s => ({ ...s, sundayMode: { ...s.sundayMode, [date]: m } }));
+  const burnout = isToday && burnoutGuard(o.behindMin, d.date.getDay());
+  const offerIdx = burnout ? comingSunday(days, todayIdx) : null;
+  const offerDate = offerIdx === null ? null : iso(days[offerIdx].date);
+  const showOffer = !!offerDate && (state.sundayMode[offerDate] ?? 'rest') !== 'revision';
+  const modeSeg = isSun ? <Seg value={sunMode} onChange={m => setSunMode(dISO, m)} options={[{ value: 'rest', label: 'Active rest' }, { value: 'revision', label: 'Revision' }]} /> : null;
   const pick = cur?.tasks.find(t => !resolved(t));
-  const missedHere = d.blocks.filter(b => blockStatus(b) === 'missed').reduce((a, b) => a + b.tasks.filter(t => !resolved(t)).length, 0);
+  const missedHere = d.blocks.filter(b => blockStatus(b) === 'missed').reduce((a, b) => a + b.tasks.filter(owed).length, 0);
 
   // Filter bar: counts follow every filter except status; blocks offered are this day's blocks with tasks.
   const { filter, groupBy } = fv;
   const active = isActive(filter);
-  const hit = (t: Task, bk: string) => matches(t, bk, filter, state.done, state.status);
+  const fl = (t: Task) => (t.slug && state.flags[t.slug] ? { ...t, flagged: true } : t);
+  const hit = (t: Task, bk: string) => matches(fl(t), bk, filter, state.done, state.status, state.itemLabels);
   const dayTasks = d.blocks.flatMap(b => b.tasks.map(t => ({ t, b })));
-  const counts = statusCounts(dayTasks.filter(x => matches(x.t, x.b.k, { ...filter, status: 'all' }, state.done, state.status)).map(x => x.t), state.done, state.status);
+  const counts = statusCounts(dayTasks.filter(x => matches(fl(x.t), x.b.k, { ...filter, status: 'all' }, state.done, state.status, state.itemLabels)).map(x => x.t), state.done, state.status);
   const blockOpts = d.blocks.filter(b => b.tasks.length).map(b => ({ k: b.k, title: `${b.s} ${b.title}` }));
   // A saved block that isn't on this day stays listed (so it can be unticked), labelled from any day that has it.
   for (const k of filter.blocks) if (!blockOpts.some(o => o.k === k)) {
@@ -69,7 +88,7 @@ export function TodayView() {
   const shownOverdue = active ? overdue.filter(x => hit(x.t, x.bk)) : overdue;
   const shownTasks = dayTasks.filter(x => hit(x.t, x.b.k));
   const empty = active && !shownTasks.length && !shownOverdue.length;
-  const rowStatus = (t: Task, b: Block) => blockStatus(b) === 'missed' && !resolved(t) ? 'missed' as const : t.id === pick?.id ? 'pick' as const : undefined;
+  const rowStatus = (t: Task, b: Block) => blockStatus(b) === 'missed' && owed(t) ? 'missed' as const : t.id === pick?.id ? 'pick' as const : undefined;
   const groups: { key: string; title: string; icon?: ReactNode; rows: typeof dayTasks }[] = groupBy === 'status'
     ? STATUS_ORDER.map(k => ({ key: `status-${k}`, title: STATUS_LABEL[k], icon: <StatusIcon status={k} size={14} />, rows: shownTasks.filter(x => statusOf(x.t.id, state.done, state.status) === k) }))
     : groupBy === 'track'
@@ -80,6 +99,18 @@ export function TodayView() {
     setMissedOpen(true);
     requestAnimationFrame(() => document.querySelector('[data-band="missed-earlier"]')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
   };
+  /** Setup, scrolled to the Mode setting with its toggle focused (Setup mounts after go, so wait for it). */
+  const openMode = () => {
+    go('setup');
+    let tries = 0;
+    const find = () => {
+      const el = document.querySelector<HTMLElement>('[data-setting="mode"]');
+      if (!el) { if (++tries < 20) setTimeout(find, 50); return; }
+      el.scrollIntoView({ block: 'center' });
+      el.querySelector<HTMLElement>('[role="radio"][data-state="on"]')?.focus({ preventScroll: true });
+    };
+    setTimeout(find, 0);
+  };
   const items = [
     { k: 'Done', v: `${hrs(st.doneMin)} of ${hrs(st.planMin)} h` },
     ...(isToday ? [{ k: 'Missed', v: `${missedHere} task${missedHere === 1 ? '' : 's'}` }] : []),
@@ -88,14 +119,16 @@ export function TodayView() {
 
   return (
     <PageFrame header={<PageHeader
-        crumbs={[{ label: `Week ${d.week}`, phoneHidden: true }, d.no === 0 ? 'Day 0 · prep' : phone ? `Day ${d.no}` : `Day ${d.no} of ${TOTAL}`, fmtDate(d.date)]}
+        crumbs={[{ label: `Week ${d.week}`, phoneHidden: true }, d.no === 0 ? 'Day 0 · prep' : phone ? `Day ${d.no}` : `Day ${d.no} of ${totalDays(days)}`, fmtDate(d.date)]}
         keepLast
         actions={<>
+          <button type="button" data-mode-badge onClick={openMode} title="Change mode in Setup" className="rounded-[5px] outline-none focus-visible:ring-2 focus-visible:ring-ring/50 max-lg:hidden"><Chip>{modeBadge(state.modes, iso(d.date), state.start, days)}</Chip></button>
           <Button variant="outline" size="icon-sm" onClick={openSearch} aria-label="Search" title="Search" data-search-phone className="md:hidden"><Search /></Button>
           <Button variant="outline" size="icon-sm" onClick={() => setViewIdx(clamp(viewIdx - 1))} aria-label="Previous day"><ChevronLeft /></Button>
           <Button variant="outline" size="sm" onClick={() => setViewIdx(clamp(todayIdx))} disabled={isToday} className="hidden sm:inline-flex">Today</Button>
           {!isToday && <Button variant="outline" size="icon-sm" onClick={() => setViewIdx(clamp(todayIdx))} aria-label="Go to today" title="Go to today" data-today-phone className="sm:hidden"><CalendarCheck /></Button>}
           <Button variant="outline" size="icon-sm" onClick={() => setViewIdx(clamp(viewIdx + 1))} aria-label="Next day"><ChevronRight /></Button>
+          {modeSeg && <div data-sunday-mode className="hidden sm:block">{modeSeg}</div>}
           <DisplayMenu groupBy={groupBy} onChange={setGroupBy} />
           <Button size="sm" onClick={() => newTask()} aria-label="New task" title="New task (C)" className="max-sm:w-8 max-sm:px-0"><Plus /><span className="hidden sm:inline">New task</span></Button>
         </>}
@@ -113,9 +146,22 @@ export function TodayView() {
             {overdue.length > 0 && <span>· {hrs(overdue.reduce((a, x) => a + x.t.min, 0))} h. Clear them in Sunday&apos;s catch-up block.</span>}
           </div>
         )}
+        {v2Notice && (
+          <div className="flex items-start gap-3 border-t border-border px-4 py-2.5 text-[13px] text-muted-foreground" data-v2-notice>
+            <span className="min-w-0 flex-1">Roadmap v2 is here. Ticks from the old plan don&apos;t carry over — use Setup → Start over to begin fresh.</span>
+            <button type="button" onClick={dismissV2Notice} aria-label="Dismiss" title="Dismiss" data-v2-dismiss className="-my-0.5 grid size-6 shrink-0 place-items-center rounded-[5px] text-muted-foreground outline-none hover:bg-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/50"><X className="size-3.5" /></button>
+          </div>
+        )}
+        {isSun && <div data-sunday-mode className="flex items-center gap-2 border-t border-border px-4 py-2.5 text-[13px] text-muted-foreground sm:hidden">Sunday mode {modeSeg}</div>}
+        {showOffer && (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-border px-4 py-2.5 text-[13px] text-muted-foreground" data-burnout>
+            <span>You&apos;re more than 8 h behind. Make this Sunday a revision Sunday?</span>
+            <Button variant="outline" size="xs" data-burnout-yes onClick={() => setSunMode(offerDate!, 'revision')}>Make it a revision Sunday</Button>
+          </div>
+        )}
         {todayIdx < 0 && viewIdx === 0 && (
           <div className="border-t border-border px-4 py-2.5 text-[13px] text-muted-foreground">
-            Your plan starts {fmtDate(parseISO(state.start))}, in {-todayIdx} day{todayIdx === -1 ? '' : 's'}. Import the calendar reminders and sleep by 22:00.
+            Your plan starts {fmtDate(parseISO(state.start))}, in {-todayIdx} day{todayIdx === -1 ? '' : 's'}. Import the calendar reminders and sleep by {sleepBy}.
           </div>
         )}
         <TodayFilters value={fv} onChange={setFv} counts={counts} blocks={blockOpts} />
@@ -142,7 +188,7 @@ export function TodayView() {
             return (
               <Band key={key} id={key} title={label} count={count}>
                 {blocks.map((b, j) => (
-                  <BlockView key={b.k} d={d} b={b} bs={ss[j]} nm={nm} pickId={pick?.id}
+                  <BlockView key={b.k} d={d} b={b} bs={ss[j]} optLast={burnout} nm={nm} pickId={pick?.id}
                     shown={active ? b.tasks.filter(t => hit(t, b.k)) : undefined}
                     isOpen={open[`${d.i}-${b.k}`] ?? (active || b.k === firstOpen)}
                     toggle={v => setOpen(s => ({ ...s, [`${d.i}-${b.k}`]: v }))}
@@ -161,7 +207,7 @@ export function TodayView() {
   );
 }
 
-function BlockView({ d, b, bs, nm, pickId, shown, isOpen, toggle, log, setLog }: { d: Day; b: Block; bs: Status; nm: number; pickId?: string; /** Tasks left by an active filter (all tasks when unset). */ shown?: Task[]; isOpen: boolean; toggle: (v: boolean) => void; log: string; setLog: (v: string) => void }) {
+function BlockView({ d, b, bs, optLast, nm, pickId, shown, isOpen, toggle, log, setLog }: { d: Day; b: Block; bs: Status; optLast: boolean; nm: number; pickId?: string; /** Tasks left by an active filter (all tasks when unset). */ shown?: Task[]; isOpen: boolean; toggle: (v: boolean) => void; log: string; setLog: (v: string) => void }) {
   const { state } = useStore();
   const now = bs === 'now', missed = bs === 'missed';
   // Life blocks (meals, breaks) are thin grey lines.
@@ -189,8 +235,8 @@ function BlockView({ d, b, bs, nm, pickId, shown, isOpen, toggle, log, setLog }:
         <ChevronRight className={cn('hidden size-3.5 shrink-0 text-faint sm:block transition-transform motion-reduce:transition-none', isOpen && 'rotate-90')} aria-hidden="true" />
       </Row>
       {isOpen && <>
-        {(shown ?? b.tasks).map(t => <TaskRow key={t.id} t={t} dayIdx={d.i} status={missed && !isSkipped(t.id, state.done, state.status) && !state.done[t.id] ? 'missed' : t.id === pickId ? 'pick' : undefined} />)}
-        {!shown && b.k === 'dsa' && d.type === 'study' && (d.s ?? 0) <= 60 && (
+        {(optLast ? optionalLast(shown ?? b.tasks) : (shown ?? b.tasks)).map(t => <TaskRow key={t.id} t={t} dayIdx={d.i} status={missed && owes(t, state.done, state.status) ? 'missed' : t.id === pickId ? 'pick' : undefined} />)}
+        {!shown && b.k === 'dsa' && d.type === 'study' && b.tasks.some(t => t.id.startsWith('p-') || (!!t.slug && isTimedSolve(t.id))) && (
           <p className="border-t border-border py-2 pr-4 pl-11 text-[12px] text-muted-foreground">45 min max per problem. Stuck? Read the solution, understand it, flag it, write what you missed in its note.</p>
         )}
         {(shown ?? b.tasks).some(t => t.log) && (

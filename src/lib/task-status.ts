@@ -40,6 +40,19 @@ export function isSkipped(id: string, done: Record<string, number>, status: Stat
   return !done[id] && status[id] === 'skipped';
 }
 
+/** A task that counts (not health, optional or a superseded copy, R12), the same rule as engine `study`. */
+export function counts(t: { cat: string; optional?: boolean; superseded?: true }): boolean {
+  return t.cat !== 'health' && !t.optional && !t.superseded;
+}
+/** Still owed: it counts and is neither done nor skipped. Only these make a block, a row or a day "missed". */
+export function owes(t: { id: string; cat: string; optional?: boolean; superseded?: true }, done: Record<string, number>, status: StatusMap): boolean {
+  return counts(t) && !done[t.id] && !isSkipped(t.id, done, status);
+}
+/** Nothing left to do: done, skipped, or a superseded copy (history only). */
+export function settled(t: { id: string; superseded?: true }, done: Record<string, number>, status: StatusMap): boolean {
+  return !!t.superseded || !!done[t.id] || isSkipped(t.id, done, status);
+}
+
 /** Share done for a day or block; null when nothing counts (empty or all skipped), so it is neutral rather than 0%. */
 export function rate(c: { n: number; total: number }): number | null {
   return c.total > 0 ? c.n / c.total : null;
@@ -54,4 +67,10 @@ export function goodStreak(rates: (number | null)[], good = 0.8): number {
     if (r >= good) k++; else break;
   }
   return k;
+}
+
+/** An unseen check stays anonymous (name, pattern, difficulty and hints hidden) until it is started or done; skipping
+ * it does not reveal it. */
+export function unseenHidden(hiddenUntilStart: boolean | undefined, st: TaskStatus): boolean {
+  return !!hiddenUntilStart && (st === 'todo' || st === 'skipped');
 }

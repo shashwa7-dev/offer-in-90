@@ -1,21 +1,38 @@
 // Checks every URL in the curriculum. No AI involved. Writes .engine/link-report.json for the refresh engine.
 // Usage: node scripts/check-links.mjs
-import { readFileSync, mkdirSync, writeFileSync, appendFileSync } from 'node:fs';
+import { pathToFileURL } from 'node:url';
+import { readFileSync, readdirSync, mkdirSync, writeFileSync, appendFileSync } from 'node:fs';
 
-const sources = ['src/lib/plan-data.js', 'src/lib/engine.ts'];
-const urls = [...new Set(sources.flatMap(f => readFileSync(f, 'utf8').match(/https?:\/\/[^\s'"`)<>\]]+/g) || []))]
+const contentFiles = readdirSync('src/lib/content').filter(f => f.endsWith('.js')).sort().map(f => `src/lib/content/${f}`);
+// tracks.ts and plan-build.ts hold the few URLs written outside the content files (prep-day and filler tasks).
+const sources = ['src/lib/plan-data.js', 'src/lib/engine.ts', 'src/lib/tracks.ts', 'src/lib/plan-build.ts', ...contentFiles];
+const scanned = sources.flatMap(f => readFileSync(f, 'utf8').match(/https?:\/\/[^\s'"`)<>\]]+/g) || []);
+// URLs built at runtime (template literals in the content modules) are skipped by the scan above, so the
+// content modules are also imported and every exported string that is a URL is collected, already expanded.
+const walk = (v, out, seen = new Set()) => {
+  if (typeof v === 'string') { if (/^https?:\/\/\S+$/.test(v)) out.push(v); return; }
+  if (!v || typeof v !== 'object' || seen.has(v)) return;
+  seen.add(v);
+  for (const x of Object.values(v)) walk(x, out, seen);
+};
+const evaluated = [];
+for (const f of [...contentFiles, 'src/lib/plan-data.js']) walk(await import(pathToFileURL(f).href), evaluated);
+const urls = [...new Set([...scanned, ...evaluated])]
   .map(u => u.replace(/[.,;]+$/, ''))
   .filter(u => !u.includes('${') && !u.includes('…'));
 
 const UA = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130 Safari/537.36';
+// Hosts that are slow or refuse scripted requests: a timeout there is "blocked", not broken.
+const SLOW_HOSTS = ['bytes.swiggy.com', 'swiggy.com', 'medium.com'];
+const slowHost = url => { const h = new URL(url).hostname; return SLOW_HOSTS.some(s => h === s || h.endsWith(`.${s}`)); };
 async function check(url) {
   for (const method of ['HEAD', 'GET']) {
     try {
       const r = await fetch(url, { method, redirect: 'follow', headers: { 'user-agent': UA }, signal: AbortSignal.timeout(15000) });
       if (r.ok) return { url, status: r.status, finalUrl: r.url !== url ? r.url : undefined, verdict: 'ok' };
-      if (method === 'GET') return { url, status: r.status, verdict: [401, 403, 429, 999].includes(r.status) ? 'blocked' : 'broken' };
+      if (method === 'GET') return { url, status: r.status, verdict: [401, 403, 406, 429, 999].includes(r.status) ? 'blocked' : 'broken' };
     } catch (e) {
-      if (method === 'GET') return { url, status: 0, error: String(e.cause?.code || e.name), verdict: 'broken' };
+      if (method === 'GET') return { url, status: 0, error: String(e.cause?.code || e.name), verdict: (e.name === 'TimeoutError' || /TIMEOUT/.test(String(e.cause?.code))) && slowHost(url) ? 'blocked' : 'broken' };
     }
   }
 }

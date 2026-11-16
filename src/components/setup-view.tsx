@@ -2,6 +2,7 @@
 /* Setup: one settings list. Your plan, Interviews, Sync and backup, Reminders, Start again. */
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { CalendarDays, Plus, X } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -12,9 +13,15 @@ import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useStore, type State } from '@/lib/store';
 import { buildICS, WEEKDAY_BLOCKS, SUNDAY_BLOCKS } from '@/lib/schedule';
-import { fmtDate, iso, parseISO } from '@/lib/engine';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { cursorsNow, fmtDate, iso, parseISO, totalDays } from '@/lib/engine';
+import { DEFAULT_ROUTINE, ROUTINE_KEYS, placeDay, resolveRoutine, validateRoutine } from '@/lib/routine';
+import { modeOn, switchMode, type Mode } from '@/lib/modes';
+import { nextMonday, bedtimeMessage, startOver, parseRoutineForm, routineToStore, timetableSummary, toRoutineForm, type RoutineDraft, type RoutineForm as RoutineFormState } from '@/lib/setup-helpers';
+import type { RoutineKey } from '@/lib/state-types';
 import { companyCounts, flattenThreads } from '@/lib/interview-feed';
 import { useUI } from './ui-state';
+import { LabelsManager } from './labels-manager';
 import { Band, Chip, PageFrame, PageHeader, Surface } from './shell/page';
 
 function download(name: string, text: string, type: string) {
@@ -22,9 +29,9 @@ function download(name: string, text: string, type: string) {
 }
 
 /** One settings line: label and one-line help on the left, the control on the right (stacked on phones). */
-function Setting({ label, help, children, htmlFor }: { label: string; help: ReactNode; children?: ReactNode; htmlFor?: string }) {
+function Setting({ label, help, children, htmlFor, id }: { label: string; help: ReactNode; children?: ReactNode; htmlFor?: string; /** Sets data-setting, for scrolling to (the Today mode badge). */ id?: string }) {
   return (
-    <div className="flex flex-col gap-2.5 border-t border-border px-4 py-3 first:border-t-0 sm:flex-row sm:items-center sm:gap-6">
+    <div data-setting={id} className="flex flex-col gap-2.5 border-t border-border px-4 py-3 first:border-t-0 sm:flex-row sm:items-center sm:gap-6">
       <div className="min-w-0 flex-1">
         {htmlFor ? <label htmlFor={htmlFor} className="text-[13px] font-medium text-foreground">{label}</label> : <div className="text-[13px] font-medium text-foreground">{label}</div>}
         <div className="mt-0.5 text-[13px] leading-snug text-muted-foreground">{help}</div>
@@ -51,6 +58,95 @@ function Timetable({ title, blocks }: { title: string; blocks: { s: string; e: s
   );
 }
 
+const ROUTINE_ROW: Record<RoutineKey, string> = { breakfast: 'Breakfast', lunch: 'Lunch', extra: 'Fourth slot', dinner: 'Dinner' };
+
+/** The bedtime line for a stored routine: shown when study days need a later bedtime than the usual one. */
+const bedNote = (stored: Parameters<typeof placeDay>[1]) => {
+  const p = placeDay(WEEKDAY_BLOCKS, stored);
+  return p.ok && p.bedShiftMin > 0 ? bedtimeMessage(p.bedtime) : '';
+};
+
+/** The "My routine" form. Remounted (by key) whenever the saved routine changes, so the fields always match it.
+ * A slot row the owner has neither saved nor edited here is relative to wake-up (R15): it shows the default shifted by
+ * the wake field as typed, and saving does not store it. Editing the row fixes it at the times typed. */
+function RoutineForm() {
+  const { state, update } = useStore();
+  const { toast } = useUI();
+  const draftsOf = (stored: typeof state.routine): RoutineFormState => toRoutineForm(resolveRoutine(stored));
+  const [form, setForm] = useState(() => draftsOf(state.routine));
+  const [touched, setTouched] = useState(() => new Set<RoutineKey>(ROUTINE_KEYS.filter(k => state.routine[k])));
+  const [error, setError] = useState('');
+  // What the form shows: untouched rows follow the wake field (unshifted while it is not a valid time).
+  const relative = toRoutineForm(resolveRoutine({ wake: { s: form.wake } }));
+  const shown: RoutineFormState = { ...form };
+  for (const k of ROUTINE_KEYS) if (!touched.has(k)) shown[k] = relative[k];
+  const edit = (k: RoutineKey, patch: Partial<RoutineDraft>) => {
+    setError(''); setTouched(t => new Set(t).add(k)); setForm(f => ({ ...f, [k]: { ...shown[k], ...patch } }));
+  };
+  const editWake = (v: string) => { setError(''); setForm(f => ({ ...f, wake: v })); };
+  const note = bedNote(state.routine);
+
+  const save = () => {
+    const full = parseRoutineForm(shown);
+    const v = validateRoutine(full);
+    if (!v.ok) { setError(v.error); return; }
+    // Stored: wake-up if not 05:00, and every touched row (saved before or edited here) as absolute times. Untouched
+    // rows are not written, so they keep moving with wake-up; dropped entries are removed so sync records the deletion.
+    const next = routineToStore(full, [...touched], DEFAULT_ROUTINE.wake.s);
+    // Bedtime may move to fit the day (shown below once saved); only invalid input or a day past 23:59 is refused.
+    const p = placeDay(WEEKDAY_BLOCKS, next);
+    if (!p.ok) { setError(p.error); return; }
+    if (JSON.stringify(next) === JSON.stringify(state.routine)) { setError(''); toast('No changes'); return; }
+    update(s => ({ ...s, routine: next }));
+    toast('Routine saved. Download the calendar again.');
+  };
+  const reset = () => { update(s => ({ ...s, routine: {} })); setForm(draftsOf({})); setTouched(new Set()); setError(''); toast('Routine reset to defaults. Download the calendar again.'); };
+
+  return (
+    <div data-routine>
+      <div className="flex flex-wrap items-center gap-2 px-4 py-2.5">
+        <span className="w-20 shrink-0 text-[13px] text-muted-foreground">Wake up</span>
+        <Input type="time" aria-label="Wake up time" value={form.wake} onChange={e => editWake(e.target.value)} className="h-8 w-28 text-[13px] tabular-nums" />
+      </div>
+      {ROUTINE_KEYS.map(k => {
+        const x = shown[k];
+        return (
+          <div key={k} className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-2.5">
+            <span className="w-20 shrink-0 text-[13px] text-muted-foreground">{ROUTINE_ROW[k]}</span>
+            <Switch aria-label={`${ROUTINE_ROW[k]} on`} checked={x.on} onCheckedChange={v => edit(k, { on: v })} />
+            <Input aria-label={`${ROUTINE_ROW[k]} name`} value={x.title} onChange={e => edit(k, { title: e.target.value })} className="h-8 min-w-40 flex-1 text-[13px]" />
+            <Input type="time" aria-label={`${ROUTINE_ROW[k]} start`} value={x.s} onChange={e => edit(k, { s: e.target.value })} className="h-8 w-28 text-[13px] tabular-nums" />
+            <Input inputMode="numeric" aria-label={`${ROUTINE_ROW[k]} minutes`} value={x.min} onChange={e => edit(k, { min: e.target.value })} className="h-8 w-16 text-[13px] tabular-nums" />
+            <span className="text-[13px] text-muted-foreground">min</span>
+          </div>
+        );
+      })}
+      <div className="flex flex-wrap items-center gap-2 border-t border-border px-4 py-3">
+        <Button variant="outline" size="sm" onClick={save}>Save</Button>
+        <Button variant="ghost" size="sm" onClick={reset}>Reset to defaults</Button>
+        {error && <p data-routine-error role="alert" className="min-w-0 basis-full text-[13px] text-foreground">{error}</p>}
+        {!error && note && <p data-routine-bedtime className="min-w-0 basis-full text-[13px] text-foreground">{note}</p>}
+      </div>
+      <p className="border-t border-border px-4 py-2.5 text-[13px] leading-snug text-muted-foreground">The routine applies Mon–Sat; Sundays keep their own times. Wake-up shifts the whole study day, bedtime included (17 h later), and the meals and gym you have not changed with it; a slot you change keeps the time you set. Study blocks always keep their full length: if they need it, bedtime moves later. A calendar file you have already downloaded must be downloaded again after any change.</p>
+    </div>
+  );
+}
+
+/** Light, dark or follow the system. Saved per browser (next-themes, localStorage key "theme"); not synced. */
+function ThemeSetting() {
+  const { theme = 'system', setTheme } = useTheme();
+  return (
+    <Setting id="theme" label="Theme" help="System follows your device. Saved on this browser.">
+      <ToggleGroup type="single" variant="outline" size="sm" value={theme} aria-label="Theme"
+        onValueChange={v => { if (v === 'light' || v === 'dark' || v === 'system') setTheme(v); }}>
+        <ToggleGroupItem value="light" className="px-3 text-[13px]">Light</ToggleGroupItem>
+        <ToggleGroupItem value="dark" className="px-3 text-[13px]">Dark</ToggleGroupItem>
+        <ToggleGroupItem value="system" className="px-3 text-[13px]">System</ToggleGroupItem>
+      </ToggleGroup>
+    </Setting>
+  );
+}
+
 export function SetupView() {
   const { state, days, update, replace, threads, sync, syncConfigured, connectSync, disconnectSync, syncNow } = useStore();
   const { toast } = useUI();
@@ -68,32 +164,53 @@ export function SetupView() {
   const removeTarget = (c: string) => update(s => ({ ...s, targets: s.targets.filter(t => t !== c) }));
 
   const start = parseISO(state.start);
-  const wake = WEEKDAY_BLOCKS.find(b => b.k === 'wake')?.s ?? WEEKDAY_BLOCKS[0].s;
-  const gym = WEEKDAY_BLOCKS.find(b => b.k === 'workout')?.s;
-  const sleep = WEEKDAY_BLOCKS[WEEKDAY_BLOCKS.length - 1].e;
+  const mode = modeOn(state.modes, iso(new Date())).mode;
+  const switchTo = (m: Mode) => {
+    if (m === mode) return;
+    const today = iso(new Date());
+    update(s => ({ ...s, modes: switchMode(s.modes, today, m, cursorsNow(s, today), s.start) }));
+    toast(`Switched to ${m === 'grind' ? 'Grind' : 'Steady'} from today. Done work stays done.`);
+  };
+  // The owner's study day as placed (wake-up, slots, moved bedtime); the template if the routine cannot be placed.
+  const placedWeek = placeDay(WEEKDAY_BLOCKS, state.routine);
+  const week = placedWeek.ok ? placedWeek.blocks : WEEKDAY_BLOCKS;
+  const { wake, gym, sleep, studyH } = timetableSummary(week);
+  const gymTitle = week.find(b => b.k === 'workout')?.title ?? 'Gym';
   const syncLine = sync.state === 'syncing' ? 'Syncing…' : sync.state === 'error' ? 'Not synced' : `Synced${sync.at ? ` at ${new Date(sync.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}`;
 
   return (
     <PageFrame header={<PageHeader crumbs={['Setup']} />}>
       <Surface>
         <Band id="plan" title="Your plan">
-          <Setting label="Start date" help="The first day of your plan. Sundays become review days. Your ticks and notes stay.">
+          <Setting id="mode" label="Mode" help={<><span className="block">Steady: 17 weeks · about 8.5 h a day</span><span className="block">Grind: 13 weeks · about 10.75 h a day</span></>}>
+            <ToggleGroup type="single" variant="outline" size="sm" value={mode} aria-label="Mode"
+              onValueChange={v => { if (v === 'steady' || v === 'grind') switchTo(v); }}>
+              <ToggleGroupItem value="steady" className="px-3 text-[13px]">Steady</ToggleGroupItem>
+              <ToggleGroupItem value="grind" className="px-3 text-[13px]">Grind</ToggleGroupItem>
+            </ToggleGroup>
+          </Setting>
+          <ThemeSetting />
+          <Setting label="Start date" help="A Monday: the first day of your plan. Sundays become review days. Your ticks and notes stay.">
             <Popover open={dateOpen} onOpenChange={setDateOpen}>
               <PopoverTrigger asChild>
                 <Button variant="outline" size="sm" data-start-date className="font-normal tabular-nums"><CalendarDays className="text-muted-foreground" />{fmtDate(start)}</Button>
               </PopoverTrigger>
               <PopoverContent align="end" className={`w-auto p-0 ${popup}`}>
-                <Calendar mode="single" selected={start} defaultMonth={start} required
+                <Calendar mode="single" selected={start} defaultMonth={start} required disabled={d => d.getDay() !== 1}
                   onSelect={d => { if (!d) return; const v = iso(d); setDateOpen(false); if (v === state.start) return; update(s => ({ ...s, start: v })); toast('Start date saved. Download the calendar again.'); }} />
               </PopoverContent>
             </Popover>
           </Setting>
-          <Setting label="Start with a prep day" htmlFor="prep-day" help="Day 0 is a half prep day from 15:30. Off: Day 1 starts on the start date.">
+          <Setting label="Start with a prep day" htmlFor="prep-day" help="Day 0 is the Sunday before the start date, a half prep day from 15:30. Off: Day 1 starts on the start date.">
             <Switch id="prep-day" aria-label="Start with a prep day" checked={state.kickoff} onCheckedChange={v => update(s => ({ ...s, kickoff: v }))} />
           </Setting>
           <Setting label="Daily timetable" help={<span className="tabular-nums">Wake {wake}{gym ? ` · gym ${gym}` : ''} · sleep {sleep}</span>}>
             <Button variant="outline" size="sm" onClick={() => setSheet(true)} aria-label="View timetable">View</Button>
           </Setting>
+        </Band>
+
+        <Band id="routine" title="My routine">
+          <RoutineForm key={JSON.stringify(state.routine)} />
         </Band>
 
         <Band id="interviews" title="Interviews" count={state.targets.length || undefined}>
@@ -136,6 +253,10 @@ export function SetupView() {
           </Setting>
         </Band>
 
+        <Band id="labels" title="Labels" count={Object.values(state.labels).filter(l => l.kind === 'label').length || undefined}>
+          <LabelsManager />
+        </Band>
+
         <Band id="sync" title="Sync and backup">
           <Setting label="Sync across devices" help={<>Ticks and notes go to a private GitHub Gist so phone and laptop agree. The token needs only <span className="font-medium text-foreground">Gists: read and write</span> and stays in this browser.</>}>
             {syncConfigured ? (
@@ -173,26 +294,26 @@ export function SetupView() {
         </Band>
 
         <Band id="reminders" title="Reminders">
-          <Setting label="Calendar reminders" help="Every block as a repeating event with an alert 2 minutes before, for 13 weeks. Import into Google Calendar for phone alerts.">
-            <Button size="sm" onClick={() => download('reminders.ics', buildICS(state.start, days.length), 'text/calendar')}>Download reminders.ics</Button>
+          <Setting label="Calendar reminders" help="Every block as a repeating event with an alert 2 minutes before, for the whole plan. Import into Google Calendar for phone alerts.">
+            <Button size="sm" onClick={() => download('reminders.ics', buildICS(state.start, totalDays(days), resolveRoutine(state.routine)), 'text/calendar')}>Download reminders.ics</Button>
           </Setting>
         </Band>
 
         <Band id="again" title="Start again">
-          <Setting label="Start over from today" help="Today becomes the first day and every tick, flag and daily log is cleared, here and in the Gist. Notes pages, bookmarks and your own tasks stay.">
+          <Setting label="Start over from today" help="The next Monday (today, if it is Monday) becomes the start date, in the mode you are in now. Every tick, status, flag, daily log, solve log, score and Sunday choice is cleared, here and in the Gist. Notes pages, bookmarks, task notes, labels, your routine and your own tasks and problems stay.">
             <AlertDialog>
               <AlertDialogTrigger asChild><Button variant="outline" size="sm" className={stoneBtn}>Start over…</Button></AlertDialogTrigger>
               <AlertDialogContent className={popup}>
                 <AlertDialogHeader>
                   <AlertDialogTitle className="text-[16px]">Start over from today?</AlertDialogTitle>
-                  <AlertDialogDescription>Makes today the first day (Day 0 if the prep day is on, otherwise Day 1) and clears every tick, flag and daily log, here and in the Gist. Your notes pages, bookmarks and your own tasks stay.</AlertDialogDescription>
+                  <AlertDialogDescription>Makes the next Monday (today, if it is Monday) the start date, with the prep day the Sunday before if it is on, in the mode you are in now, and clears every tick, status, flag, daily log, solve log, score and Sunday choice, here and in the Gist. Your notes pages, bookmarks, task notes, labels, routine and your own tasks and problems stay.</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction onClick={() => {
-                    const today = iso(new Date());
-                    update(s => ({ ...s, start: today, done: {}, flags: {}, notes: {} }));
-                    toast(`${state.kickoff ? 'Day 0' : 'Day 1'} is today. Download the calendar again.`);
+                    const today = nextMonday(iso(new Date()));
+                    update(s => startOver(s, today));
+                    toast('Start date moved to the next Monday. Download the calendar again.');
                   }}>Start over</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -220,9 +341,9 @@ export function SetupView() {
         <SheetContent className="flex w-full flex-col gap-0 overflow-y-auto bg-card p-0 sm:max-w-md">
           <SheetHeader className="px-4 pt-4 pb-3">
             <SheetTitle className="text-[15px]">Daily timetable</SheetTitle>
-            <SheetDescription className="text-[13px]">Sleep 22:00–05:00. Gym at 18:00, Mon–Sat. Mon–Sat has about 10.75 h of study blocks. Sunday is a 3.5 h morning, then rest.</SheetDescription>
+            <SheetDescription className="text-[13px] tabular-nums">Mon–Sat: wake {wake}, sleep {sleep}.{gym ? ` ${gymTitle} at ${gym}.` : ''} About {studyH} h of study blocks. Sunday is a 3.5 h morning, then rest.</SheetDescription>
           </SheetHeader>
-          <Timetable title="Mon–Sat" blocks={WEEKDAY_BLOCKS} />
+          <Timetable title="Mon–Sat" blocks={week} />
           <Timetable title="Sunday" blocks={SUNDAY_BLOCKS} />
         </SheetContent>
       </Sheet>

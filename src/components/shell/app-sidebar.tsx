@@ -1,14 +1,14 @@
 'use client';
 /* Desktop sidebar: mark + status line, page nav with the News unread count, New task, Cycles, Setup and the sync line. */
-import { CalendarCheck2, ChartLine, Map as MapIcon, Newspaper, NotebookPen, Plus, Search, Settings, type LucideIcon } from 'lucide-react';
+import { Binary, CalendarCheck2, ChartLine, Map as MapIcon, Newspaper, NotebookPen, Plus, Search, Settings, type LucideIcon } from 'lucide-react';
 import { cn, modKey } from '@/lib/utils';
 import { BASE, useStore, type State } from '@/lib/store';
-import { overall, TOTAL, type Day, type NewsFeed } from '@/lib/engine';
+import { overall, totalDays, type Day, type NewsFeed } from '@/lib/engine';
 import type { StatusMap } from '@/lib/task-status';
 import type { ThreadsFeed } from '@/lib/interview-feed';
 import { useUI, type View } from '@/components/ui-state';
 import { cycleList } from '@/lib/cycle';
-import { Ring } from '@/components/shell/page';
+import { ModeLine, Ring } from '@/components/shell/page';
 import { StatusIcon } from '@/components/status-control';
 import { useCycleDays } from '@/components/today-rail';
 import {
@@ -21,6 +21,7 @@ export const NAV: { v: View; label: string; icon: LucideIcon }[] = [
   { v: 'progress', label: 'Progress', icon: ChartLine },
   { v: 'roadmap', label: 'Roadmap', icon: MapIcon },
   { v: 'notes', label: 'Notes', icon: NotebookPen },
+  { v: 'dsa', label: 'DSA', icon: Binary },
   { v: 'news', label: 'News', icon: Newspaper },
 ];
 export const SETUP_NAV = { v: 'setup' as View, label: 'Setup', icon: Settings };
@@ -41,14 +42,14 @@ export function newsUnread(state: Pick<State, 'seenUpdates'>, news: NewsFeed | n
   return n;
 }
 
-/** "Day N of 91 · on track", "prep day", "starts in Nd" or "complete". */
+/** "Day N of 119 · on track", "prep day", "starts in Nd" or "complete". */
 export function statusLine(days: Day[], todayIdx: number, done: Record<string, number>, status: StatusMap = {}): string {
   if (todayIdx < 0) return `starts in ${-todayIdx}d`;
   if (todayIdx >= days.length) return 'complete';
   const d = days[todayIdx];
   if (d.no === 0) return 'prep day';
   const [k, label] = overall(days, done, todayIdx, status).status;
-  return `Day ${d.no} of ${TOTAL} · ${k === 'ok' ? 'on track' : label}`;
+  return `Day ${d.no} of ${totalDays(days)} · ${k === 'ok' ? 'on track' : label}`;
 }
 
 const hhmm = (t: number) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -64,9 +65,11 @@ export function AppSidebar() {
   const { state, days, todayIdx, news, threads, sync, syncConfigured } = useStore();
   const { view, go, newTask, openSearch } = useUI();
   const unread = newsUnread(state, news, threads);
-  const item = (n: { v: View; label: string; icon: LucideIcon }, badge?: number) => (
+  // `plain`: no selected or unselected look (Setup in the footer); the page is still announced as current.
+  const item = (n: { v: View; label: string; icon: LucideIcon }, badge?: number, plain = false) => (
     <SidebarMenuItem key={n.v}>
-      <SidebarMenuButton data-nav={n.v} isActive={view === n.v} tooltip={n.label} onClick={() => go(n.v)} aria-current={view === n.v ? 'page' : undefined}>
+      <SidebarMenuButton data-nav={n.v} isActive={!plain && view === n.v} tooltip={n.label} onClick={() => go(n.v)} aria-current={view === n.v ? 'page' : undefined}
+        className={plain ? 'bg-transparent hover:bg-transparent active:bg-transparent data-[active=true]:bg-transparent' : undefined}>
         <n.icon />
         <span>{n.label}</span>
       </SidebarMenuButton>
@@ -79,9 +82,10 @@ export function AppSidebar() {
       <SidebarHeader className="px-3 pt-3 group-data-[collapsible=icon]:px-2">
         <div className="flex items-center gap-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element -- static export: plain img with the basePath prefix */}
-          <img data-logo src={`${BASE}/logo-64.png`} alt="Offer in 90" width={24} height={24} className="size-6 shrink-0 rounded-full ring-1 ring-border group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-5" />
+          <img data-logo src={`${BASE}/logo-128.png`} alt="IDT" width={44} height={44} className="size-11 shrink-0 rounded-lg ring-1 ring-border group-data-[collapsible=icon]:mx-auto group-data-[collapsible=icon]:size-6 group-data-[collapsible=icon]:rounded-md" />
           <div className="min-w-0 leading-tight group-data-[collapsible=icon]:hidden">
-            <div className="truncate text-[14px] font-semibold">Offer in 90</div>
+            <div className="truncate text-[14px] font-semibold">IDT</div>
+            <ModeLine className="truncate text-[12px] text-muted-foreground" />
             <div className="truncate text-[12px] text-muted-foreground tabular-nums" data-shell="status">{statusLine(days, todayIdx, state.done, state.status)}</div>
           </div>
         </div>
@@ -112,8 +116,14 @@ export function AppSidebar() {
         </SidebarGroup>
         <SidebarCycles />
       </SidebarContent>
-      <SidebarFooter className="pb-3">
-        <SidebarMenu>{item(SETUP_NAV)}</SidebarMenu>
+      <SidebarFooter className="relative pb-3">
+        {/* Faint brand mark behind the footer, full sidebar width, anchored bottom-left so the "I" of IDT sits on the
+            sidebar's left edge (the art has a ~2.5% left margin, shifted out). Light theme: inverted and multiplied
+            (its white disappears); dark theme: screened (its black disappears). Decorative only. */}
+        {/* eslint-disable-next-line @next/next/no-img-element -- static export: plain img with the basePath prefix */}
+        <img data-sidebar-mark src={`${BASE}/logo-256.png`} alt="" aria-hidden width={208} height={208}
+          className="pointer-events-none absolute bottom-0 left-0 h-auto w-full -translate-x-[2.5%] select-none opacity-[0.07] mix-blend-multiply invert dark:opacity-[0.1] dark:mix-blend-screen dark:invert-0 group-data-[collapsible=icon]:hidden" />
+        <SidebarMenu>{item(SETUP_NAV, undefined, true)}</SidebarMenu>
         <div className={cn('truncate px-2 text-[12px] tabular-nums group-data-[collapsible=icon]:hidden', sync.state === 'error' ? 'text-muted-foreground' : 'text-faint')} data-shell="sync" title={sync.state === 'error' ? sync.msg : undefined}>
           {syncLine(sync, syncConfigured)}
         </div>

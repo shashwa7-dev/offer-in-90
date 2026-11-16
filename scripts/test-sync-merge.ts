@@ -74,4 +74,51 @@ assert.deepEqual(merge(stPhone, oldState).status, { a: 'progress' });
 const cleared = stamp(stPhone, { ...stPhone, status: {} }, 9000);
 assert.deepEqual(merge(stPhone, cleared).status, {});
 
-console.log('sync-merge: all 11 scenarios pass');
+// 12. v5 device syncing with an R1 (v6) device: the new maps from the R1 side survive, the v5 side contributes empty maps
+const r1Base = { ...base, modes: {} as Record<string, unknown>, labels: {} as Record<string, unknown>, itemLabels: {} as Record<string, string[]> };
+const r1 = stamp(r1Base, {
+  ...r1Base,
+  labels: { l1: { id: 'l1', name: 'Hard', color: '#f00', kind: 'label' } },
+  itemLabels: { 'p-two-sum': ['l1'] },
+  modes: { '2026-11-16': { mode: 'grind', cursors: { dsa: 3 } } },
+}, 10000);
+const v5 = { ...base } as typeof r1Base; // no new maps at all
+for (const mm of [merge(v5, r1), merge(r1, v5)]) {
+  assert.equal((mm.labels.l1 as { name: string }).name, 'Hard');
+  assert.deepEqual(mm.itemLabels['p-two-sum'], ['l1']);
+  assert.equal((mm.modes['2026-11-16'] as { mode: string }).mode, 'grind');
+}
+assert.deepEqual(merge(v5, v5).labels, {}); // empty on both sides
+
+// 13. Renaming a label stamps meta['labels/<id>']
+const renamed = stamp(r1, { ...r1, labels: { l1: { id: 'l1', name: 'Tricky', color: '#f00', kind: 'label' } } }, 11000);
+assert.equal(renamed.meta['labels/l1'], 11000);
+
+// 14. A deleted label (tombstone) beats an older remote copy, and its item link goes with it
+const gone = stamp(r1, { ...r1, labels: {}, itemLabels: {} }, 12000);
+m = merge(r1, gone);
+assert.ok(!('l1' in m.labels) && !('p-two-sum' in m.itemLabels));
+m = merge(gone, r1);
+assert.ok(!('l1' in m.labels) && !('p-two-sum' in m.itemLabels));
+
+// 15. Other new maps (own, solves, sundayMode, scores) merge per key
+const nBase = { ...base, own: {}, solves: {}, sundayMode: {}, scores: {} } as typeof base & Record<string, Record<string, unknown>>;
+const nA = stamp(nBase, { ...nBase, solves: { 'p-x': { unseen: true, at: 1 } }, scores: { 'baseline/dsa': 40 } }, 13000);
+const nB = stamp(nBase, { ...nBase, sundayMode: { '2026-11-15': 'rest' }, scores: { 'w3/fe': 70 } }, 13001);
+m = merge(nA, nB) as typeof m;
+const nm = m as unknown as typeof nBase;
+assert.ok('p-x' in nm.solves && nm.sundayMode['2026-11-15'] === 'rest');
+assert.deepEqual(Object.keys(nm.scores).sort(), ['baseline/dsa', 'w3/fe']);
+
+console.log('sync-merge: all 15 scenarios pass');
+
+// 16. routine: v5/v6 state without it merges; slots from both sides survive
+{
+  const rBase = { ...base, routine: {} } as typeof base & { routine: Record<string, unknown> };
+  const rA = stamp(rBase, { ...rBase, routine: { lunch: { on: false, title: 'Lunch', s: '12:00', min: 60 } } }, 14000);
+  const rB = stamp(rBase, { ...rBase, routine: { extra: { on: true, title: 'Yoga', s: '17:00', min: 30 } } }, 14001);
+  const legacy = { ...base } as typeof rBase;
+  for (const mm of [merge(rA, rB), merge(rB, rA)] as unknown as (typeof rBase)[]) assert.deepEqual(Object.keys(mm.routine).sort(), ['extra', 'lunch']);
+  for (const mm of [merge(legacy, rA), merge(rA, legacy)] as unknown as (typeof rBase)[]) assert.ok('lunch' in mm.routine);
+}
+console.log('sync-merge: routine scenario passes');

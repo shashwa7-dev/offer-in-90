@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link2 } from 'lucide-react';
 import { useStore } from '@/lib/store';
 import { defaultBlock } from '@/lib/own-tasks';
+import { applyLabel, removeLabel } from '@/lib/labels';
 import { domainOf } from '@/lib/interview-feed';
 import { iso, type Day } from '@/lib/engine';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -13,13 +14,14 @@ import { Switch } from '@/components/ui/switch';
 import { parseTask } from './own-task';
 import { BlockPick, DayPick, chipBtn, nowMin, useDateLabel } from './task-pickers';
 import { useUI } from './ui-state';
+import { LabelPicker } from './label-picker';
 
 export type NewTaskPreset = { date?: string; block?: string };
 
 const blockFor = (day: Day | undefined, todayIdx: number) => day ? defaultBlock(day.blocks, day.i === todayIdx ? nowMin() : undefined)?.k : undefined;
 
 export function NewTaskDialog({ preset, onClose }: { preset: NewTaskPreset | null; onClose: () => void }) {
-  const { days, todayIdx, update } = useStore();
+  const { state, days, todayIdx, update } = useStore();
   const { toast } = useUI();
   const label = useDateLabel();
   const [title, setTitle] = useState('');
@@ -27,6 +29,7 @@ export function NewTaskDialog({ preset, onClose }: { preset: NewTaskPreset | nul
   const [link, setLink] = useState('');
   const [date, setDate] = useState('');
   const [block, setBlock] = useState('');
+  const [labelIds, setLabelIds] = useState<string[]>([]);
   const [more, setMore] = useState(false);
   const titleRef = useRef<HTMLInputElement>(null);
 
@@ -37,7 +40,7 @@ export function NewTaskDialog({ preset, onClose }: { preset: NewTaskPreset | nul
     const d = (preset.date && days.find(x => iso(x.date) === preset.date)) || fallback;
     setDate(iso(d.date));
     setBlock(preset.block && d.blocks.some(b => b.k === preset.block) ? preset.block : blockFor(d, todayIdx) || '');
-    setTitle(''); setNote(''); setLink('');
+    setTitle(''); setNote(''); setLink(''); setLabelIds([]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [preset]);
 
@@ -47,6 +50,7 @@ export function NewTaskDialog({ preset, onClose }: { preset: NewTaskPreset | nul
     const nd = days.find(x => iso(x.date) === v);
     if (nd && !nd.blocks.some(b => b.k === block && b.kind !== 'life')) setBlock(blockFor(nd, todayIdx) || '');
   };
+  const toggleLabel = (id: string, on: boolean) => setLabelIds((cur) => (on ? applyLabel : removeLabel)({ labels: state.labels, itemLabels: { new: cur } }, 'new', id).itemLabels.new ?? []);
   const parsed = parseTask(title);
   const canAdd = !!parsed.text && !!day && !!block;
 
@@ -61,11 +65,12 @@ export function NewTaskDialog({ preset, onClose }: { preset: NewTaskPreset | nul
     update(s => ({
       ...s,
       custom: { ...s.custom, [id]: { date, block, text: parsed.text, ...(url ? { url } : {}), at: now } },
+      ...(labelIds.length ? { itemLabels: { ...s.itemLabels, [`u-${id}`]: labelIds.filter(x => s.labels[x]) } } : {}),
       ...(body ? { tnotes: { ...s.tnotes, [`u-${id}`]: { title: parsed.text, body, upd: now, ...(url ? { url } : {}) } } } : {}),
     }));
     const b = day.blocks.find(x => x.k === block);
     toast(`Added to ${label(date)}${b ? ` · ${b.s} ${b.title}` : ''}`);
-    if (more) { setTitle(''); setNote(''); setLink(''); titleRef.current?.focus(); } else onClose();
+    if (more) { setTitle(''); setNote(''); setLink(''); setLabelIds([]); titleRef.current?.focus(); } else onClose();
   };
 
   return (
@@ -87,6 +92,7 @@ export function NewTaskDialog({ preset, onClose }: { preset: NewTaskPreset | nul
             <DayPick value={date} onChange={pickDate} />
             {day && <BlockPick day={day} value={block} onChange={setBlock} className="max-w-[260px]" />}
             <LinkChip value={link} onChange={setLink} />
+            <LabelPicker selected={labelIds} onToggle={toggleLabel} className={chipBtn} />
           </div>
           <div className="flex flex-wrap items-center gap-3 border-t border-border px-5 py-3">
             <label className="flex cursor-pointer items-center gap-2 text-[13px] text-muted-foreground">

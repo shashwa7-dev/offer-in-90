@@ -5,6 +5,8 @@ import { Check, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import { STATUS_LABEL, applyStatus, statusOf, type TaskStatus } from '@/lib/task-status';
+import { solveOnStatus } from '@/lib/dsa-page';
+import { PROBLEMS } from '@/lib/content/dsa.js';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuShortcut, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 export const STATUS_ORDER: TaskStatus[] = ['todo', 'progress', 'done', 'skipped'];
@@ -40,11 +42,20 @@ export function StatusIcon({ status, size = 16, className }: { status: TaskStatu
   );
 }
 
-/** Current status of a task and a setter that writes both maps through update(), so stamp() records both. */
+const UNSEEN_SLUGS: ReadonlySet<string> = new Set((PROBLEMS as { slug: string; role?: string }[]).filter(p => p.role === 'unseen').map(p => p.slug));
+
+/** Current status of a task and a setter that writes both maps through update(), so stamp() records both.
+    A problem tick also writes its solve log (DSA green rule); the time comes from the click, not the updater. */
 export function useTaskStatus(taskId: string): [TaskStatus, (next: TaskStatus) => void] {
   const { state, update } = useStore();
   const status = statusOf(taskId, state.done, state.status);
-  const set = useCallback((next: TaskStatus) => update(s => ({ ...s, ...applyStatus({ done: s.done, status: s.status }, taskId, next, Date.now()) })), [update, taskId]);
+  const set = useCallback((next: TaskStatus) => {
+    const now = Date.now();
+    update(s => {
+      const solves = solveOnStatus(s.solves, taskId, next, now, UNSEEN_SLUGS, s.done);
+      return { ...s, ...applyStatus({ done: s.done, status: s.status }, taskId, next, now), ...(solves === s.solves ? {} : { solves }) };
+    });
+  }, [update, taskId]);
   return [status, set];
 }
 

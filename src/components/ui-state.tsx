@@ -1,7 +1,7 @@
 'use client';
 import { createContext, useContext } from 'react';
 
-export type View = 'today' | 'progress' | 'roadmap' | 'notes' | 'news' | 'setup';
+export type View = 'today' | 'progress' | 'roadmap' | 'notes' | 'dsa' | 'news' | 'setup';
 export type RoadmapTab = 'timeline' | 'weeks' | 'reference';
 export type NewsTab = 'interviews' | 'reading' | 'saved';
 /** Which News tab a task's "Open News" lands on: daily reads → Reading, the weekly pulse → Interviews. */

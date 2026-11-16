@@ -2,18 +2,22 @@
 /* ⌘K: one palette over every plan task, notes, interview posts, daily reads and the page shortcuts.
    Results come from src/lib/search.ts (cmdk filtering is off); the index is rebuilt only when store data changes. */
 import { useMemo, useState } from 'react';
-import { CalendarCheck2, CornerDownLeft, FileText, Newspaper, Plus, Search, SquareCheck, StickyNote, type LucideIcon } from 'lucide-react';
+import { CalendarCheck2, CornerDownLeft, FileText, Newspaper, Binary, Plus, Search, Tag, SquareCheck, StickyNote, type LucideIcon } from 'lucide-react';
 import { cn, modKey } from '@/lib/utils';
 import { useStore } from '@/lib/store';
 import { buildIndex, search, type Hit } from '@/lib/search';
+import { statusOf, unseenHidden } from '@/lib/task-status';
 import { flattenThreads } from '@/lib/interview-feed';
 import { trackOfCat } from '@/lib/task-filter';
 import { TRACKS } from '@/lib/timeline';
+import { PATTERN_IDS } from '@/lib/patterns';
+import { patternNameOf } from '@/lib/engine';
 import { Command, CommandEmpty, CommandGroup, CommandItem, CommandList } from '@/components/ui/command';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Command as CommandPrimitive } from 'cmdk';
 import { NAV, SETUP_NAV } from './shell/app-sidebar';
 import { useUI, type View } from './ui-state';
+import { applyLabelFilter } from './today-filters';
 
 const trackName = (cat: string) => { const k = trackOfCat(cat); return k ? TRACKS.find(t => t.key === k)?.name : undefined; };
 
@@ -26,12 +30,14 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
 
   // Built only while the palette is open, so typing in Notes (pages/tnotes changes) never re-indexes ~1.8k tasks.
   const ix = useMemo(() => open ? buildIndex({
-    days: days.map(d => ({ i: d.i, no: d.no, date: d.date, tasks: d.tasks.map(t => ({ id: t.id, text: t.text, cat: t.cat, own: t.own, track: trackName(t.cat) })) })),
+    days: days.map(d => ({ i: d.i, no: d.no, date: d.date, tasks: d.tasks.map(t => ({ id: t.id, text: t.text, cat: t.cat, own: t.own, track: trackName(t.cat), ...(t.superseded ? { superseded: t.superseded } : {}), ...(unseenHidden(t.hiddenUntilStart, statusOf(t.id, state.done, state.status)) ? { hidden: true as const } : {}) })) })),
     pages: state.pages,
     tnotes: state.tnotes,
     posts: flattenThreads(threads),
+    patterns: PATTERN_IDS.map(id => ({ id, name: patternNameOf(id) })),
+    labels: Object.values(state.labels).filter(l => l.kind === 'label').map(l => ({ id: l.id, name: l.name, color: l.color })),
     reads: news ? Object.keys(news.days).sort().reverse().flatMap(k => news.days[k]) : [],
-  }) : null, [open, days, state.pages, state.tnotes, threads, news]);
+  }) : null, [open, days, state.pages, state.tnotes, state.done, state.status, state.labels, threads, news]);
 
   const groups = useMemo(() => (ix ? search(ix, q) : []), [ix, q]);
 
@@ -41,6 +47,8 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
 
   const pick = (h: Hit) => {
     if (h.kind === 'task') close(() => { openDay(h.dayIdx); openTask(h.id, h.dayIdx); });
+    else if (h.kind === 'pattern') close(() => go('dsa'));
+    else if (h.kind === 'label') close(() => { go('today'); applyLabelFilter(h.id); });
     else if (h.kind === 'day') close(() => openDay(h.dayIdx));
     else if (h.kind === 'note') {
       const tn = state.tnotes[h.key];
@@ -60,7 +68,7 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
   const words = q.toLowerCase().split(/\s+/).filter(Boolean);
   const shownActions = words.length ? actions.filter(a => words.every(w => a.label.toLowerCase().includes(w))) : actions;
 
-  const ICON: Record<Hit['kind'], LucideIcon> = { task: SquareCheck, note: StickyNote, post: Newspaper, read: FileText, day: CalendarCheck2 };
+  const ICON: Record<Hit['kind'], LucideIcon> = { task: SquareCheck, note: StickyNote, post: Newspaper, read: FileText, pattern: Binary, label: Tag, day: CalendarCheck2 };
   const item = (h: Hit, key: string) => {
     const Icon = ICON[h.kind];
     const out = h.kind === 'post' || h.kind === 'read';
@@ -103,7 +111,7 @@ export function SearchDialog({ open, onOpenChange }: { open: boolean; onOpenChan
             <CommandEmpty className="py-8 text-center text-[13px] text-muted-foreground">Nothing matches “{q.trim()}”.</CommandEmpty>
             {groups.map(g => (
               <CommandGroup key={g.group} heading={g.group} data-search-group={g.group} className="[&_[cmdk-group-heading]]:text-[12px]">
-                {g.hits.map((h, n) => item(h, `${g.group}:${n}:${h.kind === 'task' ? `${h.id}@${h.dayIdx}` : h.kind === 'note' ? h.key : h.kind === 'day' ? h.dayIdx : h.url}`))}
+                {g.hits.map((h, n) => item(h, `${g.group}:${n}:${h.kind === 'task' ? `${h.id}@${h.dayIdx}` : h.kind === 'note' ? h.key : h.kind === 'day' ? h.dayIdx : h.kind === 'pattern' || h.kind === 'label' ? h.id : h.url}`))}
               </CommandGroup>
             ))}
             {shownActions.length > 0 && (

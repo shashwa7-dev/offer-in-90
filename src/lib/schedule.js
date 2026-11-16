@@ -1,51 +1,62 @@
+import { placeDay } from './routine.ts';
+
 // Daily timetable + calendar (.ics) builder.
 // Used by index.html in the browser and by `node schedule.js <start-date>` to write reminders.ics.
 
 export const WEEKDAY_BLOCKS = [
   { s: '05:00', e: '05:15', k: 'wake',      title: 'Wake up, water, freshen up', kind: 'life' },
-  { s: '05:15', e: '07:15', k: 'dsa',       title: 'Deep work 1 · DSA, new problems', kind: 'study', remind: true },
+  { s: '05:15', e: '06:15', k: 'dsa',       title: 'Deep work 1 · DSA pattern', kind: 'study', remind: true },
+  { s: '06:15', e: '07:15', k: 'aib',       title: 'Recall + AI news', kind: 'study', remind: true },
   { s: '07:15', e: '08:00', k: 'breakfast', title: 'Breakfast, get ready', kind: 'life', remind: true },
-  { s: '08:00', e: '10:00', k: 'fe',        title: 'Deep work 2 · Frontend & CS core', kind: 'study', remind: true },
+  { s: '08:00', e: '10:00', k: 'fe',        title: 'Deep work 2 · AI engineering core', kind: 'study', remind: true },
   { s: '10:00', e: '10:15', k: 'break1',    title: 'Break: walk, stretch, water', kind: 'life' },
-  { s: '10:15', e: '11:45', k: 'mc',        title: 'Deep work 3 · Machine coding', kind: 'study', remind: true },
+  { s: '10:15', e: '11:45', k: 'mc',        title: 'Deep work 3 · Product: the flagship', kind: 'study', remind: true },
   { s: '11:45', e: '13:00', k: 'lunch',     title: 'Lunch + 20 min power nap', kind: 'life', remind: true },
-  { s: '13:00', e: '14:30', k: 'sd',        title: 'Deep work 4 · System design', kind: 'study', remind: true },
+  { s: '13:00', e: '14:30', k: 'sd',        title: 'Deep work 4 · Systems and architecture', kind: 'study', remind: true },
   { s: '14:30', e: '14:45', k: 'break2',    title: 'Tea break, away from screen', kind: 'life' },
-  { s: '14:45', e: '16:00', k: 'rev',       title: 'DSA revision (spaced repetition)', kind: 'study', remind: true },
-  { s: '16:00', e: '17:00', k: 'beh',       title: 'Career · behavioral, forward-deployed, applications', kind: 'study', remind: true },
-  { s: '17:00', e: '18:00', k: 'free',      title: 'Outdoor walk, sunlight, pre-gym snack', kind: 'life', remind: true },
+  { s: '14:45', e: '15:15', k: 'rev',       title: 'DSA revision + recognition drill', kind: 'study', remind: true },
+  { s: '15:15', e: '16:00', k: 'jt',        title: 'Platform, data and DevOps', kind: 'study', remind: true },
+  { s: '16:00', e: '17:00', k: 'beh',       title: 'Career and FDE', kind: 'study', remind: true },
+  { s: '17:00', e: '18:00', k: 'free',      title: 'Outdoor walk, sunlight, snack', kind: 'life', remind: true },
   { s: '18:00', e: '19:00', k: 'workout',   title: 'Gym', kind: 'health', remind: true },
   { s: '19:00', e: '19:15', k: 'shower',    title: 'Shower', kind: 'life' },
   { s: '19:15', e: '20:00', k: 'dinner',    title: 'Dinner + family time', kind: 'life', remind: true },
-  { s: '20:00', e: '21:00', k: 'ai',        title: 'AI: news + papers & courses', kind: 'study', remind: true },
+  { s: '20:00', e: '21:00', k: 'ai',        title: 'Frontend (senior)', kind: 'study', remind: true },
   { s: '21:00', e: '21:30', k: 'review',    title: 'Daily review: tick boxes, write log', kind: 'study', remind: true },
   { s: '21:30', e: '22:00', k: 'wind',      title: 'Wind down, no screens · sleep at 22:00', kind: 'life', remind: true },
 ];
 
+// Steady mode: replaces a rotating block on a day that block doesn't run, at the same times.
+export const BUFFER_BLOCK = { k: 'buffer', title: 'Buffer: catch up, rest or explore', kind: 'life' };
+
 export const SUNDAY_BLOCKS = [
-  { s: '05:00', e: '05:15', k: 'wake',      title: 'Wake up, water, freshen up', kind: 'life' },
-  { s: '05:15', e: '06:15', k: 'workout',   title: 'Long walk or easy run', kind: 'health', remind: true },
-  { s: '06:30', e: '08:00', k: 'mock',      title: 'Weekly mock test (timed)', kind: 'study', remind: true },
-  { s: '08:00', e: '09:00', k: 'breakfast', title: 'Breakfast', kind: 'life' },
-  { s: '09:00', e: '11:00', k: 'catchup',   title: 'Catch-up: missed tasks + flagged problems', kind: 'study', remind: true },
-  { s: '11:00', e: '12:00', k: 'weekly',    title: 'Weekly reflection + next week preview', kind: 'study', remind: true },
-  { s: '12:00', e: '20:30', k: 'rest',      title: 'Rest day: family, friends, outside. No study.', kind: 'life', remind: true },
-  { s: '20:30', e: '21:00', k: 'review',    title: 'Prepare for Monday: bag, desk, sleep early', kind: 'study', remind: true },
-  { s: '21:30', e: '22:00', k: 'wind',      title: 'Wind down · sleep at 22:00', kind: 'life' },
+  { s: '05:00', e: '05:15', k: 'wake',    title: 'Wake up, water, freshen up', kind: 'life' },
+  { s: '05:15', e: '06:15', k: 'workout', title: 'Long walk or easy run', kind: 'health', remind: true },
+  { s: '09:00', e: '10:30', k: 'core',    title: 'Weekly core: self-check, reflection, listen-back, preview', kind: 'study', remind: true },
+  { s: '10:30', e: '11:30', k: 'read',    title: 'Sunday read', kind: 'study', remind: true },
+  { s: '11:30', e: '13:30', k: 'sunday',  title: 'Active rest or revision', kind: 'study', remind: true },
+  { s: '13:30', e: '20:30', k: 'rest',    title: 'Rest: family, friends, outside. No study.', kind: 'life', remind: true },
+  { s: '20:30', e: '21:00', k: 'review',  title: 'Prepare for Monday: bag, desk, sleep early', kind: 'study', remind: true },
+  { s: '21:30', e: '22:00', k: 'wind',    title: 'Wind down · sleep at 22:00', kind: 'life' },
 ];
 
 function pad(n) { return String(n).padStart(2, '0'); }
 function ymd(d) { return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}`; }
 function parseISO(iso) { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d); }
 
-export function buildICS(startISO, totalDays = 91) {
+/** @param {string} startISO @param {number} [totalDays] @param {import('./state-types').RoutineMap} [routine] */
+export function buildICS(startISO, totalDays = 91, routine = undefined) {
+  // Owner routine (wake-up, bedtime, meals, gym) placed into the weekday template, moved bedtime included; falls back
+  // to the template only if it cannot be placed (invalid, or past 23:59).
+  const placed = routine ? placeDay(WEEKDAY_BLOCKS, routine) : null;
+  const weekday = placed && placed.ok ? placed.blocks : WEEKDAY_BLOCKS;
   const start = parseISO(startISO);
   const end = new Date(start); end.setDate(end.getDate() + totalDays - 1);
   const until = `${ymd(end)}T235959`;
   const firstSunday = new Date(start);
   while (firstSunday.getDay() !== 0) firstSunday.setDate(firstSunday.getDate() + 1);
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
-  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//FAANG Prep//90 Day Plan//EN', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:Interview Prep 90'];
+  const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//IDT//Interview Prep//EN', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:IDT'];
   const add = (b, day, byday, tag) => {
     const t = (hm) => hm.replace(':', '') + '00';
     lines.push(
@@ -61,7 +72,7 @@ export function buildICS(startISO, totalDays = 91) {
       'END:VEVENT'
     );
   };
-  WEEKDAY_BLOCKS.filter(b => b.remind).forEach(b => add(b, start.getDay() === 0 ? new Date(start.getTime() + 864e5) : start, 'MO,TU,WE,TH,FR,SA', 'wk'));
+  weekday.filter(b => b.remind).forEach(b => add(b, start.getDay() === 0 ? new Date(start.getTime() + 864e5) : start, 'MO,TU,WE,TH,FR,SA', 'wk'));
   SUNDAY_BLOCKS.filter(b => b.remind).forEach(b => add(b, firstSunday, 'SU', 'su'));
   lines.push('END:VCALENDAR');
   return lines.join('\r\n') + '\r\n';
