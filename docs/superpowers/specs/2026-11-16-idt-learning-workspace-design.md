@@ -1,6 +1,6 @@
 # IDT as a learning workspace: cycles, work items, estimates (design)
 
-Status: final draft for the owner's confirmation (2026-11-16), revision 4 (audit fixes). Builds on roadmap v3
+Status: final; owner decisions O1 and O2 made (2026-11-16), revision 5. Confirm once at the start of the implementation session. Builds on roadmap v3
 content (branch `roadmap-v2` of `offer-in-90`; PR #2 is not merged). Ships in a **new repo, `IDT`** (round 3).
 Where an earlier section and a later "Decisions" round disagree, the later round wins; the audit below lists the
 fixes made.
@@ -198,7 +198,7 @@ The track builders in `tracks.ts` and the content modules stay; a thin adapter t
 Lives in the database tables above (the earlier "overlay" type sketch is superseded): each workspace has its own
 `work_item` rows seeded from the template, holding state, cycle, estimate, order and note.
 
-### Import of existing local data (one-time, after first sign-in)
+### Import of existing local data (dropped: see O2, no import)
 
 The new app runs on another domain, so it cannot read the old site's browser storage. Import comes from an
 "Export my data" JSON file added to the old site, or from the owner's Gist with its token (see the audit, item
@@ -322,7 +322,7 @@ the cycle); burn-down drawing details; id key choices if a better short key exis
   rollback) and news engine on the DB via Trigger.dev; 3. notifications and reminder email, export and delete
   account. Later: AI agents, quizzes, members/invites, mentors. The plan includes a **feature-parity checklist**
   (DSA page and solve logs, own problems, Notes, labels/filters, search, News/Interviews/Pulse, bookmarks,
-  scores/readiness, reference pages, theme, mode badge), each assigned to a phase.
+  scores/readiness, reference pages, theme, mode badge), each assigned to a phase. (Import of old data: dropped, O2.)
 - **Daily DSA problem:** picked day by day from what is already covered (as today), materialised as that day's
   work item when the day first loads.
 
@@ -386,11 +386,11 @@ Rules added (controller calls, the builder follows them):
 AI keys: the providers are the four from the Release 3 plan; each key is stored with a `key_version` so the
 encryption key can be rotated.
 
-## Owner decisions needed (raised in the audit)
+## Owner decisions (audit, 2026-11-16)
 
-- **O1. Plan overrun:** when items remain after the last planned cycle, keep adding "overtime" cycles until
-  done (proposed), or stop at the plan end and leave the rest in a backlog.
-- **O2. What the import can bring:** the live site is still **v1**, whose task ids mostly do not exist in v3, so
-  old ticks cannot be mapped to v3 items. The import can bring notes, Notes pages, labels, own tasks, solve logs,
-  bookmarks and scores, but not "done" ticks. Proposed: import those, and start v3 progress fresh (the plan was
-  always going to need "Start over once" for v3).
+- **O1. Plan overrun: overtime cycles.** When work remains after the last planned cycle, new "overtime" cycles are
+  added automatically until everything is done or cancelled (audit rule 7).
+- **O2. No import.** Nothing is in real use yet, so IDT starts fresh: no export button on the old site, no Gist
+  import, no id mapping. Drop the import from Phase 1. (Supersedes the "Import of existing local data" section.)
+- **Standing rule (owner):** the app is early-stage beta with no active users. Prefer the clearly better design
+  even if it means rebuilding existing parts or breaking old data; no backward-compatibility work for the old app.

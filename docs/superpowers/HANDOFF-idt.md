@@ -104,10 +104,8 @@ routine, on a **real backend** (Next.js on Vercel + Neon Postgres + Drizzle + Be
 - The README must let a stranger run it locally; the repo goes public later.
 
 **Phases**
-1. Sign-in, workspace seed, Today, Cycle, carry-over, Progress, AI-key settings, and the import of old data.
-   - Old data comes from an "Export my data" file added to the old site, or from the Gist with its token.
-   - The new domain can't read the old site's localStorage.
-   - The live site is v1, so old "done" ticks don't map to v3 items (see O2 in the design).
+1. Sign-in, workspace seed, Today, Cycle, carry-over (with automatic overtime cycles, O1), Progress, AI-key settings.
+   - **No import of old data (O2):** IDT starts fresh.
 2. The admin app (releases, rollback) and the news engine on the database via Trigger.dev.
 3. Notifications and the reminder email, export and delete account.
 
@@ -115,20 +113,22 @@ Later: AI agents, quizzes, members and invites, mentors. The plan must include a
 
 ## Next steps, in order
 
-1. **Get the owner's answers to O1 and O2** (end of the design doc: plan overrun, and what the import can bring),
-   then the owner confirms the design. An audit (2026-11-16) already fixed the doc's contradictions and added 12
-   rules (design § "Audit").
+1. The owner confirms the design once. It's final:
+   - An audit (2026-11-16) fixed its contradictions and added 12 rules (design § "Audit").
+   - O1 (overtime cycles) and O2 (no import) are decided.
 2. (Optional) a quick independent review of the design.
 3. `superpowers:writing-plans` for **Phase 1** (including the feature-parity checklist).
 4. Create the `IDT` repo locally, scaffold the turborepo, push to a private GitHub repo. Confirm with the owner before creating a remote repo.
 5. Build Phase 1 subagent-driven (`superpowers:subagent-driven-development`), with per-task reviews and one final whole-branch review.
 6. Ask the owner for env values only when a step needs them (the table is in the design).
-7. After Phase 1 works: add the export to the old site, import, then close PR #2 and plan the old site's retirement with the owner.
+7. After Phase 1 works, close PR #2 with a link to the new repo, and agree the old site's retirement with the owner.
 
 ## Owner working rules
 
 - Plain English.
-- Discuss new ideas before building them.
+- **Early-stage beta, no active users:** pick the clearly better design even if it means rebuilding existing parts
+  or breaking old data. Don't spend time on backward compatibility with the old app.
+- Discuss genuinely new product ideas before building them. Obvious improvements don't need asking.
 - Never cut or shorten roadmap content.
 - Small changes get quick checks (tsc, unit tests, a preview look), not the 10-minute smoke.
 - Tests are silent; Playwright runs with `--mute-audio`.
