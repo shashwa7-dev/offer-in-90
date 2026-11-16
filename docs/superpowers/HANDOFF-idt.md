@@ -109,7 +109,7 @@ routine, on a **real backend** (Next.js on Vercel + Neon Postgres + Drizzle + Be
 2. The admin app (releases, rollback) and the news engine on the database via Trigger.dev.
 3. Notifications and the reminder email, export and delete account.
 
-Later: AI agents, quizzes, members and invites, mentors. The plan must include a feature-parity checklist assigning every current feature to a phase.
+Later: AI agents, quizzes, members and invites, mentors, **workspace memory** (design § "Later release: workspace memory"). Phase 1 already adds `work_item_activity` and `work_item.actual_min` so memory has history to learn from. The plan must include a feature-parity checklist assigning every current feature to a phase.
 
 ## Next steps, in order
 
