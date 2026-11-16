@@ -3,10 +3,13 @@ import { useState } from 'react';
 import { useStore } from '@/lib/store';
 import { isTimedSolve } from '@/lib/dsa-page';
 import { goodStreak, isSkipped, rate } from '@/lib/task-status';
-import { P, catName, dayStats, fmtDate, hrs, overall, parseISO, study } from '@/lib/engine';
+import { P, dayStats, fmtDate, hrs, overall, parseISO, study } from '@/lib/engine';
 import { forecast } from '@/lib/forecast';
 import { scoreTable } from '@/lib/sundays';
-import { Band, Chip, PageFrame, PageHeader, Row, Seg, Surface, SummaryRow } from './shell/page';
+import { TRACKS } from '@/lib/timeline';
+import { trackOfCat } from '@/lib/task-filter';
+import { trackRows, weakestTrack } from '@/lib/track-progress';
+import { Band, PageFrame, PageHeader, Row, Seg, Surface, SummaryRow } from './shell/page';
 import { ProgressChart, type ChartRange } from './progress-chart';
 import { useUI } from './ui-state';
 
@@ -30,12 +33,8 @@ export function ProgressView() {
   const todayGood = ti >= 0 && ti < days.length && (rates[ti] ?? 0) >= 0.8;
   const streak = goodStreak(rates.slice(0, Math.max(0, Math.min(ti, days.length)))) + (todayGood ? 1 : 0);
 
-  const cats = ['dsa', 'ai', 'sd', 'mc', 'proj', 'platform', 'beh', 'fde', 'fe'];
-  const byCat = cats.map(c => {
-    let due = 0, dn = 0, all = 0, allDone = 0;
-    days.forEach(d => d.tasks.filter(t => t.cat === c && !isSkipped(t.id, done, state.status)).forEach(t => { all++; if (done[t.id]) allDone++; if (d.i < ti) { due++; if (done[t.id]) dn++; } }));
-    return { c, due, done: dn, all, allDone, pct: due ? dn / due : 1 };
-  }).filter(x => x.all > 0).sort((a, b) => a.pct - b.pct);
+  // One row per plan track (Product = flagship + LLD, Career = behavioral + forward-deployed), in the app's track order.
+  const tracks = trackRows(days, ti, done, TRACKS, trackOfCat, id => isSkipped(id, done, state.status));
 
   const past = days.filter(d => d.i < ti);
   const blockAgg: Record<string, { n: number; d: number; title: string; s: string }> = {}, dowAgg: Record<number, { n: number; p: number }> = {};
@@ -50,8 +49,8 @@ export function ProgressView() {
   const insights: ['ok' | 'behind' | 'late', string][] = [];
   if (!past.length) insights.push(['ok', 'Nothing to judge yet. Insights appear after your first full day.']);
   else {
-    const w = byCat[0];
-    insights.push(w && w.pct < 0.9 ? ['late', `${catName[w.c]} is your weakest track: ${w.done} of ${w.due} tasks done so far.`] : ['ok', 'Every track is at 90% or better. Keep going.']);
+    const w = weakestTrack(tracks);
+    insights.push(w && w.done / w.due < 0.9 ? ['late', `${w.name} is your weakest track: ${w.done} of ${w.due} tasks due so far are done.`] : ['ok', 'Every track is at 90% or better. Keep going.']);
     if (worstBlock && worstBlock.d / worstBlock.n < 0.8) insights.push(['behind', `You miss the ${worstBlock.s} block (${worstBlock.title}) most: ${Math.round((worstBlock.d / worstBlock.n) * 100)}% done.`]);
     if (dows.length > 1 && dows[0].pct < 0.8) insights.push(['behind', `${DAY_NAMES[dows[0].k]} are your weakest day (${Math.round(dows[0].pct * 100)}% average).`]);
     if (o.behindMin > 60) insights.push(['late', `${hrs(o.behindMin)} h behind. Sunday catch-up has 2 h; add 30 min to evenings until you are even.`]);
@@ -126,15 +125,18 @@ export function ProgressView() {
               ) : <p className="px-4 py-3 text-[13px] text-muted-foreground">No scores yet. Enter your baseline on the prep day, then the weekly self-check each Sunday (open the task to type a score from 0 to 100).</p>}
             </div>
           </Band>
-          <Band id="tracks" title="Tracks" count={byCat.length}>
+          <Band id="tracks" title="Tracks" count={tracks.length}>
             <div className="border-t border-border">
-              {byCat.map(x => (
-                <Row key={x.c}>
-                  <span className="w-32 shrink-0 truncate sm:w-44">{catName[x.c]}</span>
-                  <div className="h-1.5 min-w-8 flex-1 overflow-hidden rounded-full bg-muted">
-                    <div className="h-full rounded-full bg-primary" style={{ width: `${x.due ? x.pct * 100 : 0}%` }} />
+              {tracks.map(x => (
+                <Row key={x.key} data-track-row={x.key}>
+                  <span className="w-28 shrink-0 truncate sm:w-40">{x.name}</span>
+                  <div className="h-1.5 min-w-8 flex-1 overflow-hidden rounded-full bg-muted" title={`${x.allDone} of ${x.all} tasks done in the whole plan`}>
+                    <div className="h-full rounded-full bg-primary" style={{ width: `${x.all ? (x.allDone / x.all) * 100 : 0}%` }} />
                   </div>
-                  <span className="flex w-16 shrink-0 justify-end" title={`${x.allDone} of ${x.all} in the whole plan`}><Chip>{x.done} of {x.due}</Chip></span>
+                  <span className="flex shrink-0 flex-col items-end text-right leading-tight">
+                    <span className="text-[13px] tabular-nums" data-track-due>{x.due ? `${x.done} of ${x.due} due so far` : 'Nothing due yet'}</span>
+                    <span className="text-[12px] tabular-nums text-muted-foreground" data-track-plan>{x.allDone} of {x.all} in the plan</span>
+                  </span>
                 </Row>
               ))}
             </div>

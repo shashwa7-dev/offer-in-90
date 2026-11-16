@@ -1619,6 +1619,24 @@ try {
     const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem('offer90.v1')));
     await page.locator('[data-slot="sidebar"] [data-nav="setup"]').first().click();
     await page.waitForTimeout(300);
+    // Theme switcher: Dark and Light set the class on <html>; System hands back to the OS.
+    {
+      const theme = page.locator('[data-setting="theme"]');
+      await theme.getByRole('radio', { name: 'Dark' }).click(); await page.waitForTimeout(200);
+      const dark = await page.evaluate(() => document.documentElement.classList.contains('dark'));
+      await theme.getByRole('radio', { name: 'Light' }).click(); await page.waitForTimeout(200);
+      const light = await page.evaluate(() => !document.documentElement.classList.contains('dark') && localStorage.getItem('theme') === 'light');
+      await theme.getByRole('radio', { name: 'System' }).click(); await page.waitForTimeout(200);
+      if (dark && light && await page.evaluate(() => localStorage.getItem('theme')) === 'system') ok(`${W}: theme switcher sets dark, light and system`); else fail(`${W}: theme switcher (dark ${dark}, light ${light})`);
+    }
+    // Progress › Tracks: one row per plan track with "due so far" and "in the plan".
+    {
+      await page.locator('[data-slot="sidebar"] [data-nav="progress"]').first().click(); await page.waitForTimeout(300);
+      const keys = await page.locator('[data-track-row]').evaluateAll(els => els.map(e => e.getAttribute('data-track-row')));
+      const plan = await page.locator('[data-track-plan]').first().innerText().catch(() => '');
+      if (keys.join(',') === 'dsa,ai,sd,mc,platform,career,fe' && /^\d+ of \d+ in the plan$/.test(plan)) ok(`${W}: Progress tracks are the 7 plan tracks in order`); else fail(`${W}: Progress tracks ${keys.join(',')} / "${plan}"`);
+      await page.locator('[data-slot="sidebar"] [data-nav="setup"]').first().click(); await page.waitForTimeout(300);
+    }
     const band = page.locator('#labels');
     await band.getByRole('button', { name: /Labels/ }).first().click().catch(() => {});
     await page.waitForTimeout(200);

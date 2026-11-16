@@ -2,6 +2,7 @@
 /* Setup: one settings list. Your plan, Interviews, Sync and backup, Reminders, Start again. */
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { CalendarDays, Plus, X } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Switch } from '@/components/ui/switch';
@@ -131,6 +132,21 @@ function RoutineForm() {
   );
 }
 
+/** Light, dark or follow the system. Saved per browser (next-themes, localStorage key "theme"); not synced. */
+function ThemeSetting() {
+  const { theme = 'system', setTheme } = useTheme();
+  return (
+    <Setting id="theme" label="Theme" help="System follows your device. Saved on this browser.">
+      <ToggleGroup type="single" variant="outline" size="sm" value={theme} aria-label="Theme"
+        onValueChange={v => { if (v === 'light' || v === 'dark' || v === 'system') setTheme(v); }}>
+        <ToggleGroupItem value="light" className="px-3 text-[13px]">Light</ToggleGroupItem>
+        <ToggleGroupItem value="dark" className="px-3 text-[13px]">Dark</ToggleGroupItem>
+        <ToggleGroupItem value="system" className="px-3 text-[13px]">System</ToggleGroupItem>
+      </ToggleGroup>
+    </Setting>
+  );
+}
+
 export function SetupView() {
   const { state, days, update, replace, threads, sync, syncConfigured, connectSync, disconnectSync, syncNow } = useStore();
   const { toast } = useUI();
@@ -173,6 +189,7 @@ export function SetupView() {
               <ToggleGroupItem value="grind" className="px-3 text-[13px]">Grind</ToggleGroupItem>
             </ToggleGroup>
           </Setting>
+          <ThemeSetting />
           <Setting label="Start date" help="A Monday: the first day of your plan. Sundays become review days. Your ticks and notes stay.">
             <Popover open={dateOpen} onOpenChange={setDateOpen}>
               <PopoverTrigger asChild>
