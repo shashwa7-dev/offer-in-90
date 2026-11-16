@@ -394,3 +394,26 @@ encryption key can be rotated.
   import, no id mapping. Drop the import from Phase 1. (Supersedes the "Import of existing local data" section.)
 - **Standing rule (owner):** the app is early-stage beta with no active users. Prefer the clearly better design
   even if it means rebuilding existing parts or breaking old data; no backward-compatibility work for the old app.
+
+## Later release: workspace memory (owner idea, 2026-11-16)
+
+A per-workspace "brain" that understands **how this person works and learns**: it observes and describes, it
+does not act or recommend on its own. Modelled on shopos `brand-memory-service` (`brand_memory_schemas`: a
+versioned schema of what a memory holds; `brand_memories`: the generated JSON per version, built by an agent in a
+Trigger.dev task; `user_brand_memories`: the user's edited copy), kept small:
+
+1. **Facts (no AI):** computed from the activity log and solve logs: when the person actually studies (days,
+   times), real pace per track vs estimates, carry-over rate per track, what gets skipped or cancelled, DSA
+   patterns that are slow, need hints or get flagged, streaks and slumps.
+2. **Summary (AI, the user's own key):** at each cycle end a Trigger.dev task reads the facts, notes and solve logs
+   and writes a short memory document against a versioned schema (`memory_schema`): strengths, weak spots, habits,
+   how they seem to learn best, open questions. Stored in `workspace_memory` (workspace_id, schema_version, data
+   jsonb, generated_at).
+3. **Owned by the user:** a Memory page to read, correct or delete it (`workspace_memory_edit`, like
+   `user_brand_memories`).
+4. **Used later** as context for the AI agents (Explainer, Coach, Interviewer) and the end-of-cycle review.
+
+**Phase 1 additions so memory has history to learn from (controller call, an obvious improvement):**
+- `work_item_activity` (append-only, as Plane's issue activity): work_item_id, actor_id, verb (state, cycle,
+  estimate, order, note, created, deleted), old_value, new_value, at. Written by the server on every change.
+- `work_item.actual_min` (optional): "time spent", asked lightly when an item is marked done.
