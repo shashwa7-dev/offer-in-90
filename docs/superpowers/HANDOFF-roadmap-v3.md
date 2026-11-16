@@ -15,6 +15,23 @@ Written 2026-11-15 at the end of the Release 1 build session. Supersedes `HANDOF
 - **Ledger with every ruling (R1–R15) and deferred minors:**
   `.superpowers/sdd/2026-11-16-roadmap-v2-release-1/progress.md` (git-ignored; also briefs and reports there).
 
+## NEXT SESSION START HERE (2026-11-16, later)
+
+The owner changed direction: **IDT becomes a learning workspace** (weekly cycles, work items with estimates and
+sub-items, carry-over; no clock/routine) on a **real backend** (Next.js on Vercel + Neon Postgres + Drizzle +
+Better Auth), with a Plane-style schema (workspaces, members/roles/invites ready but off, tracks, cycles, modules,
+work items with shared state, versioned roadmap snapshots seeded like Plane's workspace seed).
+- Design: `docs/superpowers/specs/2026-11-16-idt-learning-workspace-design.md` (draft, not yet approved).
+- **Next step: keep brainstorming** (superpowers:brainstorming) through the doc's "Open for the next
+  brainstorming session" list, starting with the 3 AI agents (Explainer/"teacher", Coach, Interviewer; BYOK),
+  then get the doc approved, then writing-plans.
+- PR #2 will **not** be merged: the redesign ships as one fresh PR built on `roadmap-v2`; close #2 then.
+- Plane clone for reference was in a scratch dir; re-clone shallow if needed (`git clone --depth 1
+  https://github.com/makeplane/plane.git`). Relevant: `apps/api/plane/db/models/{workspace,project,issue,cycle,
+  module,estimate,state}.py`, `apps/api/plane/seeds/data/*.json`, `apps/api/plane/bgtasks/workspace_seed_task.py`,
+  `apps/api/plane/authentication/`.
+- Owner working rules: small changes get quick checks (tsc + unit tests + preview), not the 10-min smoke.
+
 ## Status (2026-11-16)
 
 **Everything below is DONE.** Release 1 + roadmap v3 + daily DSA + mode indicators + IDT rename are on `roadmap-v2`,
