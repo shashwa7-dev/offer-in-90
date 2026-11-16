@@ -292,9 +292,54 @@ the cycle); burn-down drawing details; id key choices if a better short key exis
     while offline, refetch on reconnect.
 11. **Phone:** not a focus; desktop web first (no breakage on small screens, no special phone layouts).
 
+## Decisions, round 3 (owner, 2026-11-16)
+
+- **Repo:** a new private turborepo named **`IDT`** (public later). Layout: `apps/web` (the app), `apps/admin`
+  (owner-only: roadmap releases, rollback, news engine runs, allowlist), `apps/jobs` (Trigger.dev tasks),
+  `packages/db` (Drizzle schema, migrations, seed), `packages/roadmap` (content, track builders, validation, JSON
+  build: moved from this repo with its tests), `packages/ui`, `packages/config`. This repo (`offer-in-90`) becomes
+  the archive; PR #2 is closed with a link to the new repo.
+- **Sign-in:** Google only for now (Better Auth). Allowlist: `shashwa7.dev@gmail.com` (in env, not hard-coded).
+- **Jobs: Trigger.dev free plan**, set up like shopos `apps/pro-backend-triggers` (`trigger.config.ts`, retries
+  with backoff, a global `onFailure` hook): scheduled tasks (weekly news refresh, daily reminder email) call
+  protected routes on `apps/web` with a shared service token (Bearer), as the shopos credits reaper does. Vercel
+  Cron is the free fallback (same routes). No GitHub Actions for the news engine.
+- **No Redis.** Postgres holds sessions; Trigger.dev is the queue; Next.js caches. Upstash Redis can be added later
+  for rate limits without redesign.
+- **Bring your own AI key from day 1:** Setup › AI keys (provider + key, tested once on save). Keys are encrypted
+  at rest (AES-256-GCM, server secret `AI_KEYS_ENCRYPTION_KEY`), never returned to the browser (last 4 shown), used
+  only by server code. Table `user_ai_key` (user_id, provider, ciphertext, iv, last4, created/updated). The news
+  engine alone uses the owner's server key. Agents and quizzes ship later on top of this.
+- **GitHub Actions: CI only** (lint, types, unit tests, build, migration check; e2e against Docker Postgres).
+- **README for strangers:** clone → `docker compose up -d` → `pnpm install` → `cp .env.example .env` →
+  `pnpm db:migrate` → `pnpm db:seed` → `pnpm dev`; every env var explained in `.env.example`; no secrets
+  committed; a licence chosen before going public.
+- **Plane is AGPL:** we copy ideas, names and table shapes only, never code.
+- **Phases:** 1. sign-in, workspace seed, Today, Cycle, carry-over, Progress, BYOK settings, import of old data
+  (via an "Export my data" file from the old site, or from the Gist with its token); 2. admin app (releases,
+  rollback) and news engine on the DB via Trigger.dev; 3. notifications and reminder email, export and delete
+  account. Later: AI agents, quizzes, members/invites, mentors. The plan includes a **feature-parity checklist**
+  (DSA page and solve logs, own problems, Notes, labels/filters, search, News/Interviews/Pulse, bookmarks,
+  scores/readiness, reference pages, theme, mode badge), each assigned to a phase.
+- **Daily DSA problem:** picked day by day from what is already covered (as today), materialised as that day's
+  work item when the day first loads.
+
+### Environment variables (expected; the owner provides values)
+
+| Variable | For |
+|---|---|
+| `DATABASE_URL` | Neon (prod/preview) or Docker Postgres (local) |
+| `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL` | Better Auth sessions and callbacks |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google sign-in |
+| `ALLOWED_EMAILS` | Sign-up allowlist (`shashwa7.dev@gmail.com`) |
+| `ADMIN_EMAILS` | Seeds `instance_admin` for the admin app |
+| `AI_KEYS_ENCRYPTION_KEY` | Encrypts users' AI keys (32-byte base64) |
+| `SERVICE_TOKEN` | Trigger.dev tasks → app routes |
+| `TRIGGER_PROJECT_ID`, `TRIGGER_SECRET_KEY` | Trigger.dev |
+| `ENGINE_AI_PROVIDER`, `ENGINE_AI_API_KEY` | The news engine's own model key |
+| `RESEND_API_KEY`, `EMAIL_FROM` | Reminder emails (phase 3) |
+| `APP_URL`, `ADMIN_URL` | Links in emails; admin cross-links |
+
 ## Still open
 
-- Owner's sign-in email for the allowlist (owner will share).
-- Which sign-in providers first: Google, GitHub, or both.
-- Where the existing GitHub Pages site and its Gist data go after the move (keep read-only, or retire after the
-  one-time import).
+- None blocking. The owner confirms the design as a whole at the start of the implementation session.
