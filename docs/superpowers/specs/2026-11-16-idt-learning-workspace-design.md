@@ -115,15 +115,27 @@ sub-items are done (or set directly).
 ever follow the same roadmap together, a `work_item_progress (work_item_id, user_id, state, done_at, cycle_id)`
 table, filled once by copying each item's state to its owner.
 
-## Roadmap templates and updates
+## Roadmap templates, seeding and versions
 
-The roadmap stays in code as versioned template content (today's content modules + track builders, adapted to
-`WorkItem` records with stable ids). Creating a workspace **materialises** the template into `track`, `module`,
-`cycle` and `work_item` rows. A new template version is applied by a server function, per workspace, keyed by
-`template_item_id`: new items are inserted in their planned cycles; title/link/estimate edits update rows whose
-user has not edited that field; removed template items are soft-deleted if untouched, or kept and marked retired
-if the user has progress on them. Ids and sequences are never reused. A one-time "What changed" note uses
-`roadmap_version_seen`.
+Modelled on Plane's workspace seed (`apps/api/plane/seeds/data/*.json` + `bgtasks/workspace_seed_task.py`: one
+JSON file per entity, local ids, a seed job that creates rows and maps seed ids to new ids), with two additions
+Plane does not have: **stable string ids** and **versions**.
+
+- **Authoring** stays in TypeScript (today's content modules and track builders, with their tests).
+- **A build step** writes one folder per release: `roadmaps/<roadmap-id>/v<N>/` with `roadmap.json` (id, version,
+  title, release notes, modes), `tracks.json`, `modules.json`, `work_items.json` (with sub-items and `needs`),
+  `daily.json`, `labels.json`, `views.json`, `pages.json`. Committed to git: every version is kept and diffable.
+- **Validation** (zod) before a version is accepted: unique ids; no id reused from an earlier version with a
+  different meaning; every `needs` points at a real item; 78 slots per track; retired items never deleted.
+- **`roadmap_version` table:** roadmap_id, version, snapshot (jsonb), notes, released_at. Released versions are
+  loaded into it by a deploy-time script.
+- **Seeding** a new workspace (as Plane's seed task): create tracks, modules, cycles (from start date and mode, not
+  from a file), work items and sub-items, labels, views, pages; store each row's `template_*_id`.
+- **Updating** a workspace from vN to vN+1: diff the two snapshots by id; insert new items into their planned
+  cycles; update title/links/estimate where the user has not edited that field; soft-delete untouched removed
+  items, keep and mark retired those with progress; record the version; show "What changed" once. Both
+  snapshots stay stored, so an update can be inspected or rolled back.
+- Several roadmaps later = several folders; a future in-app editor (owner or mentor) writes the same JSON.
 
 ## Data model (template shape, in code)
 
@@ -187,13 +199,6 @@ type State = 'backlog' | 'todo' | 'in_progress' | 'done' | 'cancelled';
 
 The database tables replace the localStorage/Gist state and its merge logic.
 
-### Roadmap updates
-
-Shipping a new template version needs no user migration: new items appear in their planned cycles; edited text,
-links and estimates show on next load; a removed item is marked `retired` (kept under "Retired" if the user had
-progress, hidden otherwise). Ids are never reused. A small "What changed in the roadmap" note appears once
-(`seenVersion`).
-
 ### Import of existing local data (one-time, after first sign-in)
 
 If the browser has v6 data (localStorage or a Gist), offer "Import my progress": `done[id]` → state Done (+ doneAt); `status` progress/skipped → In progress/Cancelled; `custom` tasks → own
@@ -242,3 +247,30 @@ estimate-based "N h left this cycle"), Gist sync and its merge code, GitHub Page
 
 Exact component layout; how "today's share" is computed (suggested: remaining cycle estimate ÷ remaining days in
 the cycle); burn-down drawing details; id key choices if a better short key exists.
+
+## Open for the next brainstorming session (2026-11-16)
+
+Not yet decided; settle these before writing the implementation plan.
+
+1. **AI agents (from Release 3, now moving into this app).** Three personas, prompts already written in the v2
+   spec appendix: **Explainer** ("teacher": make an idea click), **Coach** (help solve a DSA/system-design/business
+   problem without giving the answer first), **Interviewer** (run a realistic timed round). Bring-your-own-key, 4
+   providers. Open: where keys live now that there is a server (browser only, or encrypted per user on the
+   server); whether calls go browser → provider or through our server; what context each agent gets (the work
+   item, its sub-items, your notes and solve logs, the cycle); saving answers to notes; cost/rate limits.
+2. **Release 2 quizzes** (daily quiz, weekly test): in or out of this release; if in, as work items or a feature.
+3. **News, updates and the weekly refresh engine** (today: GitHub Actions writing `public/*.json`): keep as
+   static files on Vercel, or move into the database.
+4. **Days and time zones:** a cycle ends Sunday night in the user's time zone; daily items are dated per user;
+   carry-over computed on read (no cron) or by a scheduled job.
+5. **Progress metrics** move from hours-by-clock to estimates: burn-down by estimate, "h left this cycle", pace
+   and forecast, readiness checks and scores as work items.
+6. **Reminders** to replace the calendar file (none, email, browser push) – likely later.
+7. **Sign-up policy:** open to anyone, invite-only, or owner-only at first; abuse and rate limits if open.
+8. **Account basics:** delete account, export my data (Plane has JSON/CSV export).
+9. **Testing and environments:** local Postgres (Docker or PGlite) for tests; Neon branches for preview
+   deploys; how the existing unit tests and the browser smoke move over; backups.
+10. **Content release workflow:** who bumps the version, when workspaces update (automatically on load, or a
+    "Update roadmap" button), and how a bad release is rolled back.
+11. **Offline:** accepted loss for now (server is the source of truth); confirm.
+12. **Mobile:** responsive web as today, or also an installable PWA.
