@@ -248,29 +248,53 @@ estimate-based "N h left this cycle"), Gist sync and its merge code, GitHub Page
 Exact component layout; how "today's share" is computed (suggested: remaining cycle estimate ÷ remaining days in
 the cycle); burn-down drawing details; id key choices if a better short key exists.
 
-## Open for the next brainstorming session (2026-11-16)
+## Decisions, round 2 (owner, 2026-11-16), with what Plane does
 
-Not yet decided; settle these before writing the implementation plan.
+1. **Quizzes and AI agents: later releases.** Keep room for them: a `ai_key` place per user (later), work items
+   addressable by id for "Ask AI", notes linkable to work items. Personas stay as written in the v2 spec appendix
+   (Explainer, Coach, Interviewer; bring your own key).
+2. **News and the weekly refresh engine move into the database; no GitHub Actions.**
+   Plane runs scheduled work with Celery beat (a schedule table of crontab jobs, e.g. email stacking every 5
+   minutes, daily cleanups at fixed UTC times). Our simple equivalent: **Vercel Cron** calls protected API routes
+   (secret header) on a schedule; the jobs write to tables `news_day`, `news_item`, `pulse_week`,
+   `interview_thread`, `engine_run` (status, started/finished, error). The engine's LLM key is a server env var.
+3. **Days and time zones (Plane's model):** `user.timezone` (IANA name, default UTC; auto-set from the browser on
+   first sign-in, editable in Setup), as Plane's `user_timezone`. Dates are stored as dates; timestamps in UTC.
+   "Today", a cycle's start (Mon 00:00) and end (Sun 23:59:59) are computed in the user's zone (Plane's
+   `convert_to_utc` turns a date into local midnight in UTC). **Carry-over runs lazily** on the first request
+   after a cycle ends (idempotent), no cron needed; it first saves the ending cycle's stats into
+   `cycle.progress_snapshot` (jsonb), exactly as Plane's `transfer_cycle_issues` does, then moves unfinished items
+   to the current cycle (Plane does this when the user clicks "Transfer"; we do it automatically).
+4. **Progress by estimates (Plane's burn-down):** Plane's `burndown_plot` builds a day-by-day series over the
+   cycle's date range from each completed item's `completed_at`, by item count or by estimate points, and
+   compares it with an ideal line. Ours: the same per-cycle series by **estimate minutes** (and by count), plus
+   the scope added by carry-over (from the snapshot), so pile-ups show; per-track and whole-plan progress by
+   estimate; pace and forecast kept from today's code but fed by estimates instead of clock hours.
+5. **Reminders, simplified from Plane's notifications:** Plane has `notification` (receiver, entity, title,
+   read_at, snoozed_till, archived_at), `user_notification_preference`, and `email_notification_log` with a job
+   that batches emails every 5 minutes. Ours: `notification` (same core columns) for an in-app inbox, and
+   `notification_preference` (daily email on/off, time). A daily Vercel Cron job creates "Today: N items · cycle:
+   N h left" reminders and sends them by email through **Resend** for users who opted in.
+6. **Sign-up: owner only for now.** An allowlist (`ALLOWED_EMAILS` env var); the owner will share the address.
+7. **Account basics:** delete my account (soft delete, then hard delete after 30 days, as Plane's daily
+   `hard_delete` job); export my data (JSON; CSV later), as Plane's exporter.
+8. **Testing and environments:** Docker Compose with Postgres for local development and tests; Neon for preview
+   and production.
+9. **Content releases from a separate admin app (turborepo, as Plane's `apps/admin` "god mode"):** Plane has an
+   `instance_admin` table and a separate admin app for instance settings. We do the same: a turborepo with
+   `apps/web` (the app), `apps/admin` (owner only: publish a roadmap version from the built JSON, see the diff,
+   apply it to workspaces, roll back to an earlier version; run the news engine and see its runs; manage the
+   allowlist), and shared packages `packages/db` (Drizzle schema + migrations), `packages/roadmap` (content,
+   builders, validation, JSON build), `packages/ui`. Admin access: an `instance_admin` table (owner only).
+10. **Offline: as Plane.** Plane keeps no full offline copy: data lives in memory stores fetched with SWR
+    (revalidate on focus and reconnect), a small IndexedDB cache for a few user things, and an online-status
+    hook that shows when you're offline. Ours: show the last loaded data, show an "Offline" banner, block edits
+    while offline, refetch on reconnect.
+11. **Phone:** not a focus; desktop web first (no breakage on small screens, no special phone layouts).
 
-1. **AI agents (from Release 3, now moving into this app).** Three personas, prompts already written in the v2
-   spec appendix: **Explainer** ("teacher": make an idea click), **Coach** (help solve a DSA/system-design/business
-   problem without giving the answer first), **Interviewer** (run a realistic timed round). Bring-your-own-key, 4
-   providers. Open: where keys live now that there is a server (browser only, or encrypted per user on the
-   server); whether calls go browser → provider or through our server; what context each agent gets (the work
-   item, its sub-items, your notes and solve logs, the cycle); saving answers to notes; cost/rate limits.
-2. **Release 2 quizzes** (daily quiz, weekly test): in or out of this release; if in, as work items or a feature.
-3. **News, updates and the weekly refresh engine** (today: GitHub Actions writing `public/*.json`): keep as
-   static files on Vercel, or move into the database.
-4. **Days and time zones:** a cycle ends Sunday night in the user's time zone; daily items are dated per user;
-   carry-over computed on read (no cron) or by a scheduled job.
-5. **Progress metrics** move from hours-by-clock to estimates: burn-down by estimate, "h left this cycle", pace
-   and forecast, readiness checks and scores as work items.
-6. **Reminders** to replace the calendar file (none, email, browser push) – likely later.
-7. **Sign-up policy:** open to anyone, invite-only, or owner-only at first; abuse and rate limits if open.
-8. **Account basics:** delete account, export my data (Plane has JSON/CSV export).
-9. **Testing and environments:** local Postgres (Docker or PGlite) for tests; Neon branches for preview
-   deploys; how the existing unit tests and the browser smoke move over; backups.
-10. **Content release workflow:** who bumps the version, when workspaces update (automatically on load, or a
-    "Update roadmap" button), and how a bad release is rolled back.
-11. **Offline:** accepted loss for now (server is the source of truth); confirm.
-12. **Mobile:** responsive web as today, or also an installable PWA.
+## Still open
+
+- Owner's sign-in email for the allowlist (owner will share).
+- Which sign-in providers first: Google, GitHub, or both.
+- Where the existing GitHub Pages site and its Gist data go after the move (keep read-only, or retire after the
+  one-time import).
