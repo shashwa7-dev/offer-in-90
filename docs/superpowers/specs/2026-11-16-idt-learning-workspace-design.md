@@ -1,8 +1,9 @@
 # IDT as a learning workspace: cycles, work items, estimates (design)
 
-Status: draft for the owner's approval (2026-11-16), revision 2 (adds the backend, the Plane-style schema and the
-owner's answers). Builds on roadmap v3 (branch `roadmap-v2`, PR #2, which will not be merged: this work ships as
-one fresh PR and #2 is closed then). Content is unchanged; the shape it is delivered in changes.
+Status: final draft for the owner's confirmation (2026-11-16), revision 4 (audit fixes). Builds on roadmap v3
+content (branch `roadmap-v2` of `offer-in-90`; PR #2 is not merged). Ships in a **new repo, `IDT`** (round 3).
+Where an earlier section and a later "Decisions" round disagree, the later round wins; the audit below lists the
+fixes made.
 
 ## Intent
 
@@ -36,8 +37,9 @@ per-user work. Later there may be several roadmaps.
 
 ## Non-goals
 
-- Not a Linear/Plane clone: no teams, assignees, members, permissions, intake/triage, workflow editors, custom
-  states, sprint ceremonies, priorities (order is the priority), comments, attachments, webhooks.
+- Not a Linear/Plane clone: no teams, intake/triage, workflow editors, custom states, sprint ceremonies,
+  priorities (order is the priority), attachments, webhooks. Members, roles, invites and assignees exist in the
+  schema but are switched off in this release.
 - No collaboration features in this release: inviting members, assigning items, mentors and comments come later
   (the schema is ready for them).
 - No content changes to the v3 roadmap (tracks, slots, rules stay as approved).
@@ -56,8 +58,9 @@ per-user work. Later there may be several roadmaps.
    (no stable work-item ids, sub-items, modules) and does not scale to several roadmaps.
 2. **Stored work items:** copy the roadmap into each user's records at start; everything is user data. Most
    flexible, but roadmap updates no longer reach running plans and storage/sync is a rewrite.
-3. **Template + overlay (chosen):** the roadmap is a versioned template of work items with stable ids; the
-   user's data is a thin overlay keyed by roadmap and item id, plus own items in the same shape. Updates flow;
+3. **Template + per-workspace copy linked by id (chosen):** the roadmap is a versioned template of work items
+   with stable ids; each workspace is seeded with its own rows that keep the template id, plus own items in the
+   same shape. Updates flow;
    progress stays; several roadmaps are just several templates. Picked by the owner's requirements (frequent
    updates, multi-roadmap, own items).
 
@@ -65,7 +68,8 @@ per-user work. Later there may be several roadmaps.
 
 | Plane | IDT | Notes |
 |---|---|---|
-| Workspace | **Roadmap** | One per template; v3 is the default ("Interview prep 2026"). |
+| (template) | **Roadmap** | The versioned content template; v3 is the default ("Interview prep 2026"). |
+| Workspace | **Workspace** | A person's plan built from one roadmap (seeded from it, then theirs). |
 | Project | **Track** | DSA, AI engineering, Systems, Product, Platform, Career, Frontend. Each has a short key: DSA, AI, SYS, PRD, PLT, CAR, FE. |
 | Work item | **Work item** (UI may say "task") | Has an id like `DSA-12`. |
 | Sub-work item | **Sub-item** | A lesson's Understand / Do / Explain; a timed set's problems. |
@@ -82,10 +86,10 @@ A real backend replaces Gist sync and GitHub Pages, keeping Plane's practices bu
 
 - **Next.js** (one app: pages + server code), hosted on **Vercel**.
 - **Neon Postgres**, schema and migrations in **Drizzle**.
-- **Better Auth**: sign-in with Google or GitHub; database sessions in an HTTP-only, secure cookie (as Plane).
+- **Better Auth**: sign-in with Google (only, for now); database sessions in an HTTP-only, secure cookie (as Plane).
 - No Redis, queues, workers, object storage or real-time server until a real need appears.
 - Every read and write goes through server code that checks workspace membership and role (never UI-only).
-- Instant UI with the server as the source of truth (optimistic updates). Offline-first is a later option.
+- Instant UI with the server as the source of truth (optimistic updates). Offline behaviour: round 2, item 10.
 
 ## Database (Plane's relationships, trimmed)
 
@@ -100,13 +104,20 @@ Every table has `id` (uuid), `created_at`, `updated_at`, `created_by`, `updated_
 | `mode_change` | workspace_id, on_date, mode | Mode history (today's `modes`) |
 | `track` | workspace_id, template_track_id, key (DSA…), name, sort_order, next_sequence | Plane's project |
 | `module` | workspace_id, track_id, template_module_id, name, sort_order | |
-| `cycle` | workspace_id, number, start_date, end_date | Mon–Sun weeks, created for the plan length |
-| `work_item` | workspace_id, track_id, parent_id (sub-items), template_item_id (null for own items), sequence (DSA-12), title, url, url2, kind, estimate_min, state, done_at, planned_cycle, cycle_id (effective), carried_from_cycle, module_id, sort_order (float, as Plane), needs (template ids), meta (jsonb: pattern, slug, diff, role, hiddenUntilStart), note | **State lives on the item, shared, as in Plane.** |
+| `cycle` | workspace_id, number, start_date, end_date, is_overtime, progress_snapshot (jsonb), closed_at | Mon–Sun weeks, created for the plan length (+ overtime, audit 7) |
+| `work_item` | workspace_id, track_id, parent_id (sub-items), template_item_id (null for own items), sequence (DSA-12), title, url, url2, kind, estimate_min, state, done_at, planned_cycle, cycle_id (effective), carried_from_cycle, module_id, sort_order (float, as Plane), needs (template ids), meta (jsonb: pattern, slug, diff, role, hiddenUntilStart), note, edited_fields (text[]), daily_date (for daily items), retired | **State lives on the item, shared, as in Plane.** |
 | `work_item_assignee` | work_item_id, user_id | Exists now; assigning switched on later |
 | `label`, `work_item_label` | as Plane | Owner labels |
 | `view` | workspace_id, name, filters (jsonb) | Saved filters |
 | `page` | workspace_id, title, body | Notes |
 | `solve_log`, `score`, `bookmark` | today's maps, as rows | |
+| `instance_admin` | user_id | Owner-only admin app access (round 2, item 9) |
+| `roadmap_version` | roadmap_id, version, snapshot (jsonb), notes, released_at | Seeding, updates, rollback |
+| `user_ai_key` | user_id, provider, ciphertext, iv, key_version, last4 | Bring your own key (round 3) |
+| `news_day`, `news_item`, `pulse_week`, `interview_thread`, `engine_run` | global, not per workspace | News engine (round 2, item 2) |
+| `notification`, `notification_preference` | as round 2, item 5 | Phase 3 |
+
+Users also get `timezone` (IANA) on the `user` row (round 2, item 3).
 
 States: `backlog`, `todo`, `in_progress`, `done`, `cancelled`. A parent with sub-items is done when all its
 sub-items are done (or set directly).
@@ -162,7 +173,7 @@ type WorkItem = {
   sub?: SubItem[];       // Understand / Do / Explain, or a set's problems
   needs?: string[];      // ids that must be done or scheduled earlier
   kind?: 'lesson' | 'problem' | 'rep' | 'mock' | 'set';
-  meta?: { pattern?: string; slug?: string; diff?: 'E'|'M'|'H'; role?: string; hiddenUntilStart?: boolean; sundayCarry?: boolean };
+  meta?: { pattern?: string; slug?: string; diff?: 'E'|'M'|'H'; role?: string; hiddenUntilStart?: boolean };
   retired?: true;        // kept for history, never scheduled again
 };
 type SubItem = { id: string; title: string; url?: string; estimateMin?: number };
@@ -182,32 +193,22 @@ The track builders in `tracks.ts` and the content modules stay; a thin adapter t
 - **Needs** never block doing an item; they only keep the planned order sensible and show "needs DSA-11".
 - Mode switch: re-plans **future** cycles only; done items stay done; nothing is lost.
 
-### User data (now in the database tables above; this was the overlay shape)
+### User data
 
-```ts
-type UserRoadmap = {
-  roadmapId: string; seenVersion: number;
-  start: string;                // a Monday
-  mode: 'steady' | 'grind';     // history kept as today (switch dates)
-  items: Record<string, ItemOverride>;   // by work-item or sub-item id
-  own: Record<string, OwnItem>;          // the user's work items
-};
-type ItemOverride = { state?: State; doneAt?: number; cycle?: number; estimateMin?: number; order?: number; note?: string; labels?: string[] };
-type OwnItem = Omit<WorkItem, 'slot'> & { trackId: string; cycle: number; createdAt: number };
-type State = 'backlog' | 'todo' | 'in_progress' | 'done' | 'cancelled';
-```
-
-The database tables replace the localStorage/Gist state and its merge logic.
+Lives in the database tables above (the earlier "overlay" type sketch is superseded): each workspace has its own
+`work_item` rows seeded from the template, holding state, cycle, estimate, order and note.
 
 ### Import of existing local data (one-time, after first sign-in)
 
-If the browser has v6 data (localStorage or a Gist), offer "Import my progress": `done[id]` → state Done (+ doneAt); `status` progress/skipped → In progress/Cancelled; `custom` tasks → own
+The new app runs on another domain, so it cannot read the old site's browser storage. Import comes from an
+"Export my data" JSON file added to the old site, or from the owner's Gist with its token (see the audit, item
+O2, for what actually maps). Mapping: `done[id]` → state Done (+ doneAt); `status` progress/skipped → In progress/Cancelled; `custom` tasks → own
 items in the cycle of their date; `tnotes` → item notes; labels, notes, pages, solves, scores, bookmarks kept;
 `routine`, `sundayMode` dropped; mode history kept.
 
 ## Screens
 
-- **Sign in** (Google/GitHub), then **create workspace** (pick the roadmap, start Monday, mode).
+- **Sign in** (Google), then **create workspace** (pick the roadmap, start Monday, mode).
 - **Today** (focus): today's daily items (DSA problem, recall, log), then **Up next**: the next items of the
   current cycle in recommended order, enough to fill today's share of the cycle's remaining estimate.
   Carried-over items are marked. No clock times.
@@ -229,7 +230,8 @@ estimate-based "N h left this cycle"), Gist sync and its merge code, GitHub Page
 
 ## Constraints
 
-- Vercel + Neon free tiers to start; no paid services required.
+- Free tiers to start: Vercel Hobby (personal, non-commercial; a public product later needs Pro), Neon free,
+  Trigger.dev free, Resend free. No paid services required for the owner's own use.
 - The roadmap v3 rules hold: 78 slots per track, order, Steady/Grind lengths, DSA every day (a daily work item that piles up if missed),
   coverage test, nothing cut.
 - Plain English UI; no project-management jargon beyond the Plane names above.
@@ -250,13 +252,13 @@ the cycle); burn-down drawing details; id key choices if a better short key exis
 
 ## Decisions, round 2 (owner, 2026-11-16), with what Plane does
 
-1. **Quizzes and AI agents: later releases.** Keep room for them: a `ai_key` place per user (later), work items
+1. **Quizzes and AI agents: later releases.** Keep room for them (the AI-key store ships in Phase 1, round 3), work items
    addressable by id for "Ask AI", notes linkable to work items. Personas stay as written in the v2 spec appendix
    (Explainer, Coach, Interviewer; bring your own key).
 2. **News and the weekly refresh engine move into the database; no GitHub Actions.**
    Plane runs scheduled work with Celery beat (a schedule table of crontab jobs, e.g. email stacking every 5
-   minutes, daily cleanups at fixed UTC times). Our simple equivalent: **Vercel Cron** calls protected API routes
-   (secret header) on a schedule; the jobs write to tables `news_day`, `news_item`, `pulse_week`,
+   minutes, daily cleanups at fixed UTC times). Our simple equivalent (superseded in round 3 by **Trigger.dev**,
+   with Vercel Cron as the fallback): a scheduler calls protected API routes (service token) on a schedule; the jobs write to tables `news_day`, `news_item`, `pulse_week`,
    `interview_thread`, `engine_run` (status, started/finished, error). The engine's LLM key is a server env var.
 3. **Days and time zones (Plane's model):** `user.timezone` (IANA name, default UTC; auto-set from the browser on
    first sign-in, editable in Setup), as Plane's `user_timezone`. Dates are stored as dates; timestamps in UTC.
@@ -273,7 +275,7 @@ the cycle); burn-down drawing details; id key choices if a better short key exis
 5. **Reminders, simplified from Plane's notifications:** Plane has `notification` (receiver, entity, title,
    read_at, snoozed_till, archived_at), `user_notification_preference`, and `email_notification_log` with a job
    that batches emails every 5 minutes. Ours: `notification` (same core columns) for an in-app inbox, and
-   `notification_preference` (daily email on/off, time). A daily Vercel Cron job creates "Today: N items · cycle:
+   `notification_preference` (daily email on/off, time). A daily Trigger.dev task creates "Today: N items · cycle:
    N h left" reminders and sends them by email through **Resend** for users who opted in.
 6. **Sign-up: owner only for now.** An allowlist (`ALLOWED_EMAILS` env var); the owner will share the address.
 7. **Account basics:** delete my account (soft delete, then hard delete after 30 days, as Plane's daily
@@ -343,3 +345,52 @@ the cycle); burn-down drawing details; id key choices if a better short key exis
 ## Still open
 
 - None blocking. The owner confirms the design as a whole at the start of the implementation session.
+
+## Audit (2026-11-16): fixes and rules added
+
+Contradictions fixed above: status line; members/assignees vs non-goals; Workspace vs Roadmap naming; GitHub
+sign-in; stale overlay types; `sundayCarry`; import from browser storage; Vercel Cron vs Trigger.dev; AI-key
+timing; free-tier note.
+
+Rules added (controller calls, the builder follows them):
+
+1. **Missed days still create their daily items.** Daily items (DSA problem, recall, log) are materialised on
+   load **for every day from the last materialised day up to today** (not only today), so days the user did not
+   open the app still pile up, as the owner wants.
+2. **Estimates live on leaf items only.** A work item with sub-items has no estimate of its own; it shows the sum
+   of its sub-items. Burn-down, "h left" and progress count leaves only (no double counting).
+3. **Parent and sub-item states.** A parent is done when all its sub-items are done; marking a parent done marks
+   its open sub-items done; reopening any sub-item reopens the parent. Cancelled items leave the scope and never
+   carry over.
+4. **Visible ids never collide.** Roadmap items take their sequence from the template (`seq`); own items get a
+   separate counter starting at 1000 per track (DSA-1000, DSA-1001…), so a later roadmap version adding template
+   items can never take an own item's number. Ids are never reused.
+5. **Roadmap updates respect edits.** `work_item.edited_fields text[]` records which fields the user changed
+   (title, url, estimate, cycle, order, deleted); updates skip those fields. A user-deleted item is never
+   re-added by an update.
+6. **Rollback** applies an older snapshot with the same diff rules (items the newer version added are kept and
+   marked retired if they have progress, removed if untouched). Both directions are tested.
+7. **Plan overrun.** If work remains after the last planned cycle, the app creates the next cycle automatically
+   (an "overtime" cycle, marked as such) and keeps carrying over until everything is done or cancelled (see O1).
+8. **Cycle end in the user's zone:** cycles are stored as dates; "ended" means the user's local Sunday has
+   passed. Changing the time zone recomputes "today" only; past dates do not move.
+9. **Admin app auth:** `apps/admin` uses the same Better Auth instance and database (its own domain, its own
+   cookie) and requires a row in `instance_admin` on every request.
+10. **Production migrations** run as a step of the Vercel build for `apps/web` (`drizzle-kit migrate`) against the
+    branch database; CI checks that the schema and migrations match. Neon's Vercel integration gives each preview
+    its own database branch.
+11. **Backups:** Neon's point-in-time restore (free tier history window) plus the user's JSON export.
+12. **Errors and logs:** Phase 1 uses Vercel logs and Trigger.dev run logs; Sentry is optional later (env
+    `SENTRY_DSN`), wired like shopos's `onFailure` hook.
+
+AI keys: the providers are the four from the Release 3 plan; each key is stored with a `key_version` so the
+encryption key can be rotated.
+
+## Owner decisions needed (raised in the audit)
+
+- **O1. Plan overrun:** when items remain after the last planned cycle, keep adding "overtime" cycles until
+  done (proposed), or stop at the plan end and leave the rest in a backlog.
+- **O2. What the import can bring:** the live site is still **v1**, whose task ids mostly do not exist in v3, so
+  old ticks cannot be mapped to v3 items. The import can bring notes, Notes pages, labels, own tasks, solve logs,
+  bookmarks and scores, but not "done" ticks. Proposed: import those, and start v3 progress fresh (the plan was
+  always going to need "Start over once" for v3).
