@@ -1,3 +1,5 @@
+> **Superseded for new work by `docs/superpowers/HANDOFF-idt.md` (2026-11-16). Start there.**
+
 # Handoff: Roadmap v3 (read this first in a new session)
 
 Written 2026-11-15 at the end of the Release 1 build session. Supersedes `HANDOFF-roadmap-v2.md`.
