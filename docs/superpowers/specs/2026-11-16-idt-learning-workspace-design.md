@@ -417,3 +417,10 @@ Trigger.dev task; `user_brand_memories`: the user's edited copy), kept small:
 - `work_item_activity` (append-only, as Plane's issue activity): work_item_id, actor_id, verb (state, cycle,
   estimate, order, note, created, deleted), old_value, new_value, at. Written by the server on every change.
 - `work_item.actual_min` (optional): "time spent", asked lightly when an item is marked done.
+
+## Later release: practice runner (TypeScript, in-browser) (2026-11-16)
+
+Not a server code sandbox (too heavy for a beta). Later: a Monaco editor panel on DSA work items; code runs in a
+locked-down Web Worker in the user's browser (time limit, no network, no DOM); tests written by the user or drafted
+by AI on their own key; a timer for timed sets; results saved to the solve log (and so to workspace memory). Link
+out to LeetCode for problem statements; never copy them.
