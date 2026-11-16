@@ -8,7 +8,7 @@ import { forecast } from '@/lib/forecast';
 import { scoreTable } from '@/lib/sundays';
 import { TRACKS } from '@/lib/timeline';
 import { trackOfCat } from '@/lib/task-filter';
-import { trackRows, weakestTrack } from '@/lib/track-progress';
+import { trackRows, trackStatus, weakestTrack, type TrackRow } from '@/lib/track-progress';
 import { Band, PageFrame, PageHeader, Row, Seg, Surface, SummaryRow } from './shell/page';
 import { ProgressChart, type ChartRange } from './progress-chart';
 import { useUI } from './ui-state';
@@ -77,6 +77,11 @@ export function ProgressView() {
       <Surface>
         <SummaryRow ring={{ pct: o.planAll ? o.doneAll / o.planAll : 0, label: 'of plan hours' }} items={items} />
         <div className="border-t border-border">
+          <Band id="tracks" title="Tracks" count={tracks.length}>
+            <div className="divide-y divide-border border-t border-border" data-tracks>
+              {tracks.map(x => <TrackCard key={x.key} row={x} />)}
+            </div>
+          </Band>
           <Band id="running-total" title="Running total vs plan"
             right={<Seg value={range} onChange={setRange} options={[{ value: 'month', label: 'This month' }, { value: 'plan', label: 'Whole plan' }]} />}>
             <div className="border-t border-border px-4 pt-3 pb-2">
@@ -125,25 +130,34 @@ export function ProgressView() {
               ) : <p className="px-4 py-3 text-[13px] text-muted-foreground">No scores yet. Enter your baseline on the prep day, then the weekly self-check each Sunday (open the task to type a score from 0 to 100).</p>}
             </div>
           </Band>
-          <Band id="tracks" title="Tracks" count={tracks.length}>
-            <div className="border-t border-border">
-              {tracks.map(x => (
-                <Row key={x.key} data-track-row={x.key}>
-                  <span className="w-28 shrink-0 truncate sm:w-40">{x.name}</span>
-                  <div className="h-1.5 min-w-8 flex-1 overflow-hidden rounded-full bg-muted" title={`${x.allDone} of ${x.all} tasks done in the whole plan`}>
-                    <div className="h-full rounded-full bg-primary" style={{ width: `${x.all ? (x.allDone / x.all) * 100 : 0}%` }} />
-                  </div>
-                  <span className="flex shrink-0 flex-col items-end text-right leading-tight">
-                    <span className="text-[13px] tabular-nums" data-track-due>{x.due ? `${x.done} of ${x.due} due so far` : 'Nothing due yet'}</span>
-                    <span className="text-[12px] tabular-nums text-muted-foreground" data-track-plan>{x.allDone} of {x.all} in the plan</span>
-                  </span>
-                </Row>
-              ))}
-            </div>
-          </Band>
         </div>
       </Surface>
     </PageFrame>
+  );
+}
+
+/** One track as a meter row: name and status, a bar of the plan done with a tick where you should be by today,
+ * and the counts. Bars line up across rows; on phones the bar drops under the name. */
+function TrackCard({ row: x }: { row: TrackRow }) {
+  const st = trackStatus(x);
+  const pct = (v: number) => `${Math.round(v * 100)}%`;
+  return (
+    <div data-track-row={x.key} className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 px-4 py-3 md:grid-cols-[9rem_7.5rem_1fr_auto]">
+      <span className="truncate text-[14px] font-medium">{x.name}</span>
+      <span data-track-status className={`justify-self-end rounded-full px-2 py-0.5 text-[12px] tabular-nums md:justify-self-start ${st.behind > 0 ? 'bg-stone text-stone-foreground' : 'bg-muted text-muted-foreground'}`}>
+        {st.label}
+      </span>
+      <div className="relative col-span-2 h-2 rounded-full bg-muted md:col-span-1" role="meter" aria-valuemin={0} aria-valuemax={x.all} aria-valuenow={x.allDone}
+        aria-label={`${x.name}: ${x.allDone} of ${x.all} tasks done; ${x.due} due by today`} title={`${pct(st.donePct)} of the plan done · ${pct(st.duePct)} should be done by today`}>
+        <div className="h-full rounded-full bg-primary" style={{ width: `${st.donePct * 100}%` }} />
+        {/* The "by today" tick, once it is far enough in to read as a mark rather than a stray pixel. */}
+        {st.duePct >= 0.02 && <div aria-hidden className="absolute -top-1 -bottom-1 w-0.5 rounded-full bg-foreground/60" style={{ left: `calc(${st.duePct * 100}% - 1px)` }} data-track-today />}
+      </div>
+      <div className="col-span-2 flex items-baseline justify-between gap-3 text-[12px] tabular-nums text-muted-foreground md:col-span-1 md:flex-col md:items-end md:gap-0">
+        <span data-track-due>{x.due ? `${x.done} of ${x.due} due done` : 'Nothing due yet'}</span>
+        <span data-track-plan>{x.allDone} of {x.all} in the plan · {pct(st.donePct)}</span>
+      </div>
+    </div>
   );
 }
 

@@ -30,6 +30,14 @@ export function trackRows(
   return [...rows.values()].filter((r) => r.all > 0);
 }
 
+/** Where a track stands today: tasks due and not done (behind), tasks done before their day (early), and the
+ * share of the plan done vs the share that should be done by today (both 0–1). */
+export function trackStatus(r: TrackRow): { behind: number; early: number; donePct: number; duePct: number; label: string } {
+  const behind = r.due - r.done, early = r.allDone - r.done;
+  const label = behind > 0 ? `${behind} behind` : r.due === 0 && early === 0 ? 'Nothing due yet' : early > 0 ? `On track · ${early} early` : 'On track';
+  return { behind, early, donePct: r.all ? r.allDone / r.all : 0, duePct: r.all ? r.due / r.all : 0, label };
+}
+
 /** The track furthest behind among those with something due (null when nothing is due yet). */
 export function weakestTrack(rows: TrackRow[]): TrackRow | null {
   return rows.filter((r) => r.due > 0).sort((a, b) => a.done / a.due - b.done / b.due)[0] ?? null;

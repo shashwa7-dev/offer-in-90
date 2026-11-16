@@ -1634,7 +1634,7 @@ try {
       await page.locator('[data-slot="sidebar"] [data-nav="progress"]').first().click(); await page.waitForTimeout(300);
       const keys = await page.locator('[data-track-row]').evaluateAll(els => els.map(e => e.getAttribute('data-track-row')));
       const plan = await page.locator('[data-track-plan]').first().innerText().catch(() => '');
-      if (keys.join(',') === 'dsa,ai,sd,mc,platform,career,fe' && /^\d+ of \d+ in the plan$/.test(plan)) ok(`${W}: Progress tracks are the 7 plan tracks in order`); else fail(`${W}: Progress tracks ${keys.join(',')} / "${plan}"`);
+      if (keys.join(',') === 'dsa,ai,sd,mc,platform,career,fe' && /^\d+ of \d+ in the plan · \d+%$/.test(plan)) ok(`${W}: Progress tracks are the 7 plan tracks in order`); else fail(`${W}: Progress tracks ${keys.join(',')} / "${plan}"`);
       await page.locator('[data-slot="sidebar"] [data-nav="setup"]').first().click(); await page.waitForTimeout(300);
     }
     const band = page.locator('#labels');

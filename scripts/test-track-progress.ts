@@ -1,6 +1,6 @@
 // Run: node --experimental-strip-types scripts/test-track-progress.ts
 import assert from 'node:assert/strict';
-import { trackRows, weakestTrack } from '../src/lib/track-progress.ts';
+import { trackRows, trackStatus, weakestTrack } from '../src/lib/track-progress.ts';
 
 const TRACKS = [{ key: 'dsa', name: 'DSA' }, { key: 'mc', name: 'Product' }, { key: 'career', name: 'Career' }, { key: 'fe', name: 'Frontend' }];
 const MAP: Record<string, string> = { dsa: 'dsa', mc: 'mc', proj: 'mc', beh: 'career', fde: 'career', fe: 'fe' };
@@ -32,5 +32,16 @@ const days = [
   const rows = trackRows(days, 3, {}, TRACKS, trackOf, (id) => id === 'proj:brief');
   assert.equal(rows.find((r) => r.key === 'mc')!.all, 2);
   assert.equal(rows.find((r) => r.key === 'mc')!.due, 2);
+}
+// Status: behind, on track, early, nothing due.
+{
+  const row = (due: number, done: number, all: number, allDone: number) => ({ key: 'x', name: 'X', due, done, all, allDone });
+  assert.equal(trackStatus(row(3, 1, 10, 1)).label, '2 behind');
+  assert.equal(trackStatus(row(3, 3, 10, 3)).label, 'On track');
+  assert.equal(trackStatus(row(3, 3, 10, 5)).label, 'On track · 2 early');
+  assert.equal(trackStatus(row(0, 0, 10, 0)).label, 'Nothing due yet');
+  assert.equal(trackStatus(row(0, 0, 10, 1)).label, 'On track · 1 early');
+  const s = trackStatus(row(4, 2, 10, 3));
+  assert.deepEqual([s.behind, s.early, s.donePct, s.duePct], [2, 1, 0.3, 0.4]);
 }
 console.log('track-progress: ok');
