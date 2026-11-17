@@ -1,6 +1,96 @@
 {
- "generatedAt": "2026-11-16T02:26:52.686Z",
+ "generatedAt": "2026-11-17T04:50:23.403Z",
  "days": {
+  "2026-11-17": [
+   {
+    "id": "2026-11-17-1",
+    "title": "Many of Amazon’s Black Friday and Cyber Monday “deals” offered no savings",
+    "url": "http://groundworkcollaborative.org/news/amazons-decoy-deals-groundwork-investigation-reveals-nearly-1-in-3-black-friday-and-cyber-monday-deals-advertised-by-amazon-offered-no-savings-to-shoppers-nearly-1-in-10-w/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50517488",
+    "source": "Hacker News",
+    "points": 865,
+    "comments": 517,
+    "publishedAt": "2026-11-16T13:39:07Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-17-2",
+    "title": "Technical issue at JPMorgan Chase triggers online banking delays for US banks",
+    "url": "https://apnews.com/article/bank-outage-chase-wells-fargo-truist-50fee2693c22f597fa6ca51a97ef2cda",
+    "discussUrl": "https://news.ycombinator.com/item?id=50521045",
+    "source": "Hacker News",
+    "points": 739,
+    "comments": 614,
+    "publishedAt": "2026-11-16T18:31:30Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-17-3",
+    "title": "Migrating from GitHub to Codeberg",
+    "url": "https://yorickpeterse.com/articles/migrating-from-github-to-codeberg/",
+    "discussUrl": "https://lobste.rs/s/rhoopo/migrating_from_github_codeberg",
+    "source": "Lobsters",
+    "points": 67,
+    "comments": 22,
+    "publishedAt": "2026-11-15T23:10:34.395-06:00",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-17-4",
+    "title": "What is w2rt6byl5nf1opmc-a[.]com?",
+    "url": "https://jack.cab/blog/siterate.html",
+    "discussUrl": "https://lobste.rs/s/dgvb5g/what_is_w2rt6byl5nf1opmc_com",
+    "source": "Lobsters",
+    "points": 54,
+    "comments": 11,
+    "publishedAt": "2026-11-16T07:02:11.963-06:00",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-17-5",
+    "title": "Windows 11 Is Collecting Data on Which Coding Agents and Developer Tools You Use",
+    "url": "https://xusheng.dev/posts/windows-coding-agent-telemetry/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50524736",
+    "source": "Hacker News",
+    "points": 379,
+    "comments": 236,
+    "publishedAt": "2026-11-16T22:58:20Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-17-10",
+    "title": "OpenCode Browse",
+    "url": "https://opencode.ai/product/browse",
+    "discussUrl": "https://news.ycombinator.com/item?id=50523459",
+    "source": "Hacker News",
+    "points": 171,
+    "comments": 79,
+    "publishedAt": "2026-11-16T21:20:37Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-17-11",
+    "title": "\"Proof of use\" as a requirement for open source contributions?",
+    "url": "https://lobste.rs/s/ki1l5r/proof_use_as_requirement_for_open_source",
+    "discussUrl": "https://lobste.rs/s/ki1l5r/proof_use_as_requirement_for_open_source",
+    "source": "Lobsters",
+    "points": 15,
+    "comments": 3,
+    "publishedAt": "2026-11-16T16:25:45.396-06:00",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-17-12",
+    "title": "How I Made a Markov Chain Model from Scratch in C++ During a Global Online Teen Hackathon",
+    "url": "https://dev.to/necoz/how-i-made-a-markov-chain-model-from-scratch-in-c-during-a-global-online-teen-hackathon-3gd7",
+    "discussUrl": "https://dev.to/necoz/how-i-made-a-markov-chain-model-from-scratch-in-c-during-a-global-online-teen-hackathon-3gd7",
+    "source": "dev.to",
+    "points": 42,
+    "comments": 13,
+    "publishedAt": "2026-11-15T19:51:04Z",
+    "category": "ai"
+   }
+  ],
   "2026-11-16": [
    {
     "id": "2026-11-16-1",
