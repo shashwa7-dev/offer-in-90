@@ -1,6 +1,96 @@
 {
- "generatedAt": "2026-11-18T03:55:25.450Z",
+ "generatedAt": "2026-11-19T03:53:40.846Z",
  "days": {
+  "2026-11-19": [
+   {
+    "id": "2026-11-19-1",
+    "title": "TeleChat to Xing4: Advancing Frontier Agentic Models on Domestic Chips and Frameworks",
+    "url": "https://huggingface.co/papers/2611.22115",
+    "discussUrl": "https://huggingface.co/papers/2611.22115",
+    "source": "HF Papers",
+    "points": 151,
+    "comments": 3,
+    "publishedAt": "2026-11-16T19:00:00.000Z",
+    "category": "research"
+   },
+   {
+    "id": "2026-11-19-2",
+    "title": "Unauthenticated remote code execution in Nginx",
+    "url": "https://www.wiz.io/blog/nginx-http2-rce-vulnerabilities",
+    "discussUrl": "https://news.ycombinator.com/item?id=50547374",
+    "source": "Hacker News",
+    "points": 1198,
+    "comments": 532,
+    "publishedAt": "2026-11-18T15:19:55Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-19-3",
+    "title": "AI is killing All About Berlin",
+    "url": "https://nicolasbouliane.com/blog/death-by-ai",
+    "discussUrl": "https://news.ycombinator.com/item?id=50542705",
+    "source": "Hacker News",
+    "points": 766,
+    "comments": 687,
+    "publishedAt": "2026-11-18T06:47:26Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-19-4",
+    "title": "DNS resolvers are the wrong place to fight piracy",
+    "url": "https://techstackups.com/articles/quad9-leaves-france-dns-blocking/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50545958",
+    "source": "Hacker News",
+    "points": 621,
+    "comments": 234,
+    "publishedAt": "2026-11-18T13:18:02Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-19-5",
+    "title": "Gemini 4 Neon",
+    "url": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-neon/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50552424",
+    "source": "Hacker News",
+    "points": 549,
+    "comments": 505,
+    "publishedAt": "2026-11-18T21:34:07Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-19-6",
+    "title": "Phrack 73",
+    "url": "https://phrack.org/issues/73/introduction_md.html",
+    "discussUrl": "https://lobste.rs/s/xu4ajj/phrack_73",
+    "source": "Lobsters",
+    "points": 64,
+    "comments": 4,
+    "publishedAt": "2026-11-17T11:40:32.622-06:00",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-19-7",
+    "title": "Weight-Space Programming Doesn't Need Transformers",
+    "url": "https://huggingface.co/papers/2611.22055",
+    "discussUrl": "https://huggingface.co/papers/2611.22055",
+    "source": "HF Papers",
+    "points": 51,
+    "comments": 3,
+    "publishedAt": "2026-11-16T19:00:00.000Z",
+    "category": "research"
+   },
+   {
+    "id": "2026-11-19-8",
+    "title": "Seven new models at scalable price-performance",
+    "url": "https://microsoft.ai/news/microsoft-ignite-2026/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50548021",
+    "source": "Hacker News",
+    "points": 471,
+    "comments": 327,
+    "publishedAt": "2026-11-18T16:08:24Z",
+    "category": "ai"
+   }
+  ],
   "2026-11-18": [
    {
     "id": "2026-11-18-1",
