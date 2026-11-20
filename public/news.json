@@ -1,6 +1,96 @@
 {
- "generatedAt": "2026-11-19T03:53:40.846Z",
+ "generatedAt": "2026-11-20T03:45:51.059Z",
  "days": {
+  "2026-11-20": [
+   {
+    "id": "2026-11-20-1",
+    "title": "Jeveration: System One Models Now Generate",
+    "url": "https://huggingface.co/papers/2611.24738",
+    "discussUrl": "https://huggingface.co/papers/2611.24738",
+    "source": "HF Papers",
+    "points": 116,
+    "comments": 4,
+    "publishedAt": "2026-11-17T19:00:00.000Z",
+    "category": "research"
+   },
+   {
+    "id": "2026-11-20-2",
+    "title": "Fuck Your AI Safeguards",
+    "url": "https://ounapuu.ee/posts/2026/11/19/unsafeguards/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50562262",
+    "source": "Hacker News",
+    "points": 493,
+    "comments": 203,
+    "publishedAt": "2026-11-19T16:30:18Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-20-3",
+    "title": "Claude solves two open problems in the physics of black holes",
+    "url": "https://www.anthropic.com/research/claude-black-hole-physics",
+    "discussUrl": "https://news.ycombinator.com/item?id=50563148",
+    "source": "Hacker News",
+    "points": 427,
+    "comments": 190,
+    "publishedAt": "2026-11-19T17:30:44Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-20-4",
+    "title": "Ruby2ßhell: Pre-authentication RCE on stock Rails",
+    "url": "https://verialabs.com/ruby2shell/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50556287",
+    "source": "Hacker News",
+    "points": 389,
+    "comments": 166,
+    "publishedAt": "2026-11-19T05:09:11Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-20-5",
+    "title": "Someone reported java4shell bug in September 2026",
+    "url": "https://github.com/openjdk/jdk/pull/32781",
+    "discussUrl": "https://news.ycombinator.com/item?id=50558906",
+    "source": "Hacker News",
+    "points": 389,
+    "comments": 103,
+    "publishedAt": "2026-11-19T11:47:03Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-20-6",
+    "title": "Is Coding with AI Actually Faster and Cheaper?",
+    "url": "https://dev.to/sylwia-lask/is-coding-with-ai-actually-faster-and-cheaper-2810",
+    "discussUrl": "https://dev.to/sylwia-lask/is-coding-with-ai-actually-faster-and-cheaper-2810",
+    "source": "dev.to",
+    "points": 162,
+    "comments": 141,
+    "publishedAt": "2026-11-18T08:32:45Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-20-7",
+    "title": "SSD prices may begin to decline in the latter half of 2027",
+    "url": "https://www.drivevault.io/blog/when-will-hard-drive-prices-come-down.html",
+    "discussUrl": "https://news.ycombinator.com/item?id=50557716",
+    "source": "Hacker News",
+    "points": 301,
+    "comments": 228,
+    "publishedAt": "2026-11-19T09:05:34Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-20-8",
+    "title": "Distributed, high-performance blob storage on SQLite",
+    "url": "https://zerodha.tech/blog/high-performance-distributed-blob-storage/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50557537",
+    "source": "Hacker News",
+    "points": 269,
+    "comments": 70,
+    "publishedAt": "2026-11-19T08:39:45Z",
+    "category": "dev"
+   }
+  ],
   "2026-11-19": [
    {
     "id": "2026-11-19-1",
