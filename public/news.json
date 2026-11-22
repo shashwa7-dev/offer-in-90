@@ -1,6 +1,74 @@
 {
- "generatedAt": "2026-11-21T03:35:29.764Z",
+ "generatedAt": "2026-11-22T02:42:26.855Z",
  "days": {
+  "2026-11-22": [
+   {
+    "id": "2026-11-22-1",
+    "title": "Lean verification of the Riemann Hypothesis",
+    "url": "https://leanprover-community.github.io/blog/posts/riemann-hypothesis/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50589618",
+    "source": "Hacker News",
+    "points": 860,
+    "comments": 720,
+    "publishedAt": "2026-11-21T14:36:45Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-22-2",
+    "title": "Slopstrap: Make your site look hastily vibecoded",
+    "url": "https://slopstrap.mikelacher.com/l",
+    "discussUrl": "https://lobste.rs/s/1n8fzn/slopstrap_make_your_site_look_hastily",
+    "source": "Lobsters",
+    "points": 77,
+    "comments": 14,
+    "publishedAt": "2026-11-20T18:46:40.624-06:00",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-22-3",
+    "title": "Inkling-2-Mini in 5.4 GB Memory",
+    "url": "https://github.com/ShinMegamiBoson/lookatmyquant",
+    "discussUrl": "https://news.ycombinator.com/item?id=50591853",
+    "source": "Hacker News",
+    "points": 369,
+    "comments": 94,
+    "publishedAt": "2026-11-21T18:02:19Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-22-4",
+    "title": "RCE in Gnupg",
+    "url": "https://lists.gnupg.org/pipermail/gnupg-announce/2026q4/000517.html",
+    "discussUrl": "https://news.ycombinator.com/item?id=50587208",
+    "source": "Hacker News",
+    "points": 235,
+    "comments": 96,
+    "publishedAt": "2026-11-21T08:32:58Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-22-6",
+    "title": "ClawDOS – An AI coding agent for DOS",
+    "url": "http://ricapar.net/ClawDOS/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50586292",
+    "source": "Hacker News",
+    "points": 159,
+    "comments": 51,
+    "publishedAt": "2026-11-21T05:38:01Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-22-8",
+    "title": "A VS Code extension to turn ANY free chatbot website into an AI agent (kind of)",
+    "url": "https://dev.to/effessdev/a-vs-code-extension-to-turn-any-free-chatbot-website-into-an-ai-agent-kind-of-1n21",
+    "discussUrl": "https://dev.to/effessdev/a-vs-code-extension-to-turn-any-free-chatbot-website-into-an-ai-agent-kind-of-1n21",
+    "source": "dev.to",
+    "points": 40,
+    "comments": 14,
+    "publishedAt": "2026-11-21T11:49:40Z",
+    "category": "ai"
+   }
+  ],
   "2026-11-21": [
    {
     "id": "2026-11-21-1",
