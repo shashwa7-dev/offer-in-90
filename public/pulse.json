@@ -1,6 +1,36 @@
 {
   "weeks": [
     {
+      "weekOf": "2026-11-22",
+      "generatedAt": "2026-11-22T13:00:00.000Z",
+      "counts": { "leetcode": 49, "reddit": 0, "web": 0 },
+      "headline": "Amazon posts again mention an AI-assisted debugging/coding task in the OA (3 of 14 Amazon posts) and an extra LLD round for SDE-2 (2 posts); Google's AI-assisted code comprehension round keeps coming up (2 posts). No frontend- or FDE-specific reports with enough volume this week.",
+      "companies": [
+        {
+          "company": "Amazon",
+          "reports": 14,
+          "roles": ["swe"],
+          "loop": "SDE-2 loops are described as 4-5 rounds mixing DSA, LP and system design, with some candidates reporting an additional LLD round. OAs for SDE-1 and intern roles include a DSA section and an AI-assisted coding/debugging section.",
+          "changes": ["AI-assisted debugging/coding section in the OA (3 of 14 posts)", "Additional LLD round in SDE-2 loops (2 posts)"],
+          "questions": ["Codebase debugging in an unfamiliar framework (Django, Spring, Node)", "Graph questions in screens", "Leadership Principles stories", "LLD design problems", "Subsequence/string OA questions"],
+          "prep": "Practise reading and fixing unfamiliar code quickly, and keep one LLD practice per week alongside DSA and LP stories.",
+          "confidence": "medium",
+          "citations": ["https://leetcode.com/discuss/post/8610530/amazon-online-assessment-no-experience-i-4bby/", "https://leetcode.com/discuss/post/8613825/amazon-sde-intern-us-summer-27-by-pratha-tlcm/", "https://leetcode.com/discuss/post/8612260/amazon-sde-2-interview-experience-5-roun-chz3/", "https://leetcode.com/discuss/post/8618120/amazon-sde-ii-full-loop-interview-experi-ma7g/", "https://leetcode.com/discuss/post/8607490/amazon-sde-2-loop-does-it-include-system-lwnq/"]
+        },
+        {
+          "company": "Google",
+          "reports": 7,
+          "roles": ["swe"],
+          "loop": "Posts describe an OA/hiring assessment then virtual or onsite coding rounds; two mention a 45-minute AI-assisted code comprehension/optimisation round with Gemini, and one L5 AI/ML post lists a no-AI DSA round.",
+          "changes": ["AI-assisted code comprehension round mentioned (2 of 7 posts)", "DSA round explicitly without AI at L5 (1 post)"],
+          "questions": ["Code optimisation on an existing codebase", "DSA coding rounds", "ML system architecture (L5 AI/ML)"],
+          "prep": "Do a few timed sessions reading unfamiliar code and improving it, while keeping classic DSA practice since not every round allows AI.",
+          "confidence": "medium",
+          "citations": ["https://leetcode.com/discuss/post/8608478/google-ai-assisted-code-comprehension-ro-q48r/", "https://leetcode.com/discuss/post/8610508/google-is-testing-code-comprehension-rou-exxm/", "https://leetcode.com/discuss/post/8615264/google-l5-aiml-onsite-anyone-had-the-dsa-ryad/", "https://leetcode.com/discuss/post/8611299/google-l4-interview-experience-by-anonym-fh4y/"]
+        }
+      ]
+    },
+    {
       "weekOf": "2026-11-15",
       "generatedAt": "2026-11-15T13:00:00.000Z",
       "counts": { "leetcode": 49, "reddit": 0, "web": 0 },

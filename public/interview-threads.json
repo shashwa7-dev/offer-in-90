@@ -1,19 +1,19 @@
 {
- "collectedAt": "2026-11-15T02:56:09.500Z",
+ "collectedAt": "2026-11-22T03:20:17.357Z",
  "window": {
-  "from": "2026-11-01T02:55:35.610Z",
-  "to": "2026-11-15T02:55:35.610Z",
+  "from": "2026-11-08T03:19:48.340Z",
+  "to": "2026-11-22T03:19:48.340Z",
   "days": 14
  },
  "sources": {
-  "leetcode": 326,
+  "leetcode": 354,
   "reddit": 0
  },
  "companies": {
   "Google": {
    "group": "Big tech",
-   "threads": 7,
-   "engagement": 151,
+   "threads": 8,
+   "engagement": 238,
    "roles": [],
    "top": [
     {
@@ -21,19 +21,39 @@
      "url": "https://leetcode.com/discuss/post/8611299/google-l4-interview-experience-by-anonym-fh4y/",
      "source": "LeetCode",
      "createdAt": "2026-11-13T08:11:48.034700+00:00",
-     "upvotes": 16,
-     "comments": 9,
-     "views": 728,
+     "upvotes": 25,
+     "comments": 10,
+     "views": 1883,
      "roles": []
     },
     {
-     "title": "Google L4 interviews coming up - need advice!",
-     "url": "https://leetcode.com/discuss/post/8601541/google-l4-interviews-coming-up-need-advi-3pfm/",
+     "title": "Google India Interview Experience | 3 YOE",
+     "url": "https://leetcode.com/discuss/post/8614163/google-india-interview-experience-3-yoe-nqnl2/",
      "source": "LeetCode",
-     "createdAt": "2026-11-04T11:28:38.976557+00:00",
+     "createdAt": "2026-11-16T02:49:05.546844+00:00",
+     "upvotes": 5,
+     "comments": 9,
+     "views": 984,
+     "roles": []
+    },
+    {
+     "title": "GOOGLE SWE II FEEDBACK ",
+     "url": "https://leetcode.com/discuss/post/8616186/google-swe-ii-feedback-by-anonymous_user-nais/",
+     "source": "LeetCode",
+     "createdAt": "2026-11-17T18:16:48.417272+00:00",
      "upvotes": 1,
-     "comments": 7,
-     "views": 570,
+     "comments": 11,
+     "views": 502,
+     "roles": []
+    },
+    {
+     "title": "Google L5 AI/ML onsite: anyone had the DSA/“ML System Architecture” round recently?",
+     "url": "https://leetcode.com/discuss/post/8615264/google-l5-aiml-onsite-anyone-had-the-dsa-ryad/",
+     "source": "LeetCode",
+     "createdAt": "2026-11-17T00:02:25.637981+00:00",
+     "upvotes": 4,
+     "comments": 3,
+     "views": 744,
      "roles": []
     },
     {
@@ -43,27 +63,7 @@
      "createdAt": "2026-11-12T14:22:57.748068+00:00",
      "upvotes": 2,
      "comments": 6,
-     "views": 248,
-     "roles": []
-    },
-    {
-     "title": "Google AI/ML knowledge interview during team matching L3 SWE. Has anyone done something similar?",
-     "url": "https://leetcode.com/discuss/post/8598580/google-aiml-knowledge-interview-during-t-7rxj/",
-     "source": "LeetCode",
-     "createdAt": "2026-11-02T08:30:13.657273+00:00",
-     "upvotes": 1,
-     "comments": 4,
-     "views": 644,
-     "roles": []
-    },
-    {
-     "title": "Google Full-Loop for Updated Interview Process: Need Help",
-     "url": "https://leetcode.com/discuss/post/8604707/google-full-loop-for-updated-interview-p-t919/",
-     "source": "LeetCode",
-     "createdAt": "2026-11-07T15:00:35.595805+00:00",
-     "upvotes": 0,
-     "comments": 4,
-     "views": 783,
+     "views": 335,
      "roles": []
     },
     {
@@ -72,8 +72,54 @@
      "source": "LeetCode",
      "createdAt": "2026-11-12T04:02:41.542161+00:00",
      "upvotes": 2,
+     "comments": 3,
+     "views": 198,
+     "roles": []
+    }
+   ]
+  },
+  "Meta": {
+   "group": "Big tech",
+   "threads": 2,
+   "engagement": 27,
+   "roles": [],
+   "top": [
+    {
+     "title": "Meta Staff Production Engineer Onsite",
+     "url": "https://leetcode.com/discuss/post/8619572/meta-staff-production-engineer-onsite-by-88cs/",
+     "source": "LeetCode",
+     "createdAt": "2026-11-21T04:56:07.488201+00:00",
+     "upvotes": 3,
      "comments": 2,
-     "views": 166,
+     "views": 181,
+     "roles": []
+    },
+    {
+     "title": "Meta Interview Experience - SWE (E4) - Waiting for decision",
+     "url": "https://leetcode.com/discuss/post/8617675/meta-interview-experience-swe-e4-waiting-n7eb/",
+     "source": "LeetCode",
+     "createdAt": "2026-11-19T06:20:31.774677+00:00",
+     "upvotes": 2,
+     "comments": 3,
+     "views": 225,
+     "roles": []
+    }
+   ]
+  },
+  "Microsoft": {
+   "group": "Big tech",
+   "threads": 1,
+   "engagement": 3,
+   "roles": [],
+   "top": [
+    {
+     "title": "Preparation Tips for Microsoft Security Research Intern – Coding Round",
+     "url": "https://leetcode.com/discuss/post/8616800/preparation-tips-for-microsoft-security-ultov/",
+     "source": "LeetCode",
+     "createdAt": "2026-11-18T09:36:49.508221+00:00",
+     "upvotes": 1,
+     "comments": 0,
+     "views": 26,
      "roles": []
     }
    ]
@@ -81,47 +127,37 @@
   "Amazon": {
    "group": "Big tech",
    "threads": 20,
-   "engagement": 475,
+   "engagement": 442,
    "roles": [],
    "top": [
     {
-     "title": "Amazon Intern interview Experience | 31 October 2026 | DSA + ML + GenAI",
-     "url": "https://leetcode.com/discuss/post/8596937/amazon-interview-experience-31-october-2-klm4/",
+     "title": "Amazon SDE II Full Loop Interview Experience (Reject)",
+     "url": "https://leetcode.com/discuss/post/8618120/amazon-sde-ii-full-loop-interview-experi-ma7g/",
      "source": "LeetCode",
-     "createdAt": "2026-11-01T05:51:07.200594+00:00",
-     "upvotes": 30,
-     "comments": 31,
-     "views": 1916,
+     "createdAt": "2026-11-19T14:19:15.853948+00:00",
+     "upvotes": 28,
+     "comments": 5,
+     "views": 1398,
      "roles": []
     },
     {
-     "title": "My Amazon SDE-2 Interview Experience | Hyderabad",
-     "url": "https://leetcode.com/discuss/post/8601845/my-amazon-sde-2-interview-experience-hyd-biuf/",
+     "title": "Amazon SDE-2 Interview Experience | 5 Rounds | Rejected After Additional LLD Round | Offered SysDE-2",
+     "url": "https://leetcode.com/discuss/post/8612260/amazon-sde-2-interview-experience-5-roun-chz3/",
      "source": "LeetCode",
-     "createdAt": "2026-11-04T17:39:51.717945+00:00",
-     "upvotes": 6,
-     "comments": 8,
-     "views": 1438,
+     "createdAt": "2026-11-14T07:44:24.205872+00:00",
+     "upvotes": 9,
+     "comments": 6,
+     "views": 902,
      "roles": []
     },
     {
-     "title": "Amazon System Design Experience ",
-     "url": "https://leetcode.com/discuss/post/8600739/amazon-system-design-experience-by-nikhi-o1h2/",
+     "title": "Amazon SDE-1 Interview Experience | 2 YOE | India | Selected",
+     "url": "https://leetcode.com/discuss/post/8619095/amazon-sde-1-interview-experience-2-yoe-dgbdx/",
      "source": "LeetCode",
-     "createdAt": "2026-11-03T17:31:15.795866+00:00",
+     "createdAt": "2026-11-20T14:10:25.912186+00:00",
      "upvotes": 8,
-     "comments": 3,
-     "views": 516,
-     "roles": []
-    },
-    {
-     "title": "Amazon SDE Intern Interview Experience | Onsite Delhi | 2026 | Round 1 | DSA + Leadership Principles",
-     "url": "https://leetcode.com/discuss/post/8597950/amazon-sde-intern-interview-experience-o-jfhk/",
-     "source": "LeetCode",
-     "createdAt": "2026-11-01T19:27:04.626584+00:00",
-     "upvotes": 5,
-     "comments": 7,
-     "views": 390,
+     "comments": 4,
+     "views": 799,
      "roles": []
     },
     {
@@ -129,9 +165,9 @@
      "url": "https://leetcode.com/discuss/post/8610778/my-amazon-sde-2-interview-experience-202-kflb/",
      "source": "LeetCode",
      "createdAt": "2026-11-12T18:06:25.421588+00:00",
-     "upvotes": 4,
-     "comments": 6,
-     "views": 723,
+     "upvotes": 5,
+     "comments": 7,
+     "views": 1011,
      "roles": []
     },
     {
@@ -141,32 +177,46 @@
      "createdAt": "2026-11-08T07:21:23.195160+00:00",
      "upvotes": 6,
      "comments": 2,
-     "views": 607,
+     "views": 712,
+     "roles": []
+    },
+    {
+     "title": "Amazon Online Assessment, No Experience in any offer Framework in the AI Debugging Round",
+     "url": "https://leetcode.com/discuss/post/8610530/amazon-online-assessment-no-experience-i-4bby/",
+     "source": "LeetCode",
+     "createdAt": "2026-11-12T14:41:22.104270+00:00",
+     "upvotes": 1,
+     "comments": 9,
+     "views": 787,
      "roles": []
     }
    ]
   },
   "Apple": {
    "group": "Big tech",
-   "threads": 2,
-   "engagement": 15,
-   "roles": [
-    "frontend",
-    "fullstack"
-   ],
+   "threads": 3,
+   "engagement": 29,
+   "roles": [],
    "top": [
     {
-     "title": "Apple Full Stack Developer Interview Experience",
-     "url": "https://leetcode.com/discuss/post/8597430/apple-full-stack-developer-interview-exp-iffn/",
+     "title": "Apple Upcoming Interview| Software Engineer : AI",
+     "url": "https://leetcode.com/discuss/post/8618080/apple-upcoming-interview-software-engine-vt2a/",
      "source": "LeetCode",
-     "createdAt": "2026-11-01T12:10:52.358284+00:00",
-     "upvotes": 2,
-     "comments": 0,
-     "views": 699,
-     "roles": [
-      "frontend",
-      "fullstack"
-     ]
+     "createdAt": "2026-11-19T13:42:28.938678+00:00",
+     "upvotes": 4,
+     "comments": 2,
+     "views": 179,
+     "roles": []
+    },
+    {
+     "title": "Apple GSE Interview Coming Up (What to expect)",
+     "url": "https://leetcode.com/discuss/post/8615218/apple-gse-interview-coming-up-what-to-ex-ft0m/",
+     "source": "LeetCode",
+     "createdAt": "2026-11-16T20:15:28.458557+00:00",
+     "upvotes": 0,
+     "comments": 2,
+     "views": 382,
+     "roles": []
     },
     {
      "title": "Apple Operation Engineer Interview Prep",
@@ -175,35 +225,7 @@
      "createdAt": "2026-11-12T12:33:03.245182+00:00",
      "upvotes": 1,
      "comments": 1,
-     "views": 112,
-     "roles": []
-    }
-   ]
-  },
-  "Uber": {
-   "group": "Big tech",
-   "threads": 2,
-   "engagement": 7,
-   "roles": [],
-   "top": [
-    {
-     "title": " Uber Automation Specialist II – SHL Assessment Experience",
-     "url": "https://leetcode.com/discuss/post/8599327/uber-automation-specialist-ii-shl-assess-2od7/",
-     "source": "LeetCode",
-     "createdAt": "2026-11-02T17:57:11.758087+00:00",
-     "upvotes": 2,
-     "comments": 0,
-     "views": 81,
-     "roles": []
-    },
-    {
-     "title": "Uber Automation Specialist II – SHL Assessment ",
-     "url": "https://leetcode.com/discuss/post/8601229/uber-automation-specialist-ii-shl-assess-elp4/",
-     "source": "LeetCode",
-     "createdAt": "2026-11-04T05:52:35.399297+00:00",
-     "upvotes": 0,
-     "comments": 0,
-     "views": 116,
+     "views": 178,
      "roles": []
     }
    ]
@@ -221,44 +243,18 @@
      "createdAt": "2026-11-12T00:52:29.574446+00:00",
      "upvotes": 0,
      "comments": 1,
-     "views": 119,
-     "roles": []
-    }
-   ]
-  },
-  "Stripe": {
-   "group": "Big tech",
-   "threads": 2,
-   "engagement": 74,
-   "roles": [],
-   "top": [
-    {
-     "title": "Stripe Interview Experience ",
-     "url": "https://leetcode.com/discuss/post/8597814/stripe-interview-experience-by-anonymous-fhk5/",
-     "source": "LeetCode",
-     "createdAt": "2026-11-01T17:28:31.956237+00:00",
-     "upvotes": 13,
-     "comments": 5,
-     "views": 953,
-     "roles": []
-    },
-    {
-     "title": "Stripe Screening Round Experience ",
-     "url": "https://leetcode.com/discuss/post/8602410/stripe-screening-round-experience-by-yb1-9no7/",
-     "source": "LeetCode",
-     "createdAt": "2026-11-05T07:13:03.815667+00:00",
-     "upvotes": 3,
-     "comments": 4,
-     "views": 556,
+     "views": 172,
      "roles": []
     }
    ]
   },
   "Atlassian": {
    "group": "Big tech",
-   "threads": 1,
-   "engagement": 21,
-   "roles": [],
+   "threads": 3,
+   "engagement": 126,
+   "roles": [
+    "fde"
+   ],
    "top": [
     {
      "title": "Atlassian India (Backend Developer II / P40) - HC Stage",
@@ -266,30 +262,52 @@
      "source": "LeetCode",
      "createdAt": "2026-11-12T05:03:57.168240+00:00",
      "upvotes": 0,
-     "comments": 9,
-     "views": 588,
+     "comments": 34,
+     "views": 1257,
      "roles": []
+    },
+    {
+     "title": "Atlassian hiring committee: P60 role",
+     "url": "https://leetcode.com/discuss/post/8614272/atlassian-hiring-committee-by-anonymous_-ym01/",
+     "source": "LeetCode",
+     "createdAt": "2026-11-16T05:06:45.033483+00:00",
+     "upvotes": 0,
+     "comments": 18,
+     "views": 732,
+     "roles": []
+    },
+    {
+     "title": "Atlassian FDE (Forward Deployed Engineer) Interview Experience",
+     "url": "https://leetcode.com/discuss/post/8617166/atlassian-fde-forward-deployed-engineer-a5xa6/",
+     "source": "LeetCode",
+     "createdAt": "2026-11-18T16:38:33.538929+00:00",
+     "upvotes": 3,
+     "comments": 1,
+     "views": 283,
+     "roles": [
+      "fde"
+     ]
     }
    ]
   },
   "Adobe": {
    "group": "Big tech",
    "threads": 1,
-   "engagement": 4,
+   "engagement": 5,
    "roles": [
-    "frontend"
+    "fde"
    ],
    "top": [
     {
-     "title": "Adobe Computer Scientist Frontend interview experience",
-     "url": "https://leetcode.com/discuss/post/8599325/adobe-computer-scientist-frontend-interv-iezx/",
+     "title": "Adobe Forward Deployed Engineering Interview",
+     "url": "https://leetcode.com/discuss/post/8615215/adobe-forward-deployed-engineering-inter-xghr/",
      "source": "LeetCode",
-     "createdAt": "2026-11-02T17:56:02.379195+00:00",
+     "createdAt": "2026-11-16T20:10:09.938020+00:00",
      "upvotes": 1,
      "comments": 0,
-     "views": 147,
+     "views": 367,
      "roles": [
-      "frontend"
+      "fde"
      ]
     }
    ]
@@ -298,38 +316,54 @@
    "group": "Big tech",
    "threads": 1,
    "engagement": 7,
-   "roles": [
-    "frontend"
-   ],
+   "roles": [],
    "top": [
     {
-     "title": "Linkedin Senior Software Engineer- Frontend Focussed interview experience",
-     "url": "https://leetcode.com/discuss/post/8599351/linkedin-senior-software-engineer-fronte-wtjt/",
+     "title": "Linkedin IC2 Apps Interview Experience",
+     "url": "https://leetcode.com/discuss/post/8617718/linkedin-ic2-apps-interview-experience-b-ascs/",
      "source": "LeetCode",
-     "createdAt": "2026-11-02T18:18:28.819548+00:00",
-     "upvotes": 1,
-     "comments": 1,
-     "views": 385,
-     "roles": [
-      "frontend"
-     ]
+     "createdAt": "2026-11-19T06:54:52.439311+00:00",
+     "upvotes": 2,
+     "comments": 0,
+     "views": 173,
+     "roles": []
     }
    ]
   },
   "Salesforce": {
    "group": "Big tech",
-   "threads": 1,
-   "engagement": 12,
+   "threads": 3,
+   "engagement": 102,
    "roles": [],
    "top": [
     {
-     "title": "Salesforce | Final HM Round Completed - What is the typical turnaround time for feedback?",
-     "url": "https://leetcode.com/discuss/post/8600229/salesforce-final-hm-round-completed-what-a7py/",
+     "title": "Salesforce | SMTS | Bengaluru | Offer and Interview Experience",
+     "url": "https://leetcode.com/discuss/post/8617824/salesforce-smts-bengaluru-offer-and-inte-u61e/",
      "source": "LeetCode",
-     "createdAt": "2026-11-03T10:35:47.783809+00:00",
-     "upvotes": 1,
+     "createdAt": "2026-11-19T08:52:48.355438+00:00",
+     "upvotes": 10,
+     "comments": 1,
+     "views": 1287,
+     "roles": []
+    },
+    {
+     "title": "Salesforce | SMTS | Bangalore | Interview Experience",
+     "url": "https://leetcode.com/discuss/post/8617812/salesforce-smts-bangalore-interview-expe-ik0b/",
+     "source": "LeetCode",
+     "createdAt": "2026-11-19T08:43:13.368612+00:00",
+     "upvotes": 7,
      "comments": 3,
-     "views": 530,
+     "views": 1040,
+     "roles": []
+    },
+    {
+     "title": "Salesforce MTS Interview Experience | 2 YOE | Hyderabad",
+     "url": "https://leetcode.com/discuss/post/8617143/salesforce-mts-interview-experience-2-yo-774w/",
+     "source": "LeetCode",
+     "createdAt": "2026-11-18T16:15:26.177190+00:00",
+     "upvotes": 8,
+     "comments": 3,
+     "views": 490,
      "roles": []
     }
    ]
@@ -337,9 +371,19 @@
   "Oracle": {
    "group": "Big tech",
    "threads": 3,
-   "engagement": 21,
+   "engagement": 26,
    "roles": [],
    "top": [
+    {
+     "title": "Oracle and Teradata Senior Software Engineer Comp and career discussion",
+     "url": "https://leetcode.com/discuss/post/8608022/need-some-honest-career-advice-from-fell-fv7s/",
+     "source": "LeetCode",
+     "createdAt": "2026-11-10T13:49:38.930846+00:00",
+     "upvotes": 1,
+     "comments": 4,
+     "views": 889,
+     "roles": []
+    },
     {
      "title": "4 Interviews set with Oracle (IC3)",
      "url": "https://leetcode.com/discuss/post/8610475/4-interviews-set-with-oracle-ic3-by-anon-al86/",
@@ -347,27 +391,35 @@
      "createdAt": "2026-11-12T13:50:38.132060+00:00",
      "upvotes": 1,
      "comments": 3,
-     "views": 181,
+     "views": 287,
      "roles": []
     },
     {
-     "title": "Oracle and Teradata Senior Software Engineer Comp and career discussion",
-     "url": "https://leetcode.com/discuss/post/8608022/need-some-honest-career-advice-from-fell-fv7s/",
+     "title": "Oracle OCI Interview Loop for Senior Platform Engineer ",
+     "url": "https://leetcode.com/discuss/post/8619040/oracle-oci-interview-loop-for-senior-pla-bwdc/",
      "source": "LeetCode",
-     "createdAt": "2026-11-10T13:49:38.930846+00:00",
-     "upvotes": 1,
-     "comments": 1,
-     "views": 605,
-     "roles": []
-    },
-    {
-     "title": "Oracle interview ",
-     "url": "https://leetcode.com/discuss/post/8601288/oracle-interview-by-sreya-tmr1/",
-     "source": "LeetCode",
-     "createdAt": "2026-11-04T06:54:46.231330+00:00",
+     "createdAt": "2026-11-20T13:12:48.337036+00:00",
      "upvotes": 0,
-     "comments": 1,
-     "views": 268,
+     "comments": 0,
+     "views": 183,
+     "roles": []
+    }
+   ]
+  },
+  "Intuit": {
+   "group": "Big tech",
+   "threads": 1,
+   "engagement": 13,
+   "roles": [],
+   "top": [
+    {
+     "title": " 🟢Intuit Co-Op Internship | Verdict: Selected | Interview Experience",
+     "url": "https://leetcode.com/discuss/post/8619266/intuit-co-op-internship-verdict-selected-y31n/",
+     "source": "LeetCode",
+     "createdAt": "2026-11-20T17:18:20.834229+00:00",
+     "upvotes": 4,
+     "comments": 0,
+     "views": 146,
      "roles": []
     }
    ]
@@ -375,53 +427,39 @@
   "Walmart": {
    "group": "Big tech",
    "threads": 1,
-   "engagement": 14,
-   "roles": [],
+   "engagement": 7,
+   "roles": [
+    "frontend"
+   ],
    "top": [
     {
-     "title": "Walmart SSE HackerRank OA – DSA + Backend Repository Debugging. Anyone Else Got This?",
-     "url": "https://leetcode.com/discuss/post/8599833/walmart-sse-hackerrank-oa-dsa-backend-re-atyg/",
+     "title": "Walmart AI assisted OA - do we need to pass all the test cases in all 3 tasks?",
+     "url": "https://leetcode.com/discuss/post/8619895/walmart-ai-assisted-oa-do-we-need-to-pas-h5qv/",
      "source": "LeetCode",
-     "createdAt": "2026-11-03T04:59:11.870525+00:00",
-     "upvotes": 2,
-     "comments": 3,
-     "views": 328,
-     "roles": []
+     "createdAt": "2026-11-21T12:09:00.666972+00:00",
+     "upvotes": 1,
+     "comments": 2,
+     "views": 90,
+     "roles": [
+      "frontend"
+     ]
     }
    ]
   },
   "Rippling": {
    "group": "Big tech",
    "threads": 1,
-   "engagement": 12,
+   "engagement": 9,
    "roles": [],
    "top": [
     {
-     "title": "Rippling | SDE 1 | OA",
-     "url": "https://leetcode.com/discuss/post/8603642/rippling-sde-1-oa-by-octochet-9k9q/",
+     "title": "Rippling Technical Interview (Coding) for Software Engineer - II position",
+     "url": "https://leetcode.com/discuss/post/8619203/rippling-technical-interview-coding-for-vdrv9/",
      "source": "LeetCode",
-     "createdAt": "2026-11-06T12:05:57.852926+00:00",
-     "upvotes": 2,
+     "createdAt": "2026-11-20T16:07:13.279096+00:00",
+     "upvotes": 1,
      "comments": 2,
-     "views": 483,
-     "roles": []
-    }
-   ]
-  },
-  "Databricks": {
-   "group": "AI & FDE",
-   "threads": 1,
-   "engagement": 32,
-   "roles": [],
-   "top": [
-    {
-     "title": "How to prepare for Databricks Software Engineer New Grad interviews? (Berlin, 2027)",
-     "url": "https://leetcode.com/discuss/post/8602881/how-to-prepare-for-databricks-software-e-am94/",
-     "source": "LeetCode",
-     "createdAt": "2026-11-05T16:24:30.649980+00:00",
-     "upvotes": 6,
-     "comments": 6,
-     "views": 478,
+     "views": 331,
      "roles": []
     }
    ]
@@ -429,53 +467,61 @@
   "Flipkart": {
    "group": "India product",
    "threads": 1,
-   "engagement": 1,
+   "engagement": 7,
    "roles": [],
    "top": [
     {
-     "title": "Flipkart Lead Java Developer | 5 YOE+ |  L1",
-     "url": "https://leetcode.com/discuss/post/8598579/flipkart-lead-java-developer-5-yoe-l1-by-wib7/",
+     "title": "Flipkart GRiD 8.0 | Round 3 Experience",
+     "url": "https://leetcode.com/discuss/post/8614652/flipkart-grid-80-round-3-experience-by-y-a6d2/",
      "source": "LeetCode",
-     "createdAt": "2026-11-02T08:29:59.270719+00:00",
-     "upvotes": 0,
+     "createdAt": "2026-11-16T11:09:16.278985+00:00",
+     "upvotes": 2,
      "comments": 0,
-     "views": 245,
+     "views": 135,
      "roles": []
     }
    ]
   },
   "Swiggy": {
    "group": "India product",
-   "threads": 2,
-   "engagement": 28,
+   "threads": 1,
+   "engagement": 1,
    "roles": [],
    "top": [
     {
-     "title": "Swiggy SDE-2 Interview Experience [OCT-2026]",
-     "url": "https://leetcode.com/discuss/post/8604140/swiggy-sde-2-interview-experience-oct-20-cfj6/",
+     "title": "Swiggy SDE-2 Interview Oct - 2026",
+     "url": "https://leetcode.com/discuss/post/8614565/swiggy-sde-2-interview-oct-2026-by-anony-zzxy/",
      "source": "LeetCode",
-     "createdAt": "2026-11-07T00:45:22.254249+00:00",
-     "upvotes": 5,
-     "comments": 3,
-     "views": 708,
-     "roles": []
-    },
-    {
-     "title": "Tips for upcoming Swiggy interview for SDE 1 role in 1 - 2 year exp. category.",
-     "url": "https://leetcode.com/discuss/post/8600513/tips-for-upcoming-swiggy-interview-for-s-p5zt/",
-     "source": "LeetCode",
-     "createdAt": "2026-11-03T14:40:52.884913+00:00",
+     "createdAt": "2026-11-16T09:49:17.451069+00:00",
      "upvotes": 0,
-     "comments": 1,
-     "views": 108,
+     "comments": 0,
+     "views": 276,
+     "roles": []
+    }
+   ]
+  },
+  "CRED": {
+   "group": "India product",
+   "threads": 1,
+   "engagement": 0,
+   "roles": [],
+   "top": [
+    {
+     "title": "Cred interview | Freshers | Swe",
+     "url": "https://leetcode.com/discuss/post/8618432/cred-interview-freshers-swe-by-anonymous-1rx7/",
+     "source": "LeetCode",
+     "createdAt": "2026-11-19T20:15:00.391046+00:00",
+     "upvotes": 0,
+     "comments": 0,
+     "views": 85,
      "roles": []
     }
    ]
   },
   "Paytm": {
    "group": "India product",
-   "threads": 1,
-   "engagement": 34,
+   "threads": 2,
+   "engagement": 69,
    "roles": [],
    "top": [
     {
@@ -484,26 +530,18 @@
      "source": "LeetCode",
      "createdAt": "2026-11-11T08:06:39.759308+00:00",
      "upvotes": 5,
-     "comments": 8,
-     "views": 686,
+     "comments": 9,
+     "views": 881,
      "roles": []
-    }
-   ]
-  },
-  "Nykaa": {
-   "group": "India product",
-   "threads": 1,
-   "engagement": 6,
-   "roles": [],
-   "top": [
+    },
     {
-     "title": "Nykaa Interview Experience | SDET (QA Automation) | 2 Rounds | DSA + SQL + API Testing",
-     "url": "https://leetcode.com/discuss/post/8604928/nykaa-interview-experience-sdet-qa-autom-r1xh/",
+     "title": "Paytm Interview Experience | 3 Rounds | SDE | Resume-Based + DSA + System Design",
+     "url": "https://leetcode.com/discuss/post/8615170/paytm-interview-experience-3-rounds-sde-vl9cd/",
      "source": "LeetCode",
-     "createdAt": "2026-11-07T17:39:03.761036+00:00",
-     "upvotes": 1,
-     "comments": 1,
-     "views": 139,
+     "createdAt": "2026-11-16T19:07:11.540028+00:00",
+     "upvotes": 7,
+     "comments": 3,
+     "views": 955,
      "roles": []
     }
    ]
