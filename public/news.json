@@ -1,6 +1,96 @@
 {
- "generatedAt": "2026-11-22T02:42:26.855Z",
+ "generatedAt": "2026-11-23T03:18:03.208Z",
  "days": {
+  "2026-11-23": [
+   {
+    "id": "2026-11-23-1",
+    "title": "Researcher plants 2m canaries into the AI supply chain. A privacy disaster surfaced",
+    "url": "https://arstechnica.com/security/2026/11/a-leaky-ai-supply-chain-is-exposing-secret-user-data-at-an-alarming-rate/",
+    "discussUrl": "https://lobste.rs/s/32rhzb/researcher_plants_2m_canaries_into_ai",
+    "source": "Lobsters",
+    "points": 114,
+    "comments": 17,
+    "publishedAt": "2026-11-21T20:03:46.531-06:00",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-23-2",
+    "title": "87% of the Anthropic power will come from gas and 11% from coal in 2028",
+    "url": "https://betterdatacenterproject.com/2026/11/16/how-ai-is-powered-a-breakdown-of-byop-and-grid-power/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50597612",
+    "source": "Hacker News",
+    "points": 907,
+    "comments": 907,
+    "publishedAt": "2026-11-22T08:57:34Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-23-3",
+    "title": "Perplexity and Intelligence",
+    "url": "https://openai.com/index/perplexity-and-intelligence/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50601525",
+    "source": "Hacker News",
+    "points": 510,
+    "comments": 350,
+    "publishedAt": "2026-11-22T17:06:27Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-23-4",
+    "title": "GitHub Actions accepts invalid YAML",
+    "url": "https://yossarian.net/til/post/github-actions-accepts-invalid-yaml/",
+    "discussUrl": "https://lobste.rs/s/leqwqu/github_actions_accepts_invalid_yaml",
+    "source": "Lobsters",
+    "points": 38,
+    "comments": 4,
+    "publishedAt": "2026-11-22T15:49:18.929-06:00",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-23-5",
+    "title": "A Beginner's Guide to Local AI with Inkling, Qwen, and Unsloth",
+    "url": "https://www.gpupartner.com/blog/beginners-guide-local-ai-inkling-qwen-unsloth",
+    "discussUrl": "https://news.ycombinator.com/item?id=50603845",
+    "source": "Hacker News",
+    "points": 282,
+    "comments": 123,
+    "publishedAt": "2026-11-22T21:01:16Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-23-7",
+    "title": "Fast-Anything: Don't rewrite it in Rust. Rewrite the 5% that's slow",
+    "url": "https://github.com/EL4CTEO/fast-anything",
+    "discussUrl": "https://news.ycombinator.com/item?id=50596155",
+    "source": "Hacker News",
+    "points": 180,
+    "comments": 153,
+    "publishedAt": "2026-11-22T04:10:09Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-23-9",
+    "title": "Europe weakens chemical rules as science links them to 'lifestyle diseases'",
+    "url": "https://www.lemonde.fr/en/opinion/article/2026/11/22/as-science-increasingly-shows-the-role-chemical-substances-play-in-lifestyle-diseases-europe-weakens-its-regulations_6786595_23.html",
+    "discussUrl": "https://news.ycombinator.com/item?id=50600677",
+    "source": "Hacker News",
+    "points": 160,
+    "comments": 135,
+    "publishedAt": "2026-11-22T15:42:40Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-23-10",
+    "title": "I turned my GitHub contribution graph into a Bloomberg-style trading terminal",
+    "url": "https://dev.to/necoz/i-turned-my-github-contribution-graph-into-a-bloomberg-style-trading-terminal-31eh",
+    "discussUrl": "https://dev.to/necoz/i-turned-my-github-contribution-graph-into-a-bloomberg-style-trading-terminal-31eh",
+    "source": "dev.to",
+    "points": 47,
+    "comments": 11,
+    "publishedAt": "2026-11-22T13:01:22Z",
+    "category": "dev"
+   }
+  ],
   "2026-11-22": [
    {
     "id": "2026-11-22-1",
@@ -1114,74 +1204,6 @@
     "comments": 88,
     "publishedAt": "2026-11-09T19:35:16Z",
     "category": "dev"
-   }
-  ],
-  "2026-11-09": [
-   {
-    "id": "2026-11-09-1",
-    "title": "Goldman Sachs is pulling Claude Code from its bankers and traders",
-    "url": "https://www.thestateofai.com/news/goldman-sachs-claude-code-traders-bankers",
-    "discussUrl": "https://news.ycombinator.com/item?id=50415628",
-    "source": "Hacker News",
-    "points": 795,
-    "comments": 424,
-    "publishedAt": "2026-11-08T18:16:07Z",
-    "category": "ai"
-   },
-   {
-    "id": "2026-11-09-2",
-    "title": "KetchUp – Open-source SketchUp alternative built with Rust and WebGPU",
-    "url": "https://ketchup3d.github.io/app/",
-    "discussUrl": "https://news.ycombinator.com/item?id=50418176",
-    "source": "Hacker News",
-    "points": 553,
-    "comments": 164,
-    "publishedAt": "2026-11-08T22:35:35Z",
-    "category": "dev"
-   },
-   {
-    "id": "2026-11-09-3",
-    "title": "Hide your slop PR descriptions behind <details><summary>",
-    "url": "https://simonwillison.net/2026/Nov/9/details-summary/",
-    "discussUrl": "https://simonwillison.net/2026/Nov/9/details-summary/",
-    "source": "Simon Willison",
-    "points": 0,
-    "comments": 0,
-    "publishedAt": "2026-11-09T04:25:05+00:00",
-    "category": "ai"
-   },
-   {
-    "id": "2026-11-09-4",
-    "title": "Unattended reboots with encrypted disks",
-    "url": "https://jmmv.dev/2026/11/zkeys-intro.html",
-    "discussUrl": "https://lobste.rs/s/urg4yu/unattended_reboots_with_encrypted_disks",
-    "source": "Lobsters",
-    "points": 22,
-    "comments": 12,
-    "publishedAt": "2026-11-08T10:58:03.605-06:00",
-    "category": "dev"
-   },
-   {
-    "id": "2026-11-09-5",
-    "title": "What can I realistically do with local AI on a Mac mini M5 Pro (48GB)?",
-    "url": "https://lobste.rs/s/umsitb/what_can_i_realistically_do_with_local_ai",
-    "discussUrl": "https://lobste.rs/s/umsitb/what_can_i_realistically_do_with_local_ai",
-    "source": "Lobsters",
-    "points": 17,
-    "comments": 9,
-    "publishedAt": "2026-11-08T11:07:51.827-06:00",
-    "category": "ai"
-   },
-   {
-    "id": "2026-11-09-6",
-    "title": "An agent told me it deployed. I asked the server, and the containers were a day old",
-    "url": "https://dev.to/chet103cc/an-agent-told-me-it-deployed-i-asked-the-server-and-the-containers-were-a-day-old-2b6i",
-    "discussUrl": "https://dev.to/chet103cc/an-agent-told-me-it-deployed-i-asked-the-server-and-the-containers-were-a-day-old-2b6i",
-    "source": "dev.to",
-    "points": 65,
-    "comments": 21,
-    "publishedAt": "2026-11-07T14:18:49Z",
-    "category": "ai"
    }
   ]
  }
