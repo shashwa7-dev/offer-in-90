@@ -1,6 +1,96 @@
 {
- "generatedAt": "2026-11-23T03:18:03.208Z",
+ "generatedAt": "2026-11-24T06:32:55.036Z",
  "days": {
+  "2026-11-24": [
+   {
+    "id": "2026-11-24-1",
+    "title": "GLM-5.4: Toward generalized coding with our first loop transformer",
+    "url": "https://z.ai/blog/glm-5.4",
+    "discussUrl": "https://news.ycombinator.com/item?id=50609685",
+    "source": "Hacker News",
+    "points": 1098,
+    "comments": 359,
+    "publishedAt": "2026-11-23T10:06:43Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-24-2",
+    "title": "GitHub Actions accepts invalid YAML",
+    "url": "https://yossarian.net/til/post/github-actions-accepts-invalid-yaml/",
+    "discussUrl": "https://lobste.rs/s/leqwqu/github_actions_accepts_invalid_yaml",
+    "source": "Lobsters",
+    "points": 81,
+    "comments": 31,
+    "publishedAt": "2026-11-22T15:49:18.929-06:00",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-24-3",
+    "title": "Apple removed my open-source app from EU App Stores after 9 years",
+    "url": "https://github.com/glushchenko/fsnotes/discussions/2056",
+    "discussUrl": "https://news.ycombinator.com/item?id=50616933",
+    "source": "Hacker News",
+    "points": 556,
+    "comments": 125,
+    "publishedAt": "2026-11-23T18:48:10Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-24-4",
+    "title": "Motion Mamba 2.0: Autoregressive Diffusion Mamba for Long-Horizon Humanoid Control",
+    "url": "https://huggingface.co/papers/2611.29897",
+    "discussUrl": "https://huggingface.co/papers/2611.29897",
+    "source": "HF Papers",
+    "points": 44,
+    "comments": 1,
+    "publishedAt": "2026-11-22T19:00:00.000Z",
+    "category": "research"
+   },
+   {
+    "id": "2026-11-24-5",
+    "title": "Ladybird's first alpha release",
+    "url": "https://simonwillison.net/2026/Nov/23/ladybird/",
+    "discussUrl": "https://simonwillison.net/2026/Nov/23/ladybird/",
+    "source": "Simon Willison",
+    "points": 0,
+    "comments": 0,
+    "publishedAt": "2026-11-23T21:46:35+00:00",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-24-6",
+    "title": "VP ≠ VNP over Every Field",
+    "url": "https://github.com/anthropics/formal-math/tree/main/vp-vnp",
+    "discussUrl": "https://news.ycombinator.com/item?id=50620102",
+    "source": "Hacker News",
+    "points": 309,
+    "comments": 275,
+    "publishedAt": "2026-11-23T22:09:10Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-24-7",
+    "title": "Nospeaker ─ Make your MacBook's trackpad talk using its haptic motor",
+    "url": "https://github.com/os6/nospeaker",
+    "discussUrl": "https://news.ycombinator.com/item?id=50610318",
+    "source": "Hacker News",
+    "points": 306,
+    "comments": 172,
+    "publishedAt": "2026-11-23T11:31:54Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-24-8",
+    "title": "3AGameFactory-Motion: Agentic Rigging and Reliable Complex Motion Generation for Diverse 3D Assets",
+    "url": "https://huggingface.co/papers/2611.30013",
+    "discussUrl": "https://huggingface.co/papers/2611.30013",
+    "source": "HF Papers",
+    "points": 26,
+    "comments": 1,
+    "publishedAt": "2026-11-22T19:00:00.000Z",
+    "category": "research"
+   }
+  ],
   "2026-11-23": [
    {
     "id": "2026-11-23-1",
@@ -1113,96 +1203,6 @@
     "points": 26,
     "comments": 11,
     "publishedAt": "2026-11-09T18:48:20.266-06:00",
-    "category": "dev"
-   }
-  ],
-  "2026-11-10": [
-   {
-    "id": "2026-11-10-1",
-    "title": "Claude Fable 5.2 and Mythos 5.2",
-    "url": "https://www.anthropic.com/claude-fable-and-mythos-5-2",
-    "discussUrl": "https://news.ycombinator.com/item?id=50429906",
-    "source": "Hacker News",
-    "points": 967,
-    "comments": 6,
-    "publishedAt": "2026-11-09T18:56:29Z",
-    "category": "ai"
-   },
-   {
-    "id": "2026-11-10-2",
-    "title": "Google Gemini routes personal Drive files and emails to human annotators",
-    "url": "https://github.com/thisisme6598/gemini_files/",
-    "discussUrl": "https://news.ycombinator.com/item?id=50429426",
-    "source": "Hacker News",
-    "points": 477,
-    "comments": 113,
-    "publishedAt": "2026-11-09T18:24:38Z",
-    "category": "ai"
-   },
-   {
-    "id": "2026-11-10-3",
-    "title": "Locating the source of a mysterious beep with Claude",
-    "url": "https://simonwillison.net/2026/Nov/9/mysterious-beeps/",
-    "discussUrl": "https://simonwillison.net/2026/Nov/9/mysterious-beeps/",
-    "source": "Simon Willison",
-    "points": 0,
-    "comments": 0,
-    "publishedAt": "2026-11-09T23:57:21+00:00",
-    "category": "ai"
-   },
-   {
-    "id": "2026-11-10-4",
-    "title": "Claude Fable 5.2 scores 65 on Artificial Analysis, highest so far",
-    "url": "https://artificialanalysis.ai/models/claude-fable-5-2",
-    "discussUrl": "https://news.ycombinator.com/item?id=50431144",
-    "source": "Hacker News",
-    "points": 313,
-    "comments": 230,
-    "publishedAt": "2026-11-09T20:04:55Z",
-    "category": "ai"
-   },
-   {
-    "id": "2026-11-10-5",
-    "title": "E-means: Outperforming k-means in one-tenth the epochs",
-    "url": "https://e-means.github.io/",
-    "discussUrl": "https://news.ycombinator.com/item?id=50429734",
-    "source": "Hacker News",
-    "points": 311,
-    "comments": 28,
-    "publishedAt": "2026-11-09T18:45:43Z",
-    "category": "dev"
-   },
-   {
-    "id": "2026-11-10-7",
-    "title": "Unattended reboots with encrypted disks",
-    "url": "https://jmmv.dev/2026/11/zkeys-intro.html",
-    "discussUrl": "https://lobste.rs/s/urg4yu/unattended_reboots_with_encrypted_disks",
-    "source": "Lobsters",
-    "points": 32,
-    "comments": 25,
-    "publishedAt": "2026-11-08T10:58:03.605-06:00",
-    "category": "dev"
-   },
-   {
-    "id": "2026-11-10-10",
-    "title": "The same H100 costs $2.69 or $12.29 an hour depending where you rent it",
-    "url": "https://github.com/datareceipts/data-receipts/tree/main/109-gpu-pricing",
-    "discussUrl": "https://news.ycombinator.com/item?id=50427085",
-    "source": "Hacker News",
-    "points": 168,
-    "comments": 85,
-    "publishedAt": "2026-11-09T15:39:01Z",
-    "category": "dev"
-   },
-   {
-    "id": "2026-11-10-11",
-    "title": "CUI – Native UI components for C",
-    "url": "https://yappologistic.github.io/CUI/",
-    "discussUrl": "https://news.ycombinator.com/item?id=50430621",
-    "source": "Hacker News",
-    "points": 165,
-    "comments": 88,
-    "publishedAt": "2026-11-09T19:35:16Z",
     "category": "dev"
    }
   ]
