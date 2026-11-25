@@ -1,6 +1,96 @@
 {
- "generatedAt": "2026-11-24T06:32:55.036Z",
+ "generatedAt": "2026-11-25T05:06:21.891Z",
  "days": {
+  "2026-11-25": [
+   {
+    "id": "2026-11-25-1",
+    "title": "LLM agents work for their parent companies, not for you",
+    "url": "https://michaelharley.net/posts/2026/11/01/llm-agents-work-for-their-parent-companies-not-for-you/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50627340",
+    "source": "Hacker News",
+    "points": 950,
+    "comments": 393,
+    "publishedAt": "2026-11-24T12:40:15Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-25-2",
+    "title": "Three LLM inflection points in twelve months",
+    "url": "https://simonwillison.net/2026/Nov/24/llm-inflection-points/",
+    "discussUrl": "https://simonwillison.net/2026/Nov/24/llm-inflection-points/",
+    "source": "Simon Willison",
+    "points": 0,
+    "comments": 0,
+    "publishedAt": "2026-11-24T23:02:07+00:00",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-25-3",
+    "title": "Nemotron-Labs-VisualCreation: Pixel as Code for Agentic Visual Creation",
+    "url": "https://huggingface.co/papers/2611.31358",
+    "discussUrl": "https://huggingface.co/papers/2611.31358",
+    "source": "HF Papers",
+    "points": 37,
+    "comments": 1,
+    "publishedAt": "2026-11-22T19:00:00.000Z",
+    "category": "research"
+   },
+   {
+    "id": "2026-11-25-4",
+    "title": "Quad9 pulled their DNS service from France",
+    "url": "https://quad9.net/news/blog/quad9-service-deactivation-in-france/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50625384",
+    "source": "Hacker News",
+    "points": 369,
+    "comments": 226,
+    "publishedAt": "2026-11-24T08:33:14Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-25-5",
+    "title": "Matrix Multiplication is Θ(n^2.25) [pdf]",
+    "url": "https://github.com/openai/math/blob/main/preprints/The-matrix-multiplication-exponent-is-nine-fourths-November-24-2026/paper.pdf",
+    "discussUrl": "https://news.ycombinator.com/item?id=50637220",
+    "source": "Hacker News",
+    "points": 330,
+    "comments": 150,
+    "publishedAt": "2026-11-25T01:19:26Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-25-6",
+    "title": "Tidal bans AI-generated music",
+    "url": "https://variety.com/2026/music/news/tidal-bans-ai-generated-music-1236956924/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50630309",
+    "source": "Hacker News",
+    "points": 320,
+    "comments": 308,
+    "publishedAt": "2026-11-24T16:12:38Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-25-7",
+    "title": "Jetty Pro",
+    "url": "http://hypercritical.co/2026/11/23/jetty-pro",
+    "discussUrl": "https://news.ycombinator.com/item?id=50630462",
+    "source": "Hacker News",
+    "points": 288,
+    "comments": 132,
+    "publishedAt": "2026-11-24T16:23:02Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-25-9",
+    "title": "Microsoft declares 'Code Red' after historic outage, internal memos show",
+    "url": "https://www.reuters.com/business/microsoft-declares-code-red-after-historic-outage-internal-memos-show-2026-11-24/",
+    "discussUrl": "https://news.ycombinator.com/item?id=50631157",
+    "source": "Hacker News",
+    "points": 233,
+    "comments": 216,
+    "publishedAt": "2026-11-24T17:07:41Z",
+    "category": "dev"
+   }
+  ],
   "2026-11-24": [
    {
     "id": "2026-11-24-1",
@@ -1113,96 +1203,6 @@
     "points": 278,
     "comments": 302,
     "publishedAt": "2026-11-11T22:03:58Z",
-    "category": "dev"
-   }
-  ],
-  "2026-11-11": [
-   {
-    "id": "2026-11-11-1",
-    "title": "Learning Heterogeneous Tactile Representation for General Dexterous Manipulation",
-    "url": "https://huggingface.co/papers/2611.12806",
-    "discussUrl": "https://huggingface.co/papers/2611.12806",
-    "source": "HF Papers",
-    "points": 92,
-    "comments": 2,
-    "publishedAt": "2026-11-08T19:00:00.000Z",
-    "category": "research"
-   },
-   {
-    "id": "2026-11-11-2",
-    "title": "AlphaProof Code",
-    "url": "https://deepmind.google/blog/introducing-alphaproof-code/",
-    "discussUrl": "https://news.ycombinator.com/item?id=50439193",
-    "source": "Hacker News",
-    "points": 582,
-    "comments": 177,
-    "publishedAt": "2026-11-10T12:11:12Z",
-    "category": "ai"
-   },
-   {
-    "id": "2026-11-11-3",
-    "title": "Sage-Taiyi: A Metacognitive Architecture for Scientific Discovery",
-    "url": "https://huggingface.co/papers/2611.12762",
-    "discussUrl": "https://huggingface.co/papers/2611.12762",
-    "source": "HF Papers",
-    "points": 53,
-    "comments": 2,
-    "publishedAt": "2026-11-08T19:00:00.000Z",
-    "category": "research"
-   },
-   {
-    "id": "2026-11-11-4",
-    "title": "Locating the source of a mysterious beep with Claude",
-    "url": "https://simonwillison.net/2026/Nov/9/mysterious-beeps/",
-    "discussUrl": "https://simonwillison.net/2026/Nov/9/mysterious-beeps/",
-    "source": "Simon Willison",
-    "points": 0,
-    "comments": 0,
-    "publishedAt": "2026-11-09T23:57:21+00:00",
-    "category": "ai"
-   },
-   {
-    "id": "2026-11-11-5",
-    "title": "AI usage generates a fragile codebase",
-    "url": "https://evanxmerz.com/post/ai-usage-generates-a-fragile-codebase/",
-    "discussUrl": "https://news.ycombinator.com/item?id=50438318",
-    "source": "Hacker News",
-    "points": 390,
-    "comments": 414,
-    "publishedAt": "2026-11-10T10:25:58Z",
-    "category": "ai"
-   },
-   {
-    "id": "2026-11-11-6",
-    "title": "Open Graph images with Astro and Typst",
-    "url": "https://eaj.no/posts/open-graph-images-with-typst/",
-    "discussUrl": "https://lobste.rs/s/gj5obq/open_graph_images_with_astro_typst",
-    "source": "Lobsters",
-    "points": 37,
-    "comments": 7,
-    "publishedAt": "2026-11-10T05:42:48.435-06:00",
-    "category": "dev"
-   },
-   {
-    "id": "2026-11-11-7",
-    "title": "Gemini 4 Carbon is now available",
-    "url": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/gemini-4-carbon-now-available/",
-    "discussUrl": "https://news.ycombinator.com/item?id=50442303",
-    "source": "Hacker News",
-    "points": 275,
-    "comments": 149,
-    "publishedAt": "2026-11-10T16:07:15Z",
-    "category": "ai"
-   },
-   {
-    "id": "2026-11-11-10",
-    "title": "Blunt Banhammer Blocks Basic Bots Ballistically",
-    "url": "https://shkspr.mobi/blog/2026/11/blunt-banhammer-blocks-basic-bots-ballistically/",
-    "discussUrl": "https://lobste.rs/s/bubqox/blunt_banhammer_blocks_basic_bots",
-    "source": "Lobsters",
-    "points": 26,
-    "comments": 11,
-    "publishedAt": "2026-11-09T18:48:20.266-06:00",
     "category": "dev"
    }
   ]
