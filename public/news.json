@@ -1,6 +1,96 @@
 {
- "generatedAt": "2026-11-25T05:06:21.891Z",
+ "generatedAt": "2026-11-26T04:33:15.472Z",
  "days": {
+  "2026-11-26": [
+   {
+    "id": "2026-11-26-1",
+    "title": "1Password Security Incident",
+    "url": "https://1password.com/blog/update-on-nov-2026-security-incident",
+    "discussUrl": "https://news.ycombinator.com/item?id=50644817",
+    "source": "Hacker News",
+    "points": 1265,
+    "comments": 532,
+    "publishedAt": "2026-11-25T17:18:26Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-26-2",
+    "title": "Lazy Agents Answer Against Their Own Beliefs: Reinforcement Learning with Verifiable Beliefs Teaches Them to Act on What They Believe",
+    "url": "https://huggingface.co/papers/2611.32884",
+    "discussUrl": "https://huggingface.co/papers/2611.32884",
+    "source": "HF Papers",
+    "points": 97,
+    "comments": 6,
+    "publishedAt": "2026-11-23T19:00:00.000Z",
+    "category": "research"
+   },
+   {
+    "id": "2026-11-26-3",
+    "title": "Marginalia Search, Money, C++, Rust, AI, stuff",
+    "url": "https://www.marginalia.nu/log/a_141_marginalia_update/",
+    "discussUrl": "https://lobste.rs/s/srb0dp/marginalia_search_money_c_rust_ai_stuff",
+    "source": "Lobsters",
+    "points": 103,
+    "comments": 20,
+    "publishedAt": "2026-11-25T00:20:29.600-06:00",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-26-4",
+    "title": "Google releases Cogentic papers on integer factorization, discrete logs and more",
+    "url": "https://github.com/google-research/google-research/tree/master/cogentic_research_papers",
+    "discussUrl": "https://news.ycombinator.com/item?id=50642086",
+    "source": "Hacker News",
+    "points": 464,
+    "comments": 342,
+    "publishedAt": "2026-11-25T13:33:07Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-26-5",
+    "title": "Three LLM inflection points in twelve months",
+    "url": "https://simonwillison.net/2026/Nov/24/llm-inflection-points/",
+    "discussUrl": "https://simonwillison.net/2026/Nov/24/llm-inflection-points/",
+    "source": "Simon Willison",
+    "points": 0,
+    "comments": 0,
+    "publishedAt": "2026-11-24T23:02:07+00:00",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-26-6",
+    "title": "Much shorter version of GRH Lean verification from Anthropic",
+    "url": "https://github.com/lsernau/grh-lean",
+    "discussUrl": "https://news.ycombinator.com/item?id=50648050",
+    "source": "Hacker News",
+    "points": 344,
+    "comments": 174,
+    "publishedAt": "2026-11-25T21:48:10Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-26-7",
+    "title": "PartAgent: Agentic 3D Part Segmentation via Expert Integration and Closed-Loop Refinement",
+    "url": "https://huggingface.co/papers/2611.32554",
+    "discussUrl": "https://huggingface.co/papers/2611.32554",
+    "source": "HF Papers",
+    "points": 33,
+    "comments": 3,
+    "publishedAt": "2026-11-23T19:00:00.000Z",
+    "category": "research"
+   },
+   {
+    "id": "2026-11-26-8",
+    "title": "October in Servo: video captions and inert content",
+    "url": "https://servo.org/blog/2026/11/25/october-in-servo/",
+    "discussUrl": "https://lobste.rs/s/tf9ldm/october_servo_video_captions_inert",
+    "source": "Lobsters",
+    "points": 41,
+    "comments": 0,
+    "publishedAt": "2026-11-25T08:31:31.655-06:00",
+    "category": "dev"
+   }
+  ],
   "2026-11-25": [
    {
     "id": "2026-11-25-1",
@@ -1114,96 +1204,6 @@
     "comments": 88,
     "publishedAt": "2026-11-11T08:35:15Z",
     "category": "ai"
-   }
-  ],
-  "2026-11-12": [
-   {
-    "id": "2026-11-12-1",
-    "title": "My AI agents found an unmapped Maya site?",
-    "url": "https://pietromiotti.com/latest/maya-site",
-    "discussUrl": "https://news.ycombinator.com/item?id=50452455",
-    "source": "Hacker News",
-    "points": 941,
-    "comments": 339,
-    "publishedAt": "2026-11-11T12:05:22Z",
-    "category": "ai"
-   },
-   {
-    "id": "2026-11-12-2",
-    "title": "Tree-Ising: Repairing Language Models with Bit-Level Ising Edits",
-    "url": "https://huggingface.co/papers/2611.14210",
-    "discussUrl": "https://huggingface.co/papers/2611.14210",
-    "source": "HF Papers",
-    "points": 77,
-    "comments": 2,
-    "publishedAt": "2026-11-09T19:00:00.000Z",
-    "category": "research"
-   },
-   {
-    "id": "2026-11-12-3",
-    "title": "AWS emulator",
-    "url": "https://github.com/aws/aws-emulator",
-    "discussUrl": "https://news.ycombinator.com/item?id=50456631",
-    "source": "Hacker News",
-    "points": 720,
-    "comments": 222,
-    "publishedAt": "2026-11-11T18:21:38Z",
-    "category": "dev"
-   },
-   {
-    "id": "2026-11-12-4",
-    "title": "Few-Step Streaming Video Generation via Condition Shifting",
-    "url": "https://huggingface.co/papers/2611.14033",
-    "discussUrl": "https://huggingface.co/papers/2611.14033",
-    "source": "HF Papers",
-    "points": 67,
-    "comments": 2,
-    "publishedAt": "2026-11-09T19:00:00.000Z",
-    "category": "research"
-   },
-   {
-    "id": "2026-11-12-5",
-    "title": "United Airlines bans AI agents from booking flights on behalf of travelers",
-    "url": "https://www.cbsnews.com/news/united-airlines-bans-ai-agents-booking-flights/",
-    "discussUrl": "https://news.ycombinator.com/item?id=50458900",
-    "source": "Hacker News",
-    "points": 431,
-    "comments": 414,
-    "publishedAt": "2026-11-11T21:24:35Z",
-    "category": "ai"
-   },
-   {
-    "id": "2026-11-12-6",
-    "title": "Hyper-Realistic Sand with WebGL2",
-    "url": "https://av.github.io/safe-sand/",
-    "discussUrl": "https://news.ycombinator.com/item?id=50453288",
-    "source": "Hacker News",
-    "points": 327,
-    "comments": 66,
-    "publishedAt": "2026-11-11T13:39:29Z",
-    "category": "dev"
-   },
-   {
-    "id": "2026-11-12-7",
-    "title": "Gemini Decisions API",
-    "url": "https://blog.google/innovation-and-ai/technology/developers-tools/gemini-decisions-api/",
-    "discussUrl": "https://news.ycombinator.com/item?id=50456791",
-    "source": "Hacker News",
-    "points": 301,
-    "comments": 98,
-    "publishedAt": "2026-11-11T18:32:42Z",
-    "category": "ai"
-   },
-   {
-    "id": "2026-11-12-8",
-    "title": "Jensen Huang said to have had relationship with executive who reports to him",
-    "url": "https://www.nytimes.com/2026/11/11/technology/jensen-huang-nvidia-affair.html",
-    "discussUrl": "https://news.ycombinator.com/item?id=50459321",
-    "source": "Hacker News",
-    "points": 278,
-    "comments": 302,
-    "publishedAt": "2026-11-11T22:03:58Z",
-    "category": "dev"
    }
   ]
  }
