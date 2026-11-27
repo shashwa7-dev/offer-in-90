@@ -1,6 +1,96 @@
 {
- "generatedAt": "2026-11-26T04:33:15.472Z",
+ "generatedAt": "2026-11-27T04:37:04.494Z",
  "days": {
+  "2026-11-27": [
+   {
+    "id": "2026-11-27-1",
+    "title": "Mixture-of-Loops Transformer",
+    "url": "https://huggingface.co/papers/2611.34923",
+    "discussUrl": "https://huggingface.co/papers/2611.34923",
+    "source": "HF Papers",
+    "points": 66,
+    "comments": 2,
+    "publishedAt": "2026-11-24T19:00:00.000Z",
+    "category": "research"
+   },
+   {
+    "id": "2026-11-27-2",
+    "title": "Stable Gated DeltaNet-2: Understanding and Mitigating Recurrent State Instability",
+    "url": "https://huggingface.co/papers/2611.34051",
+    "discussUrl": "https://huggingface.co/papers/2611.34051",
+    "source": "HF Papers",
+    "points": 50,
+    "comments": 2,
+    "publishedAt": "2026-11-24T19:00:00.000Z",
+    "category": "research"
+   },
+   {
+    "id": "2026-11-27-3",
+    "title": "Intel One Mono font (2023)",
+    "url": "https://github.com/intel/intel-one-mono",
+    "discussUrl": "https://news.ycombinator.com/item?id=50653667",
+    "source": "Hacker News",
+    "points": 487,
+    "comments": 246,
+    "publishedAt": "2026-11-26T10:11:01Z",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-27-4",
+    "title": "AI made self-hosting fun again",
+    "url": "https://janlukas.blog/posts/ai-self-hosting",
+    "discussUrl": "https://news.ycombinator.com/item?id=50660180",
+    "source": "Hacker News",
+    "points": 433,
+    "comments": 234,
+    "publishedAt": "2026-11-26T21:47:45Z",
+    "category": "ai"
+   },
+   {
+    "id": "2026-11-27-5",
+    "title": "Update on a security incident involving 1Password’s backend systems",
+    "url": "https://1password.com/blog/update-on-nov-2026-security-incident",
+    "discussUrl": "https://lobste.rs/s/aulbi2/update_on_security_incident_involving",
+    "source": "Lobsters",
+    "points": 46,
+    "comments": 4,
+    "publishedAt": "2026-11-25T11:43:13.558-06:00",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-27-6",
+    "title": "Entering the Geminispace",
+    "url": "https://jmmv.dev/2026/11/entering-the-geminispace.html",
+    "discussUrl": "https://lobste.rs/s/8rgqmw/entering_geminispace",
+    "source": "Lobsters",
+    "points": 42,
+    "comments": 32,
+    "publishedAt": "2026-11-25T16:43:05.044-06:00",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-27-7",
+    "title": "Garage v2.6.0 released with web admin, v1.x EoL & other news",
+    "url": "https://garagehq.deuxfleurs.fr/blog/2026-11-webadmin-release/",
+    "discussUrl": "https://lobste.rs/s/2gfpu3/garage_v2_6_0_released_with_web_admin_v1_x",
+    "source": "Lobsters",
+    "points": 40,
+    "comments": 3,
+    "publishedAt": "2026-11-26T06:40:23.353-06:00",
+    "category": "dev"
+   },
+   {
+    "id": "2026-11-27-8",
+    "title": "AMD-specific fork of llama.cpp",
+    "url": "https://devnull.land/amd-specific-llama-cpp",
+    "discussUrl": "https://news.ycombinator.com/item?id=50657265",
+    "source": "Hacker News",
+    "points": 308,
+    "comments": 75,
+    "publishedAt": "2026-11-26T17:11:29Z",
+    "category": "ai"
+   }
+  ],
   "2026-11-26": [
    {
     "id": "2026-11-26-1",
@@ -1113,96 +1203,6 @@
     "points": 257,
     "comments": 148,
     "publishedAt": "2026-11-13T03:08:08Z",
-    "category": "ai"
-   }
-  ],
-  "2026-11-13": [
-   {
-    "id": "2026-11-13-1",
-    "title": "Gemini 4 Hydrogen",
-    "url": "https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-hydrogen/",
-    "discussUrl": "https://news.ycombinator.com/item?id=50471431",
-    "source": "Hacker News",
-    "points": 476,
-    "comments": 300,
-    "publishedAt": "2026-11-12T18:01:48Z",
-    "category": "ai"
-   },
-   {
-    "id": "2026-11-13-2",
-    "title": "Ask HN: Microsoft/Azure Outage?",
-    "url": "https://news.ycombinator.com/item?id=50471668",
-    "discussUrl": "https://news.ycombinator.com/item?id=50471668",
-    "source": "Hacker News",
-    "points": 401,
-    "comments": 1,
-    "publishedAt": "2026-11-12T18:17:13Z",
-    "category": "dev"
-   },
-   {
-    "id": "2026-11-13-3",
-    "title": "Show HN: My $300 embroidery machine needed a subscription, so I built my own app",
-    "url": "https://github.com/simpsoka/zigzag",
-    "discussUrl": "https://news.ycombinator.com/item?id=50470488",
-    "source": "Hacker News",
-    "points": 365,
-    "comments": 145,
-    "publishedAt": "2026-11-12T17:02:42Z",
-    "category": "dev"
-   },
-   {
-    "id": "2026-11-13-4",
-    "title": "Writing correct software is hard and math alone won’t help us (2016)",
-    "url": "https://pron.github.io/posts/correctness-and-complexity",
-    "discussUrl": "https://news.ycombinator.com/item?id=50465352",
-    "source": "Hacker News",
-    "points": 359,
-    "comments": 172,
-    "publishedAt": "2026-11-12T10:28:26Z",
-    "category": "dev"
-   },
-   {
-    "id": "2026-11-13-5",
-    "title": "Gemini 4 Hydrogen and Orchestrator",
-    "url": "https://antigravity.google/blog/gemini-4-hydrogen-in-google-antigravity/",
-    "discussUrl": "https://news.ycombinator.com/item?id=50472260",
-    "source": "Hacker News",
-    "points": 323,
-    "comments": 81,
-    "publishedAt": "2026-11-12T18:52:01Z",
-    "category": "ai"
-   },
-   {
-    "id": "2026-11-13-6",
-    "title": "Rust 1.100",
-    "url": "https://github.com/rust-lang/rust/releases/tag/1.100.0",
-    "discussUrl": "https://news.ycombinator.com/item?id=50471793",
-    "source": "Hacker News",
-    "points": 308,
-    "comments": 9,
-    "publishedAt": "2026-11-12T18:24:06Z",
-    "category": "dev"
-   },
-   {
-    "id": "2026-11-13-7",
-    "title": "I'm making LLMs work on small and old devices",
-    "url": "https://github.com/hyperionaidev/smolmaxxing/",
-    "discussUrl": "https://news.ycombinator.com/item?id=50468888",
-    "source": "Hacker News",
-    "points": 287,
-    "comments": 98,
-    "publishedAt": "2026-11-12T15:23:10Z",
-    "category": "ai"
-   },
-   {
-    "id": "2026-11-13-9",
-    "title": "We Keep Hearing About AI Productivity. The QA Group Chat Told a Different Story.",
-    "url": "https://dev.to/xulingfeng/we-keep-hearing-about-ai-productivity-the-qa-group-chat-told-a-different-story-2nma",
-    "discussUrl": "https://dev.to/xulingfeng/we-keep-hearing-about-ai-productivity-the-qa-group-chat-told-a-different-story-2nma",
-    "source": "dev.to",
-    "points": 107,
-    "comments": 88,
-    "publishedAt": "2026-11-11T08:35:15Z",
     "category": "ai"
    }
   ]
